@@ -1,88 +1,106 @@
-import React, { useState } from "react"
-import PopupForm from "./PopupForm"
-import QrImage from "../src/assets/download.png"
-import "../src/customstyle.css"
+import React, { useRef, useState } from "react";
+import PopupForm from "./PopupForm";
+import QrImage from "../src/assets/download.png";
+import "../src/customstyle.css";
+import Header from "./components/Header";
+import Carousel from "./components/Carousel";
+import MorphingBlobs from "./components/background/MorphingBlobs";
+import { AnimatePresence, motion } from "framer-motion";
+
 const Home = () => {
-  const [open, setOpen] = useState(false)
+  const firstInputRef=useRef<HTMLInputElement>(null)
+  const secondInputRef=useRef<HTMLInputElement>(null)
+  const texts = [
+    { h: "Instant QR for customers", p: "Share and start taking names in seconds." },
+    { h: "Owner-only actions via PIN", p: "Serve next, skip, or remove—no shouting." },
+    { h: "Track waiting & serve next", p: "Clear, fair, and fast for everyone." }
+  ];
+
+  const [open, setOpen] = useState(false);
+  const [textIndex, setTextIndex] = useState<number>(0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-    <header
-  className="
-    relative w-screen overflow-hidden bg-gray-900 text-white
-    ml-[calc(50%-50vw)] mr-[calc(50%-50vw)] header flex content-center gap-10
-  "
->
-  <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-6">
-    <h1 className="text-2xl font-semibold tracking-tight">Door Meen</h1>
-    <button className="rounded-xl bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20">
-      Create a queue
-    </button>
-  </div>
+    <MorphingBlobs>
+      <div className="min-h-screen">
+        <Header />
 
-  {/* curved bottom */}
-  <div
-    aria-hidden
-    className="pointer-events-none absolute -bottom-24 left-1/2 h-48 w-[120vw] -translate-x-1/2 rounded-[50%] bg-gray-900"
-  />
-</header>
-
-      {/* hero */}
-      <main className="mx-auto grid w-full max-w-6xl grid-cols-2 items-center justify-between  px-4 py-12 lg:grid-cols-2 ">
-
-        <div className="relative w-full">
-          <div className="absolute inset-0 -z-10 rounded-3xl bg-gradient-to-tr from-gray-200/40 to-white blur-2xl" />
-          <img
-            src={QrImage}
-            alt="Queue demo"
-            className="w-full rounded-3xl border border-gray-200 bg-white/50 object-cover shadow"
-          />
-        </div>
-
-        <div className="w-full space-y-5 text-center md:text-left">
-          <h2 className="text-4xl font-bold leading-tight tracking-tight md:text-5xl">
-            Create your queue in seconds
-          </h2>
-          <p className="text-gray-600">
-            Let customers register quickly—no shouting names, no confusion. Share a QR and manage
-            the line with a simple PIN.
-          </p>
-
-          <div className="flex flex-wrap items-center justify-center gap-20  pt-2 md:justify-start w-full">
-            <button
-              onClick={() => setOpen(true)}
-              className="rounded-2xl bg-gray-900 px-6 py-3 text-white shadow-sm transition hover:bg-black active:scale-[.99]"
-            >
-              Create a queue now!
-            </button>
-            <button>
-            <a
-              href="/scan"
-              className="rounded-2xl border border-gray-300 px-6 py-3 text-gray-700 transition hover:bg-gray-50 active:scale-[.99]"
-            >
-              Scan a QR
-            </a>
-            </button>
+        {/* hero */}
+        <main
+          className="
+            mx-auto max-w-7xl
+            px-4 sm:px-6 lg:px-8
+            grid grid-cols-1 md:grid-cols-2
+            items-center
+            gap-8 md:gap-12 lg:gap-16
+            py-10 md:py-16
+          "
+        >
+          {/* Left: carousel */}
+          <div className="relative w-full">
+            <div className="absolute inset-0 -z-10 rounded-3xl bg-gradient-to-tr from-gray-200/40 to-white blur-2xl" />
+            <Carousel autoPlay interval={3500} onNextImage={(i: number) => setTextIndex(i)}>
+              {/* Use fluid aspect ratio instead of fixed height */}
+              <img src={QrImage} alt="One" className="w-full rounded-xl aspect-[16/10] md:aspect-[4/3] object-cover" />
+              <img src={QrImage} alt="Two" className="w-full rounded-xl aspect-[16/10] md:aspect-[4/3] object-cover" />
+              <img src={QrImage} alt="Three" className="w-full rounded-xl aspect-[16/10] md:aspect-[4/3] object-cover" />
+            </Carousel>
           </div>
 
-          <ul className="mt-4 space-y-2 text-sm text-gray-600">
-            <li>• Instant QR for customers</li>
-            <li>• Owner-only actions via PIN</li>
-            <li>• Track waiting & serve next</li>
-          </ul>
-        </div>
-      </main>
+          {/* Right: text + cta */}
+          <div className="w-full space-y-5 text-center md:text-left">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={textIndex}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className="space-y-3"
+              >
+                <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight tracking-tight">
+                  {texts[textIndex].h}
+                </h2>
+                <p className="text-gray-600 max-w-prose mx-auto md:mx-0">
+                  {texts[textIndex].p}
+                </p>
+              </motion.div>
+            </AnimatePresence>
 
-      <PopupForm
-        open={open}
-        onClose={() => setOpen(false)}
-        onSubmit={(e) => {
-          e.preventDefault()
-          console.log("submitted!")
-        }}
-      />
-    </div>
-  )
-}
+            {/* Buttons: stack on mobile, row on >=sm */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center md:justify-start gap-3 sm:gap-4 pt-2">
+              <button onClick={() => setOpen(true)} className="btn btn-lg !bg-gray-900">
+                Create a queue now!
+              </button>
+              <a
+                href="/scan"
+                className="btn btn-outline btn-lg text-gray-700"
+              >
+                Scan a QR
+              </a>
+            </div>
 
-export default Home
+            <ul className="mt-4 space-y-1 text-sm text-gray-600 max-w-prose mx-auto md:mx-0">
+              <li>• Instant QR for customers</li>
+              <li>• Owner-only actions via PIN</li>
+              <li>• Track waiting &amp; serve next</li>
+            </ul>
+          </div>
+        </main>
+
+        <PopupForm
+          open={open}
+          onClose={() => setOpen(false)}
+          onSubmit={(e) => {
+            e.preventDefault();
+            console.log("submitted!");
+          }}
+           type="create"
+           firstInputRef={firstInputRef}
+           secondInputRef={secondInputRef}
+        />
+      </div>
+    </MorphingBlobs>
+  );
+};
+
+export default Home;

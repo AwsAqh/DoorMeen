@@ -13,6 +13,15 @@ namespace Api.controllers
         private readonly DoorMeenDbContext _db;
         public Queues(DoorMeenDbContext db) => _db = db;
 
+        public record QueueCustomerDto(int Id,string Name, DateTime CreatedAt, string State);
+        public record QueueDetailsDto(
+        int Id, string Name,
+     
+        List<QueueCustomerDto> Waiters,
+      
+        DateTime CreatedAt
+            
+            );
 
         [HttpGet("q/{id:int}")]
         public async Task<ActionResult<Object>> GetQueueById(int id)
@@ -20,18 +29,15 @@ namespace Api.controllers
             var queue=await _db.Queues.SingleOrDefaultAsync(q=>q.Id==id);
             if (queue is null) return NotFound("Not found");
 
-            var waitings = await _db.QueueCustomers.AsNoTracking().Where(c => c.QueueId == id && c.State == "waiting").OrderBy(c=>c.CreatedAt).Select(c => new { c.Name,c.CreatedAt,c.State }).ToListAsync();
+            var Waiters = await _db.QueueCustomers.AsNoTracking().Where(c => c.QueueId == id).OrderBy(c => c.State).Select(c => new QueueCustomerDto( c.Id, c.Name, c.CreatedAt, c.State )).ToListAsync();
 
-            var InProgress = await _db.QueueCustomers.AsNoTracking().Where(c => c.QueueId == id && c.State == "In_Progress").Select(c => new {  c.Name, c.CreatedAt, c.State }).ToListAsync();
-            return Ok(new
-            {
-                Id = queue.Id,
-                Name = queue.Name,
-                waitings,
-                InProgress,
-                CreatedAt = queue.CreatedAt
-
-            });
+            var res = new QueueDetailsDto(
+                 Id: queue.Id,
+                 Name: queue.Name,
+                 Waiters,
+                 CreatedAt: queue.CreatedAt
+             );
+            return Ok(res);
 
         }
 
@@ -53,7 +59,7 @@ namespace Api.controllers
             _db.Queues.Add(queue);
             _db.SaveChanges();
 
-            return Created();
+            return Created("",new {id=queue.Id});
 
         }
 

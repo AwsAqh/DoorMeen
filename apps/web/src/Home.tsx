@@ -6,8 +6,10 @@ import Header from "./components/Header";
 import Carousel from "./components/Carousel";
 import MorphingBlobs from "./components/background/MorphingBlobs";
 import { AnimatePresence, motion } from "framer-motion";
-
+import { CreateData,handleCreate } from "./features/queue/handlers";
+import { useNavigate } from "react-router-dom";
 const Home = () => {
+  const navigate=useNavigate()
   const firstInputRef=useRef<HTMLInputElement>(null)
   const secondInputRef=useRef<HTMLInputElement>(null)
   const texts = [
@@ -18,6 +20,30 @@ const Home = () => {
 
   const [open, setOpen] = useState(false);
   const [textIndex, setTextIndex] = useState<number>(0);
+
+  const handleSubmit=async(e)=>{
+    e.preventDefault()
+    const a = firstInputRef.current?.value?.trim() ?? "";
+    const b = secondInputRef.current?.value?.trim() ?? "";
+    
+    try{
+    const payload:CreateData={name:a,password:b}
+      const res=await handleCreate(payload)
+
+      setOpen(false)
+      navigate(`/queue/${res.id}`)
+      
+      
+  }
+    catch(err){ 
+      console.log(err.message)
+    }
+    
+
+
+
+  }
+
 
   return (
     <MorphingBlobs>
@@ -90,10 +116,7 @@ const Home = () => {
         <PopupForm
           open={open}
           onClose={() => setOpen(false)}
-          onSubmit={(e) => {
-            e.preventDefault();
-            console.log("submitted!");
-          }}
+          onSubmit={handleSubmit}
            type="create"
            firstInputRef={firstInputRef}
            secondInputRef={secondInputRef}

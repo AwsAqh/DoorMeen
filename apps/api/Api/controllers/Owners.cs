@@ -5,115 +5,153 @@ using Microsoft.EntityFrameworkCore;
 using Api.Security;
 using System.Net.NetworkInformation;
 using Api.Infrastructuer.DTO;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Logging;
 namespace Api.controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     public class Owners : ControllerBase
     {
+        private readonly IConfiguration _cfg;
         private readonly DoorMeenDbContext _db;
-        public Owners(DoorMeenDbContext db) => _db = db;
+        private readonly ILogger<Owners> _logger;
+        public Owners(DoorMeenDbContext db, IConfiguration cfg,ILogger<Owners>logger ) 
+        {
+            _db = db;
+            _cfg = cfg;
+            _logger = logger;
+        }
+
 
 
         public async Task<bool> CheckPassowrd(int queueId,string password)
         {
-            var queue = await _db.Queues.FindAsync(queueId);
+            var queue = await _db.Queues.SingleOrDefaultAsync(q=>q.Id==queueId);
             if (queue == null) return false;
             return !string.IsNullOrWhiteSpace(password) && Password.Verify(password, queue.HashedPassword); 
         }
-        public record VerifyPasswordDto(int queueId, string password);
+        public record VerifyPasswordDto(int QueueId, string Password);
 
 
         [HttpPost("verify-password")]
         public async Task<ActionResult> VerifyPassword ([FromBody]VerifyPasswordDto req)
         {
-            var ok = await CheckPassowrd(req.queueId, req.password);
-            return ok ? Ok() : Unauthorized();
+            var ok = await CheckPassowrd(req.QueueId, req.Password);
+            if (!ok) return Unauthorized();
+            var jwt = _cfg.GetSection("Jwt");
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]!));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var claims = new[]
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, "owner"),
+                new Claim("role", "owner"),
+                new Claim("queueId", req.QueueId.ToString())
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: jwt["Issuer"],
+                audience: jwt["Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddMinutes(int.Parse(jwt["ExpiresMinutes"]!)),
+                signingCredentials: creds
+            );
+
+            var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+           
+            return Ok(new{queueId=req.QueueId, token=tokenString }) ;
             
 
-        } 
+        }
 
 
+        [Authorize(Policy = "OwnerOfQueue")]
+        [HttpGet("check-owner/{queueId:int}")]
+        public async Task<ActionResult> CheckOwnerness(int queueId) {
+
+            return Ok();
+
+        }
+
+
+        [Authorize(Policy = "OwnerOfQueue")]
         [HttpGet("q/{id:int}")]
-        public async Task<ActionResult<Object>> GetQueueById(int id, [FromHeader (Name="X-Owner-Password") ] string? password )
+        public async Task<ActionResult<Object>> GetQueueById(int id )
         {
+            
             var queue = await _db.Queues.SingleOrDefaultAsync(q => q.Id == id);
             if (queue is null) return NotFound("Not found");
+              var Waiters= await _db.QueueCustomers.AsNoTracking().Where(c => c.QueueId == id).OrderBy(c => c.State).Select(c => new { c.Id, c.QueueId, c.Name, PhoneNumber = c.Phone, c.CreatedAt, c.State }).ToListAsync();
 
-
-            if (!await CheckPassowrd(queue.Id, password)) return Unauthorized();
-
-            var waitings = await _db.QueueCustomers.AsNoTracking().Where(c => c.QueueId == id && c.State == "waiting").OrderBy(c => c.CreatedAt).Select(c => new {c.Id, c.Name,c.Phone, c.CreatedAt, c.State }).ToListAsync();
-            var InProgress=await _db.QueueCustomers.AsNoTracking().Where(c=>c.QueueId==id && c.State == "In_Progress").Select(c=>new {c.Id,c.Name,c.Phone,c.CreatedAt, c.State}).ToListAsync();
             return Ok(new
             {
-                Id = queue.Id,
-                Name = queue.Name,
-                waitings,
-                InProgress,
-                CreatedAt = queue.CreatedAt
+                queue.Id,
+                queue.Name,
+                Waiters,
+                queue.CreatedAt
 
             });
 
         }
 
-
-        [HttpPut("set-in-progress")]
-        public async Task<ActionResult> UpdateCustomerState([FromBody] UpdateCustomerStateDTO req, [FromHeader (Name = "X-Owner-Password") ] string? password )
-
+        [Authorize(Policy = "OwnerOfQueue")]
+        [HttpPut("set-in-progress/{queueId:int}/{customerId:int}")]
+        public async Task<ActionResult> UpdateCustomerState(int queueId,int customerId)
         {
-            var customer = await _db.QueueCustomers.FindAsync(req.CustomerId);
-            if (customer is null) return NotFound(req.CustomerId);
+            var tokenQueueId = User.FindFirst("queueId")?.Value;
+            _logger.LogInformation("token queue id : {k} , req queu id : {r}",tokenQueueId,queueId.ToString());
+            if (tokenQueueId != queueId.ToString()) return Forbid();
 
-            var queue=await _db.Queues.FindAsync(req.QueueId);
-            if(queue is null ) return NotFound(req.QueueId);
-
-            if( ! await CheckPassowrd(req.QueueId, password)) return Unauthorized();
-
-            if(customer.QueueId!= req.QueueId) return BadRequest("Customer not belong to this queue!");
-
-            if (customer.State == "In_Progress") return NoContent();
-
-            if (customer.State != "waiting") return BadRequest("Can't done this opperation ");
-            customer.State = "In_Progress";
-            
-            await _db.SaveChangesAsync();
-            return NoContent();
-        }
-
-        [HttpDelete("serve/{queueId:int}/{customerId:int}")]
-        public async Task<ActionResult> ServeCustomer(int queueId  ,int customerId, [FromHeader (Name = "X-Owner-Password") ] string? password )
-        {
             var customer = await _db.QueueCustomers.FindAsync(customerId);
             if (customer is null) return NotFound(customerId);
 
-            var queue = await _db.Queues.FindAsync(queueId);
-            if (queue is null) return NotFound(queueId);
-
-            if (!await CheckPassowrd(queueId, password)) return Unauthorized();
-
             if (customer.QueueId != queueId) return BadRequest("Customer not belong to this queue!");
-            _db.QueueCustomers.Remove(customer);
+            if (customer.State == "in_progress") return NoContent();
+            if (customer.State != "waiting") return BadRequest("Can't done this opperation");
+
+            customer.State = "in_progress";
             await _db.SaveChangesAsync();
             return NoContent();
-
         }
 
 
-        [HttpPut("change-password")]
-        public async Task<ActionResult> ChangeQueuePassword([FromBody] ChangePasswordDTO req, [FromHeader(Name = "X-Owner-Password")] string password)
+        [Authorize(Policy = "OwnerOfQueue")]
+        [HttpDelete("serve/{queueId:int}/{customerId:int}")]
+        public async Task<ActionResult> ServeCustomer(int queueId, int customerId)
         {
+            var tokenQueueId = User.FindFirst("queueId")?.Value;
+            if (tokenQueueId != queueId.ToString()) return Forbid();
 
-            var queue=await _db.Queues.FindAsync(req.QueueId);
-            if (queue is null) return NotFound(req.QueueId);
-            var ok=await CheckPassowrd(req.QueueId, password);
-            if(!ok) return Unauthorized();
-            var NewPassword=Password.HashOrNull(req.Password);
-            queue.HashedPassword = NewPassword;
+            var customer = await _db.QueueCustomers.FindAsync(customerId);
+            if (customer is null) return NotFound(customerId);
+            if (customer.QueueId != queueId) return BadRequest("Customer not belong to this queue!");
+
+            _db.QueueCustomers.Remove(customer);
             await _db.SaveChangesAsync();
             return NoContent();
+        }
 
 
+        [Authorize(Policy = "Owner")]
+        [HttpPut("change-password")]
+        public async Task<ActionResult> ChangeQueuePassword([FromBody] ChangePasswordDTO req)
+        {
+            var tokenQueueId = User.FindFirst("queueId")?.Value;
+            if (tokenQueueId != req.QueueId.ToString()) return Forbid();
+
+            var queue = await _db.Queues.FindAsync(req.QueueId);
+            if (queue is null) return NotFound(req.QueueId);
+
+            queue.HashedPassword = Password.HashOrNull(req.Password);
+            await _db.SaveChangesAsync();
+            return NoContent();
         }
     }
 }

@@ -33,8 +33,9 @@ export class ApiError extends Error {
   } 
   
   export async function apiJoinQueue(input: {QueueId:number, Name: string; PhoneNumber: string }) {
+    console.log("joining....")
     const res=await fetch("https://localhost:7014/api/queuecustomers",{method:"POST",headers:{"Content-type":"application/json"} , body:JSON.stringify(input) })
-    
+    console.log("done")
     const data=await res.json()
     console.log("sdsdsdsdsd",data)
     if(!res.ok)  throw new Error(data)
@@ -121,5 +122,38 @@ export class ApiError extends Error {
       return body ?? true; 
 
   }
+
+  export async function apiUpdateMaxCustomers(input :{QueueId:number,Max:number, token:string}){
+    const res=await fetch(`https://localhost:7014/api/owners/set-max-customers/${input.QueueId}/${input.Max}`,{method:"PUT",headers:{"Content-type":"application/json","Authorization":`Bearer ${input.token}`}  })
+    const body = await readBody(res);
+    if (!res.ok) {
+      // try to surface a meaningful message
+      const msg =
+        typeof body === "string"
+          ? body
+          : body?.message || body?.detail || body?.title || `HTTP ${res.status}`;
+      throw new Error(msg);
+    }
+
+    // success: return parsed body or true for 204
+    return body ?? true; 
+  }  
+
+
+  export async function apiUpdateQueueName(input :{QueueId:number,name:string, token:string}){
+    const res=await fetch(`https://localhost:7014/api/owners/update-name/${input.QueueId}`,{method:"PUT",headers:{"Content-type":"application/json","Authorization":`Bearer ${input.token}`},body:JSON.stringify(input.name)  })
+    const body = await readBody(res);
+    if (!res.ok) {
+      // try to surface a meaningful message
+      const msg =
+        typeof body === "string"
+          ? body
+          : body?.message || body?.detail || body?.title || `HTTP ${res.status}`;
+      throw new Error(msg);
+    }
+
+    // success: return parsed body or true for 204
+    return body ?? true; 
+  }  
   
   

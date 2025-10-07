@@ -2,7 +2,7 @@
 import React from "react";
 import "../customstyle.css";
 import LogoutIcon from '@mui/icons-material/Logout';
-import { Status } from "./Helpers/status";
+import { STATUS_LABEL,Status } from "./Helpers/status";
 import { StatusEditor } from "./StatusEditor";
 import { CancelData, handleCancel } from "@/features/queue/handlers/cancel";
 export default function Waiter({
@@ -28,7 +28,7 @@ export default function Waiter({
         <span className="flex gap-2">
        
       <span className={`status-chip ${statusClass}`}>
-       {status}
+       {STATUS_LABEL[status]}
       </span>
       {status==="waiting" ? <span><LogoutIcon onClick={()=>onCancel(id)}/></span>: null  }
       </span>

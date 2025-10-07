@@ -62,7 +62,7 @@ const PopupForm: React.FC<PopupFormProps> = ({ open, onClose ,onSubmit,type ,fir
                 name="Password"
                 type={copy.input2type}
                 inputMode="numeric"
-                pattern="\d{4,6}"
+                pattern={copy.pattern}
                 placeholder={copy.placeholder2}
                 required
                 min={copy.input2MinLength}

@@ -12,7 +12,7 @@ import { handleJoin, handleManage } from "@/features/queue/handlers";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { StatusEditor } from "@/components/StatusEditor";
 import Stack from "@mui/material/Stack";
-import type { Status } from "../components/Helpers/status";
+import { STATUS_LABEL, type Status } from "../components/Helpers/status";
 import { CancelData,handleCancel } from "@/features/queue/handlers/cancel";
 import { GetData, handleGetCustomers } from "@/features/queue/handlers/getCustomers";
 import { UpdateData, handleupdateStatus } from "@/features/queue/handlers/update";
@@ -23,12 +23,19 @@ import QueueNotFound from "@/components/QueueNotFound";
 import NoCustomersFound from "@/components/NoCustomersFound";
 import { useOwnerSession } from "@/hooks/useOwnerSession";
 import RemoveRedEyeIcon from '@mui/icons-material/RemoveRedEye';
+import QueueQrCard from "@/components/QueueQrCard";
+import ModeEditIcon from '@mui/icons-material/ModeEdit';
+import { handleUpdateMaxCustomers,UpdateMaxCustomersData } from "@/features/queue/handlers/updateMaxCustomers";
+import { handleUpdateQueueName,UpdateQueueNameData } from "@/features/queue/handlers/updateQueueName";
+import Footer from "@/components/Footer";
+
 type User = {
   Id: number;
   QueueId: number;
   Name: string;
   PhoneNumber: string;
   State: Status;
+  CreatedAt?:Date
 };
 
 type PageMode = "public" | "owner";
@@ -42,9 +49,29 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
     const [queueName,setQueueName]=useState<string>("")
     const [notFound,setNotFound]=useState<boolean>(false)
     const { signedIn } = useOwnerSession(id!, `https://localhost:7014/api/owners/check-owner/${Number(id)}`)
-
+    const [currentMaxCustomers, setCurrentMaxCustomers] = useState<number | null>(null);
+    const [draftMax, setDraftMax] = useState<number>((currentMaxCustomers ?? 10));
+    const [anyChange, setAnyChange] = useState(false);
+    const maxRef=useRef<HTMLSelectElement>(null)
+    const [saveLoading,setSaveLoading]=useState<boolean>(false)
+    const queueNameRef=useRef<HTMLInputElement>(null)
+    const [editingQueueName,setEditingQueueName]=useState<string>(null)
+    const [isNameEditing,setIsNameEditing]=useState<boolean>(false)
+    
     useOwnerGuard(currentQueueId,mode)
+    const RANK: Record<Status, number> = {
+      in_progress: 0,
+      waiting: 1,
+      served:3
+    };
 
+    useEffect(() => {
+      setDraftMax(currentMaxCustomers ?? 10);
+    }, [currentMaxCustomers]);
+    
+    // the value users see/choose (10 represents "+10"/unlimited)
+    const effectiveCurrent = currentMaxCustomers ?? 10;
+    
 
       //get customers for public
       useEffect(()=>{
@@ -78,6 +105,8 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
             const data=await handleGetOwnerCustomers(payload)
             setQueueName(data.Name)
             setUsers(data.Waiters)
+            setCurrentMaxCustomers(data.MaxCustomers|| null)
+            setEditingQueueName(data.Name)
           }
           catch(err){
         console.log(err,"failed to fetch for owner")
@@ -90,6 +119,12 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
       },[mode])
 
 
+      useEffect(()=>{
+        if(isNameEditing){
+          queueNameRef.current?.focus()
+          queueNameRef.current?.select()
+        }
+      },[isNameEditing])
    
   const { state } = useLocation() as { state?: { owner?: boolean } };
   const owner = !!state?.owner;
@@ -111,7 +146,7 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
       if (popupMode === "join") {
         const payload: JoinData = { QueueId: currentQueueId, Name: a, PhoneNumber: b };
         const { Id , Token} = await handleJoin(payload);
-        const newUser: User = { ...payload, Id: Id , State: "waiting" };
+        const newUser: User = { ...payload, Id: Id , State: "waiting"  };
         setUsers(prev => [...prev, newUser]);
         localStorage.setItem("queueCancelToken",Token)  
         setOpen(false)
@@ -147,7 +182,12 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
 
 }
 
-
+const sortUsers = (list: User[]) =>
+  [...list].sort(
+    (a, b) =>
+      RANK[a.State as Status] - RANK[b.State as Status] ||
+      new Date(a.CreatedAt).getTime() - new Date(b.CreatedAt).getTime()
+  );
 
 
 const updateStatus=async(nextStatus:string,CustomerId:number)=>{
@@ -157,17 +197,20 @@ const updateStatus=async(nextStatus:string,CustomerId:number)=>{
 
   switch(nextStatus){
   case "in_progress":{
-    console.log("in prog")
+  
   await handleupdateStatus(payload)
-  setUsers(prev =>
-    prev.map(u =>
-      u.Id === CustomerId ? { ...u, State: "in_progress" } : u
-    )
-  );
-  break
+  setUsers(prev => {
+    const updated = prev.map(u =>
+      u.Id === CustomerId ? { ...u,State: "in_progress" as Status} : u
+    );
+    return sortUsers(updated);
+  }); 
+   break
 }
+
+
   case "served":{
-    console.log("served")
+  
   await handleServeCustomer(payload)
   setUsers(prev=>prev.filter(u=>u.Id!==CustomerId))
     break
@@ -206,10 +249,50 @@ default:break
     );
   }
 
+  const onMaxChange: React.ChangeEventHandler<HTMLSelectElement> = (e) => {
+    const val = Number(e.target.value);   // select gives strings
+    setDraftMax(val);
+    setAnyChange(val !== effectiveCurrent); // show Save only when changed
+  };
+
+  const onNameChange=(e)=>{
+    setEditingQueueName(queueNameRef.current.value)
+    
+  }
+
+  const updateMaxCustomers=async()=>{
+    try{
+      const payload:UpdateMaxCustomersData={QueueId:currentQueueId,Max:draftMax,token:localStorage.getItem(`queue${currentQueueId} token`)}
+      setSaveLoading(true)
+      await handleUpdateMaxCustomers(payload)
+      setCurrentMaxCustomers(currentMaxCustomers)
+      setAnyChange(false)
+      setSaveLoading(false)
+    }
+    catch(err){
+      setSaveLoading(false)
+        console.log(err)
+    }
+  }
+
+  const updateQueueName=async()=>{
+
+    try{
+      const payload:UpdateQueueNameData={QueueId:currentQueueId,name:queueNameRef.current.value,token:localStorage.getItem(`queue${currentQueueId} token`)}
+      await handleUpdateQueueName(payload)
+      setQueueName(queueNameRef.current.value)
+      setIsNameEditing(false)
+    }
+    catch(err){
+      console.log(err)
+    }
+
+  }
+
 
   return (
     <MorphingBlobs>
-      <div className="min-h-[100svh] flex flex-col">
+      <div className="min-h-[100svh] flex flex-col font-poppins overflow-x-hidden justify-between">
         <Header />
 
    
@@ -218,10 +301,74 @@ default:break
           (
           <>
           <div className="text-center space-y-4">
-            <h1 className="text-3xl font-semibold tracking-tight">{queueName}</h1>
-            <img src={QrImage} alt="Queue QR" className="mx-auto rounded-2xl shadow-sm max-w-[220px] w-full" />
-            <div className={ mode==="owner" && "flex gap-4 items-center pl-5"}>
-            <button
+          <div className="flex items-center justify-center gap-4">
+  {mode === "public" && (
+    <h1 className="text-3xl font-semibold tracking-tight">{queueName}</h1>
+  )}
+
+  {mode === "owner" && (
+    <>
+      {/* Title / Input */}
+      {isNameEditing ? (
+        <input
+          ref={queueNameRef}
+          value={editingQueueName}
+          onChange={onNameChange}
+          placeholder="Queue name…"
+          className="
+            text-3xl font-semibold tracking-tight
+            bg-transparent
+            border-0 border-b-2 border-indigo-500/70
+            focus:border-indigo-600 focus:outline-none
+            caret-indigo-600
+            placeholder-slate-400
+            transition-colors
+          "
+        />
+      ) : (
+        <h1 className="text-3xl font-semibold tracking-tight">{queueName}</h1>
+      )}
+
+      {!isNameEditing ? (
+        <button
+          onClick={() => {
+            setIsNameEditing(true);
+            queueNameRef.current?.focus();
+            queueNameRef.current?.select();
+          }}
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full
+                     bg-white shadow hover:bg-slate-50 active:scale-95 transition"
+          title="Rename"
+        >
+          <ModeEditIcon fontSize="small" />
+        </button>
+      ) : (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={updateQueueName}
+            className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white
+                       shadow-sm hover:bg-indigo-700 active:scale-95 transition"
+          >
+            Save
+          </button>
+          <button
+            onClick={() => {
+              setIsNameEditing(false);
+              setEditingQueueName(queueName); // reset draft
+            }}
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm
+                       text-slate-700 hover:bg-slate-50 active:scale-95 transition"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+    </>
+  )}
+</div>
+           <QueueQrCard queueId={currentQueueId} />
+           <div className="mt-4 flex items-center justify-center gap-3">
+              <button
                 className="btn text-white"
                 onClick={() => {
                   if (signedIn) {
@@ -232,11 +379,73 @@ default:break
                   }
                 }}
               >
-                {mode==="owner" ? "Signed in" : "Manage"}
-            </button>
-            { mode==="owner"&&  <span onClick={()=>navigate(`/queue/${currentQueueId}`)}>
-            <RemoveRedEyeIcon/>
-            </span>}
+                {mode === "owner" ? "Signed in" : "Manage"}
+              </button>
+
+              {mode === "owner" && (
+                <>
+                <button
+                  type="button"
+                  aria-label="View as customer"
+                  onClick={() => navigate(`/queue/${currentQueueId}`)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white shadow hover:bg-slate-100 active:scale-95 cursor-pointer"
+                >
+                  <RemoveRedEyeIcon fontSize="small" />
+                </button>
+                <div className="flex items-center gap-3">
+  {/* Select */}
+  <div className="relative">
+    <select
+      value={String(draftMax)}
+      onChange={onMaxChange}
+      className="
+    appearance-none
+    bg-white/90 dark:bg-slate-800
+    text-slate-900 dark:text-slate-100        /* <-- font color */
+    placeholder-slate-400 dark:placeholder-slate-500
+    border border-slate-300 dark:border-slate-600
+    rounded-lg px-3 pr-10 py-2 text-sm shadow-sm
+    focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
+    transition-colors
+  "
+    >
+      <option disabled>Max customers</option>
+      <option value="2">2 customers</option>
+      <option value="5">5 customers</option>
+      <option value="8">8 customers</option>
+      <option value="10">+10 customers</option>
+    </select>
+
+    {/* Arrow */}
+    <svg
+      className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500"
+      viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"
+    >
+      <path fillRule="evenodd"
+        d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06L10.53 12.6a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
+        clipRule="evenodd"
+      />
+    </svg>
+  </div>
+
+        {anyChange && (
+          <button
+            onClick={updateMaxCustomers}
+            className="
+              inline-flex items-center gap-2
+              rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white
+              shadow-sm
+              hover:bg-indigo-700 active:scale-[.98]
+              focus:outline-none focus:ring-2 focus:ring-indigo-500
+              transition
+            "
+          >
+            {saveLoading? "Saving...":"Save" }
+          </button>
+  )}
+</div>
+                </>
+              )}
             </div>
           </div>
         
@@ -295,7 +504,9 @@ default:break
                 }
                 </div>
         
+      <Footer/>
       </div>
+
     </MorphingBlobs>
   );
 }

@@ -1,13 +1,18 @@
 import React, { useRef, useState } from "react";
-import PopupForm from "./PopupForm";
-import QrImage from "../src/assets/download.png";
+import PopupForm from "../PopupForm";
+
+import PublicPageImage from "../src/assets/image.png"
+import OwnerPageImage from "../src/assets/ownerPage.png"
+import BannerImage from "../src/assets/banner.png"
+
 import "../src/customstyle.css";
-import Header from "./components/Header";
-import Carousel from "./components/Carousel";
-import MorphingBlobs from "./components/background/MorphingBlobs";
+import Header from "../components/Header";
+import Carousel from "../components/Carousel";
+
 import { AnimatePresence, motion } from "framer-motion";
-import { CreateData,handleCreate } from "./features/queue/handlers";
+import { CreateData,handleCreate } from "../features/queue/handlers";
 import { useNavigate } from "react-router-dom";
+import Footer from "../components/Footer";
 const Home = () => {
   const navigate=useNavigate()
   const firstInputRef=useRef<HTMLInputElement>(null)
@@ -15,7 +20,7 @@ const Home = () => {
   const texts = [
     { h: "Instant QR for customers", p: "Share and start taking names in seconds." },
     { h: "Owner-only actions via PIN", p: "Serve next, skip, or remove—no shouting." },
-    { h: "Track waiting & serve next", p: "Clear, fair, and fast for everyone." }
+    { h: "Track waiting with privacy protection for the phone number", p: "Clear, fair, and fast for everyone." }
   ];
 
   const [open, setOpen] = useState(false);
@@ -46,8 +51,8 @@ const Home = () => {
 
 
   return (
-    <MorphingBlobs>
-      <div className="min-h-screen">
+  
+      <div className="min-h-screen bg-gray-500 overflow-x-hidden flex flex-col justify-between">
         <Header />
 
         {/* hero */}
@@ -57,23 +62,27 @@ const Home = () => {
             px-4 sm:px-6 lg:px-8
             grid grid-cols-1 md:grid-cols-2
             items-center
-            gap-8 md:gap-12 lg:gap-16
+            gap-8 md:gap-12 lg:gap-22
             py-10 md:py-16
           "
         >
+       
           {/* Left: carousel */}
-          <div className="relative w-full">
-            <div className="absolute inset-0 -z-10 rounded-3xl bg-gradient-to-tr from-gray-200/40 to-white blur-2xl" />
-            <Carousel autoPlay interval={3500} onNextImage={(i: number) => setTextIndex(i)}>
-              {/* Use fluid aspect ratio instead of fixed height */}
-              <img src={QrImage} alt="One" className="w-full rounded-xl aspect-[16/10] md:aspect-[4/3] object-cover" />
-              <img src={QrImage} alt="Two" className="w-full rounded-xl aspect-[16/10] md:aspect-[4/3] object-cover" />
-              <img src={QrImage} alt="Three" className="w-full rounded-xl aspect-[16/10] md:aspect-[4/3] object-cover" />
-            </Carousel>
-          </div>
+          <div className="mx-auto w-full sm:max-w-[520px] md:max-w-[600px] lg:max-w-[680px] xl:max-w-[720px] 2xl:max-w-[768px]">
+  <div className="aspect-[16/10] rounded-3xl overflow-hidden shadow-xl">
+       <Carousel className="w-full h-full rounded-3xl overflow-hidden shadow-xl"  onNextImage={(i)=>setTextIndex(i)}>
+      <img src={BannerImage} alt="Banner" className="w-full h-full object-contain bg-white" />
+     
+      <img src={OwnerPageImage} alt="Owner" className="w-full h-full object-contain bg-white" />
+
+      <img src={PublicPageImage} alt="Public" className="w-full h-full object-contain bg-white" />
+    </Carousel>
+  </div>
+</div>
+
 
           {/* Right: text + cta */}
-          <div className="w-full space-y-5 text-center md:text-left">
+          <div className="w-full space-y-8 text-center md:text-left ">
             <AnimatePresence mode="wait">
               <motion.div
                 key={textIndex}
@@ -83,32 +92,42 @@ const Home = () => {
                 transition={{ duration: 0.35, ease: "easeOut" }}
                 className="space-y-3"
               >
-                <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight tracking-tight">
+                <h2 className="text-secondary text-4xl font-bold">
                   {texts[textIndex].h}
                 </h2>
-                <p className="text-gray-600 max-w-prose mx-auto md:mx-0">
+                <p className="text-slate-300 ">
                   {texts[textIndex].p}
                 </p>
               </motion.div>
             </AnimatePresence>
 
             {/* Buttons: stack on mobile, row on >=sm */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center md:justify-start gap-3 sm:gap-4 pt-2">
-              <button onClick={() => setOpen(true)} className="btn btn-lg !bg-gray-900">
+            <div className=" flex flex-col sm:flex-row items-stretch sm:items-center justify-center md:justify-start gap-3 sm:gap-4 pt-2">
+              <button onClick={() => setOpen(true)} className="btn btn-lg cursor-pointer !bg-gray-900 hover:shadow-2xl">
                 Create a queue now!
               </button>
+
               <a
                 href="/scan"
-                className="btn btn-outline btn-lg text-gray-700"
+                className="bg-white border-2 border-primary text-primary px-6 py-3 rounded-lg hover:bg-teal-50 transition"
               >
                 Scan a QR
               </a>
             </div>
 
-            <ul className="mt-4 space-y-1 text-sm text-gray-600 max-w-prose mx-auto md:mx-0">
-              <li>• Instant QR for customers</li>
-              <li>• Owner-only actions via PIN</li>
-              <li>• Track waiting &amp; serve next</li>
+            <ul className="text-secondary space-y-2">
+              <li className="flex items-center gap-2">
+                <span className="text-primary">•</span>
+                📱 Instant QR for customers
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-primary">•</span>
+                🔒 Owner-only actions via PIN
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-primary">•</span>
+                ⏱️ Track waiting & serve next
+              </li>
             </ul>
           </div>
         </main>
@@ -121,8 +140,10 @@ const Home = () => {
            firstInputRef={firstInputRef}
            secondInputRef={secondInputRef}
         />
+
+        <Footer/>
       </div>
-    </MorphingBlobs>
+   
   );
 };
 

@@ -6,6 +6,7 @@ using Api.models;
 using Api.security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Data;
 namespace Api.controllers
 {
     [Route("api/[controller]")]
@@ -17,28 +18,48 @@ namespace Api.controllers
         private readonly ILogger<QueueCustomers> _logger;
         public QueueCustomers(DoorMeenDbContext db, ILogger<QueueCustomers> logger) { _db = db; _logger = logger;  }
 
-
         [HttpPost]
-        public async Task<ActionResult> AddCustomerToQueue([FromBody] AddCustomerDTO req ) 
+        public async Task<ActionResult> AddCustomerToQueue([FromBody] AddCustomerDTO req)
         {
+            if (string.IsNullOrWhiteSpace(req.Name) ||
+                string.IsNullOrWhiteSpace(req.PhoneNumber) ||
+                req.QueueId == 0)
+                return BadRequest("All info must be not null");
 
-            if (req.Name is null || req.PhoneNumber is null || req.QueueId == null) return BadRequest("All info must be not null");
-            var Token = CreateHashToken.NewCancelTokenDigits();
+            var queue = await _db.Queues.SingleOrDefaultAsync(q => q.Id == req.QueueId);
+            if (queue is null) return NotFound("No queue with that id");
+
+            await using var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+            var waitingCount = await _db.QueueCustomers
+                .Where(c => c.QueueId == req.QueueId && c.State == "waiting")
+                .CountAsync();
+
+            if (queue.MaxCustomers.HasValue && waitingCount >= queue.MaxCustomers.Value)
+            {
+                await tx.RollbackAsync();
+                return BadRequest("Queue is full");
+            }
+
+            var token = CreateHashToken.NewCancelTokenDigits();
             var customer = new QueueCustomer
             {
                 QueueId = req.QueueId,
                 Name = req.Name,
                 Phone = req.PhoneNumber,
-                CancelTokenHash=CreateHashToken.Hash(Token)
+                State = "waiting",
+                CancelTokenHash = CreateHashToken.Hash(token),
+                CreatedAt = DateTime.UtcNow
             };
-
 
             _db.QueueCustomers.Add(customer);
             await _db.SaveChangesAsync();
+            await tx.CommitAsync();
 
-            return Created("",new{customer.Id,customer.Name, Token  });
-        
+            return Created(string.Empty, new { customer.Id, customer.Name, Token = token });
         }
+
+
 
 
         [HttpDelete("cancel/{queueId:int}/{customerId:int}")]

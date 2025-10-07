@@ -88,14 +88,18 @@ namespace Api.controllers
             
             var queue = await _db.Queues.SingleOrDefaultAsync(q => q.Id == id);
             if (queue is null) return NotFound("Not found");
-              var Waiters= await _db.QueueCustomers.AsNoTracking().Where(c => c.QueueId == id).OrderBy(c => c.State).Select(c => new { c.Id, c.QueueId, c.Name, PhoneNumber = c.Phone, c.CreatedAt, c.State }).ToListAsync();
+              var Waiters= await _db.QueueCustomers.AsNoTracking().Where(c => c.QueueId == id)
+              .OrderByDescending(c => c.State=="in_progress").ThenBy(c=>c.CreatedAt)
+              .Select(c => new { c.Id, c.QueueId, c.Name, PhoneNumber = c.Phone, c.CreatedAt, c.State })
+              .ToListAsync();
 
             return Ok(new
             {
                 queue.Id,
                 queue.Name,
                 Waiters,
-                queue.CreatedAt
+                queue.CreatedAt,
+                queue.MaxCustomers
 
             });
 
@@ -152,6 +156,35 @@ namespace Api.controllers
             queue.HashedPassword = Password.HashOrNull(req.Password);
             await _db.SaveChangesAsync();
             return NoContent();
+        }
+
+        [Authorize(Policy="OwnerOfQueue")]
+        [HttpPut("set-max-customers/{queueId:int}/{max:int}")]
+        public async Task<ActionResult> UpdateMaxCustomersPerQueue(int queueId,int max)
+        {
+            var queue=await _db.Queues.FindAsync(   queueId);
+            if (queue is null) return NotFound("No queue found");
+            if (max!=10 &&queue.MaxCustomers == max) return NoContent();
+            if (max == 10) queue.MaxCustomers = null;
+            else
+            queue.MaxCustomers = max;
+            await _db.SaveChangesAsync();
+            return NoContent();
+            
+
+        }
+
+        [Authorize (Policy ="OwnerOfQueue")]
+        [HttpPut("update-name/{queueId:int}")]
+        public async Task<ActionResult> UpdateQueueName(int queueId,[FromBody] string name ) {
+            var queue = await _db.Queues.FindAsync(queueId);
+            if (queue is null) return NotFound("No queue found");
+            if(queue.Name == name) return NoContent();
+            queue.Name= name;
+            await _db.SaveChangesAsync();
+            return NoContent();
+
+
         }
     }
 }

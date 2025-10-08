@@ -13,6 +13,7 @@
     "baseUrl": ".",
     "paths": { "@/*": ["src/*"] },
     "allowImportingTsExtensions":true,
+    "types": ["vitest/globals"]
   },
   "include": ["src", "vite-env.d.ts"]
 }

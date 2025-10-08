@@ -1,11 +1,11 @@
 import React, { useRef, useState } from "react";
 import PopupForm from "../PopupForm";
 
-import PublicPageImage from "../src/assets/image.png"
-import OwnerPageImage from "../src/assets/ownerPage.png"
-import BannerImage from "../src/assets/banner.png"
+import PublicPageImage from "@/assets/image.png"
+import OwnerPageImage from "@/assets/ownerPage.png"
+import BannerImage from "@/assets/banner.png"
 
-import "../src/customstyle.css";
+import "../customstyle.css";
 import Header from "../components/Header";
 import Carousel from "../components/Carousel";
 

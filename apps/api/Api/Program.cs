@@ -5,6 +5,11 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
+using Api.Application.Interfaces;
+using Api.Application.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
@@ -23,6 +28,7 @@ builder.Services.AddControllers().AddJsonOptions(o =>
 var jwt = builder.Configuration.GetSection("Jwt");
 var keyBytes = Encoding.UTF8.GetBytes(jwt["Key"]!);
 
+builder.Services.AddHttpContextAccessor();
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme) 
     .AddJwtBearer(o =>
@@ -36,7 +42,7 @@ builder.Services
             ValidAudience = jwt["Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
             ClockSkew = TimeSpan.FromMinutes(1),
-            RoleClaimType = "role" // match what you put in the token
+            RoleClaimType = "role" 
         };
     });
 builder.Services.AddAuthorization(options =>
@@ -45,12 +51,49 @@ builder.Services.AddAuthorization(options =>
         policy.Requirements.Add(new SameQueueRequirement()));
 });
 
+builder.Services.AddScoped<IOwnerServices, OwnerServices>();
+builder.Services.AddScoped<IQueueServices, QueueServices>();
+builder.Services.AddScoped<ICustomersServices, CustomersServices>();
+builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>(); 
 builder.Services.AddSingleton<IAuthorizationHandler, SameQueueHandler>();
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var ex = context.Features.Get<IExceptionHandlerFeature>()?.Error;
 
+
+        var (status, title) = ex switch
+        {
+            KeyNotFoundException => (StatusCodes.Status404NotFound, "Not Found"),
+            ValidationException => (StatusCodes.Status400BadRequest, "Validation Error"),
+            UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "Unauthorized"),
+            InvalidOperationException => (StatusCodes.Status409Conflict, "Conflict"),
+            _ => (StatusCodes.Status500InternalServerError, "Server Error")
+        };
+
+        context.Response.StatusCode = status;
+        context.Response.ContentType = "application/problem+json";
+
+
+        var details = new ProblemDetails
+        {
+            Status = status,
+            Title = title,
+            Detail = ex?.Message,
+            Instance = context.Request.Path
+        };
+
+        await context.Response.WriteAsJsonAsync(details);
+    });
+});
 app.UseCors();
+
+
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

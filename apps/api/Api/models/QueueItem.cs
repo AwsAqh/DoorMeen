@@ -11,7 +11,7 @@ public class QueueItem() {
 
     public string HashedPassword { get; set; }
 
-    public DateTime CreatedAt { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.Now; 
     public int? MaxCustomers { get; set; }
     public ICollection<QueueCustomer> Customers { get; set; } = new List<QueueCustomer>();
 

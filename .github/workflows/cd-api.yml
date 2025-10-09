@@ -15,20 +15,34 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      
+      - name: Show tree
+  run: |
+    pwd
+    ls -la
+    find . -maxdepth 3 -type f -name "*.csproj" -print
 
-      - name: Restore
-        run: dotnet restore Api/Api.csproj
+- name: Fail if no .csproj
+  run: |
+    PROJ=$(find . -type f -name "*.csproj" | head -n1)
+    if [ -z "$PROJ" ]; then
+      echo "No .csproj found. Did you commit it?"; exit 1;
+    fi
+    echo "PROJECT_PATH=$PROJ" >> $GITHUB_ENV
 
-      - name: Build
-        run: dotnet build -c Release --no-restore Api/Api.csproj
 
-      - name: Publish
-        run: dotnet publish -c Release -o Api/publish Api/Api.csproj
 
-      - name: Deploy to Azure App Service
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: doormeen-api
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: Api/publish   
+    - name: Restore
+  run: dotnet restore "$PROJECT_PATH"
+
+- name: Build
+  run: dotnet build -c Release --no-restore "$PROJECT_PATH"
+
+- name: Publish
+  run: dotnet publish -c Release -o publish "$PROJECT_PATH"
+
+- name: Deploy to Azure App Service
+  uses: azure/webapps-deploy@v3
+  with:
+    app-name: doormeen-api
+    publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+    package: publish     # publish folder created in repo root by the step above

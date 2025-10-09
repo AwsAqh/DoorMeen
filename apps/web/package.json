@@ -12,11 +12,9 @@
     "test:run": "vitest run",
     "coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
-    
-    "typecheck": "tsc --noEmit",
-    "test:unit": "vitest run src/test/unit/**/*.test.{ts,tsx}",
-    "test:unit:cov": "vitest run src/test/unit/**/*.test.{ts,tsx} --coverage"
-  
+    "typecheck": "tsc -p tsconfig.app.json --noEmit",
+     "test:unit": "vitest run --dir src/test/unit",
+    "test:unit:cov": "vitest run --dir src/test/unit --coverage"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -27,6 +25,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.19",
+    "jwt-decode": "^4.0.0",
     "lucide-react": "^0.544.0",
     "qrcode": "^1.5.4",
     "react": "^19.1.1",

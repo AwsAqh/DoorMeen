@@ -42,23 +42,23 @@ type PageMode = "public" | "owner";
 
 export default function QueuePage({ mode  }: { mode: PageMode }) {
   
-    const {id}=useParams()
-    const currentQueueId=id?Number(id):undefined
+  const params = useParams<{ id?: string }>();
+  const currentQueueId: number = Number(params.id ?? 0);
     const navigate = useNavigate();
     const [users, setUsers] = useState<User[]>([]);
     const [queueName,setQueueName]=useState<string>("")
     const [notFound,setNotFound]=useState<boolean>(false)
-    const { signedIn } = useOwnerSession(id!, `https://localhost:7014/api/owners/check-owner/${Number(id)}`)
+    const { signedIn } = useOwnerSession(currentQueueId!, `https://localhost:7014/api/owners/check-owner/${Number(currentQueueId)}`)
     const [currentMaxCustomers, setCurrentMaxCustomers] = useState<number | null>(null);
     const [draftMax, setDraftMax] = useState<number>((currentMaxCustomers ?? 10));
     const [anyChange, setAnyChange] = useState(false);
     const maxRef=useRef<HTMLSelectElement>(null)
     const [saveLoading,setSaveLoading]=useState<boolean>(false)
     const queueNameRef=useRef<HTMLInputElement>(null)
-    const [editingQueueName,setEditingQueueName]=useState<string>(null)
+    const [editingQueueName,setEditingQueueName]=useState<string |null>(null)
     const [isNameEditing,setIsNameEditing]=useState<boolean>(false)
     
-    useOwnerGuard(currentQueueId,mode)
+    useOwnerGuard(currentQueueId, mode);
     const RANK: Record<Status, number> = {
       in_progress: 0,
       waiting: 1,
@@ -101,7 +101,7 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
         const getOwnerCustomers=async()=>{
 
           try{
-            const payload:GetOwnerCustomersData={QueueId:currentQueueId,token:localStorage.getItem(`queue${currentQueueId} token`)}
+            const payload:GetOwnerCustomersData={QueueId:currentQueueId,token:localStorage.getItem(`queue${currentQueueId} token`)??"" }
             const data=await handleGetOwnerCustomers(payload)
             setQueueName(data.Name)
             setUsers(data.Waiters)
@@ -167,11 +167,11 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
 
   
 
-  const cancelRegister=async(cancelId)=>{
+  const cancelRegister=async(cancelId:number)=>{
         console.log(cancelId)
         console.log(currentQueueId)
     try{
-        const payload:CancelData={queueId:currentQueueId, customerId:cancelId , token:localStorage.getItem("queueCancelToken")}
+        const payload:CancelData={queueId:currentQueueId, customerId:cancelId , token:localStorage.getItem("queueCancelToken")||""}
         await handleCancel(payload)
         setUsers(users.filter(u=>u.Id!=payload.customerId))
 
@@ -186,14 +186,14 @@ const sortUsers = (list: User[]) =>
   [...list].sort(
     (a, b) =>
       RANK[a.State as Status] - RANK[b.State as Status] ||
-      new Date(a.CreatedAt).getTime() - new Date(b.CreatedAt).getTime()
+      new Date(a.CreatedAt??0).getTime() - new Date(b.CreatedAt??0).getTime()
   );
 
 
 const updateStatus=async(nextStatus:string,CustomerId:number)=>{
 
   try{
-  const payload:UpdateData={QueueId:currentQueueId,CustomerId,token:localStorage.getItem(`queue${id} token`)}
+  const payload:UpdateData={QueueId:currentQueueId,CustomerId,token:localStorage.getItem(`queue${currentQueueId} token`)||""}
 
   switch(nextStatus){
   case "in_progress":{
@@ -255,14 +255,14 @@ default:break
     setAnyChange(val !== effectiveCurrent); // show Save only when changed
   };
 
-  const onNameChange=(e)=>{
-    setEditingQueueName(queueNameRef.current.value)
+  const onNameChange=()=>{
+    setEditingQueueName(queueNameRef.current?.value??"")
     
   }
 
   const updateMaxCustomers=async()=>{
     try{
-      const payload:UpdateMaxCustomersData={QueueId:currentQueueId,Max:draftMax,token:localStorage.getItem(`queue${currentQueueId} token`)}
+      const payload:UpdateMaxCustomersData={QueueId:currentQueueId,Max:draftMax,token:localStorage.getItem(`queue${currentQueueId} token`)||""}
       setSaveLoading(true)
       await handleUpdateMaxCustomers(payload)
       setCurrentMaxCustomers(currentMaxCustomers)
@@ -278,9 +278,9 @@ default:break
   const updateQueueName=async()=>{
 
     try{
-      const payload:UpdateQueueNameData={QueueId:currentQueueId,name:queueNameRef.current.value,token:localStorage.getItem(`queue${currentQueueId} token`)}
+      const payload:UpdateQueueNameData={QueueId:currentQueueId,name:queueNameRef.current?.value??"",token:localStorage.getItem(`queue${currentQueueId} token`)||""}
       await handleUpdateQueueName(payload)
-      setQueueName(queueNameRef.current.value)
+      setQueueName(queueNameRef.current?.value??"")
       setIsNameEditing(false)
     }
     catch(err){
@@ -312,7 +312,7 @@ default:break
       {isNameEditing ? (
         <input
           ref={queueNameRef}
-          value={editingQueueName}
+          value={editingQueueName??""}
           onChange={onNameChange}
           placeholder="Queue name…"
           className="
@@ -366,13 +366,13 @@ default:break
     </>
   )}
 </div>
-           <QueueQrCard queueId={currentQueueId} />
+{currentQueueId > 0 && <QueueQrCard queueId={currentQueueId} />}
            <div className="mt-4 flex items-center justify-center gap-3">
               <button
                 className="btn text-white"
                 onClick={() => {
                   if (signedIn) {
-                    navigate(`/owner/q/${id}`, { state: { owner: true } })
+                    navigate(`/owner/q/${currentQueueId}`, { state: { owner: true } })
                   } else {
                     setPopupMode("manage")
                     setOpen(true)

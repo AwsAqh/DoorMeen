@@ -26,8 +26,12 @@ const Home = () => {
   const [open, setOpen] = useState(false);
   const [textIndex, setTextIndex] = useState<number>(0);
 
-  const handleSubmit=async(e)=>{
-    e.preventDefault()
+  const handleSubmit=(e:React.FormEvent)=>{
+    e.preventDefault();
+
+    (async()=>{
+
+    
     const a = firstInputRef.current?.value?.trim() ?? "";
     const b = secondInputRef.current?.value?.trim() ?? "";
     
@@ -41,9 +45,13 @@ const Home = () => {
       
   }
     catch(err){ 
-      console.log(err.message)
+      if (err instanceof Error) {
+        console.log(err.message);
+      } else {
+        console.log(String(err));
+      }
     }
-    
+  })()
 
 
 

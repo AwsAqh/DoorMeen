@@ -2,7 +2,8 @@
 import * as React from "react";
 import { Chip, Menu, MenuItem, Stack } from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
-import { Status, STATUS_LABEL } from "../components/Helpers/status";
+import type { Status } from "../components/Helpers/status";
+import { STATUS_LABEL } from "../components/Helpers/status";
 
 export function StatusEditor({
   value,
@@ -10,7 +11,7 @@ export function StatusEditor({
   inline = true,
 }: {
   value: Status;
-  onSave: (nextStatus) => void| Promise<void>;
+  onSave: (nextStatus:Status) => void| Promise<void>;
   inline?: boolean;
 }) {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);

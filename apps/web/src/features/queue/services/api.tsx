@@ -45,8 +45,9 @@ export class ApiError extends Error {
   
   export async function apiManageQueue(input: {QueueId:number, password: string }) {
     const res=await fetch("https://localhost:7014/api/owners/verify-password",{method:"POST",headers:{"Content-type":"application/json"} , body:JSON.stringify(input) })
-    const data=await res.json()
     if(!res.ok) throw new Error("Invalid Password")
+    const data=await res.json()
+   
     return data
   }
 

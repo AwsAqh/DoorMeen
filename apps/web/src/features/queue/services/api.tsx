@@ -17,11 +17,7 @@ export class ApiError extends Error {
     return await res.text(); // fallback to text bodies (e.g., BadRequest("msg"))
   }
 
-  export async function apiCheckOwnerness(input:{QueueId:number,token:string}){
-
-    
-
-  }
+ 
   
   export async function apiCreateQueue(input: { name: string; password: string }) {
     

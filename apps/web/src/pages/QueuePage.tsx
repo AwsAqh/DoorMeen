@@ -2,7 +2,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import Header from "../components/Header";
 import MorphingBlobs from "@/components/background/MorphingBlobs";
-import QrImage from "../assets/download (1).png";
 import Waiter from "@/components/Waiter";
 import AddIcon from "@mui/icons-material/Add";
 import PopupForm from "@/PopupForm";
@@ -12,12 +11,12 @@ import { handleJoin, handleManage } from "@/features/queue/handlers";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { StatusEditor } from "@/components/StatusEditor";
 import Stack from "@mui/material/Stack";
-import { STATUS_LABEL, type Status } from "../components/Helpers/status";
+import { type Status } from "../components/Helpers/status";
 import { CancelData,handleCancel } from "@/features/queue/handlers/cancel";
 import { GetData, handleGetCustomers } from "@/features/queue/handlers/getCustomers";
 import { UpdateData, handleupdateStatus } from "@/features/queue/handlers/update";
 import { handleGetOwnerCustomers,GetOwnerCustomersData } from "@/features/queue/handlers/getOwnerCustomers";
-import { handleServeCustomer,ServeCustomerData } from "@/features/queue/handlers/serveCustomer";
+import { handleServeCustomer } from "@/features/queue/handlers/serveCustomer";
 import { useOwnerGuard } from "@/hooks/useOwnerGuard";
 import QueueNotFound from "@/components/QueueNotFound";
 import NoCustomersFound from "@/components/NoCustomersFound";
@@ -52,7 +51,6 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
     const [currentMaxCustomers, setCurrentMaxCustomers] = useState<number | null>(null);
     const [draftMax, setDraftMax] = useState<number>((currentMaxCustomers ?? 10));
     const [anyChange, setAnyChange] = useState(false);
-    const maxRef=useRef<HTMLSelectElement>(null)
     const [saveLoading,setSaveLoading]=useState<boolean>(false)
     const queueNameRef=useRef<HTMLInputElement>(null)
     const [editingQueueName,setEditingQueueName]=useState<string |null>(null)
@@ -74,50 +72,53 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
     
 
       //get customers for public
-      useEffect(()=>{
-        
-        const getCustomer=async()=>{try{
-            const payload:GetData={QueueId:currentQueueId}
-            const data=await handleGetCustomers(payload)
-            setQueueName(data.Name)
-            setUsers(data.Waiters)
-            
-          
+      useEffect(() => {
+        const getCustomer = async () => {
+          try {
+            const payload: GetData = { QueueId: currentQueueId };
+            const data = await handleGetCustomers(payload);
+            setQueueName(data.Name);
+            setUsers(data.Waiters);
+          } catch (err) {
+            setNotFound(true);
+            console.log(err, "error while getting customers");
+          }
+        };
+      
+        if (mode === "public") {
+          void getCustomer();
         }
-        catch(err){
-          setNotFound(true)
-            console.log(err,"error while getting customers")
-        }}
-        mode==="public"?getCustomer():null
-
-      },[mode])
+      
+      }, [mode, currentQueueId ]);
+      
 
             //get customer as owner
-      useEffect(()=>{
-        const token=localStorage.getItem(`queue${currentQueueId} token`)
-        if(!token) return;
-
-        
-        const getOwnerCustomers=async()=>{
-
-          try{
-            const payload:GetOwnerCustomersData={QueueId:currentQueueId,token:localStorage.getItem(`queue${currentQueueId} token`)??"" }
-            const data=await handleGetOwnerCustomers(payload)
-            setQueueName(data.Name)
-            setUsers(data.Waiters)
-            setCurrentMaxCustomers(data.MaxCustomers|| null)
-            setEditingQueueName(data.Name)
-          }
-          catch(err){
-        console.log(err,"failed to fetch for owner")
-          }
-        
-
-        }
-        mode==="owner"?getOwnerCustomers():null
-
-      },[mode])
-
+            useEffect(() => {
+              const token = localStorage.getItem(`queue${currentQueueId} token`);
+              if (!token) return;
+            
+              const getOwnerCustomers = async () => {
+                try {
+                  const payload: GetOwnerCustomersData = {
+                    QueueId: currentQueueId,
+                    token: token ?? "",
+                  };
+                  const data = await handleGetOwnerCustomers(payload);
+                  setQueueName(data.Name);
+                  setUsers(data.Waiters);
+                  setCurrentMaxCustomers(data.MaxCustomers ?? null);
+                  setEditingQueueName(data.Name);
+                } catch (err) {
+                  console.log(err, "failed to fetch for owner");
+                }
+              };
+            
+              if (mode === "owner") {
+                void getOwnerCustomers();
+              }
+              
+            }, [mode, currentQueueId ]);
+            
 
       useEffect(()=>{
         if(isNameEditing){

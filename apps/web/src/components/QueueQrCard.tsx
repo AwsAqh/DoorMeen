@@ -1,11 +1,11 @@
 
-import React, { useMemo, useState } from "react"
+import  { useMemo, useState } from "react"
 import QRCodeSVG from "react-qr-code"
 import QRCode from "qrcode"
 
 type Props = {
   queueId: number
-  size?: number // px, default 224
+  size?: number 
 }
 
 export default function QueueQrCard({ queueId, size = 224 }: Props) {
@@ -32,7 +32,10 @@ export default function QueueQrCard({ queueId, size = 224 }: Props) {
 
   const share = async () => {
     if (navigator.share) {
-      try { await navigator.share({ title: "Join my queue", url }) } catch {}
+      try { await navigator.share({ title: "Join my queue", url }) } 
+      catch {
+        return
+      }
     } else {
       await copyLink()
     }

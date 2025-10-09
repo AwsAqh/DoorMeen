@@ -1,5 +1,5 @@
 
-import { describe, it, test, expect, vi, beforeEach, afterEach, afterAll } from "vitest";
+import { describe, test, expect, vi, beforeEach, afterEach, afterAll } from "vitest";
 import {
   apiCreateQueue,
   apiJoinQueue,
@@ -14,49 +14,40 @@ import {
 } from "../../features/queue/services/api";
 
 type MockHeaders = { get: (k: string) => string | null };
-type MockResponse = {
+
+type MockResponse<T = unknown> = {
   ok: boolean;
   status: number;
   headers: MockHeaders;
-  json: () => Promise<any>;
+  json: () => Promise<T>;
   text: () => Promise<string>;
 };
 
-function makeResponse(opts: {
+function makeResponse<T = unknown>(opts: {
   status?: number;
   ok?: boolean;
-  body?: any;
+  body?: T | string | null;
   contentType?: string | null;
   contentLength?: string | null;
-}): MockResponse {
+}): MockResponse<T> {
   const {
     status = 200,
     ok = status >= 200 && status < 300,
     body = null,
-    contentType = body === null ? null : typeof body === "object" ? "application/json" : "text/plain",
-    contentLength =
-      body === null
-        ? "0"
-        : typeof body === "string"
-        ? String(Buffer.byteLength(body))
-        : String(Buffer.byteLength(JSON.stringify(body))),
+    contentType = typeof body === "string" ? "text/plain" : "application/json",
+    contentLength = body == null ? "0" : undefined,
   } = opts;
 
-  const headersMap: Record<string, string> = {};
-  if (contentType) headersMap["content-type"] = contentType;
-  if (contentLength !== null) headersMap["content-length"] = contentLength;
+  const map = new Map<string, string>();
+  if (contentType) map.set("content-type", contentType);
+  if (contentLength) map.set("content-length", contentLength);
 
   return {
     ok,
     status,
-    headers: {
-      get: (k: string) => headersMap[k.toLowerCase()] ?? null,
-    },
-    json: async () => {
-      if (typeof body === "object" && body !== null) return body;
-      return JSON.parse(String(body));
-    },
-    text: async () => (body === null ? "" : String(body)),
+    headers: { get: (k: string) => map.get(k.toLowerCase()) ?? null },
+    json: async () => body as T,
+    text: async () => (typeof body === "string" ? body : JSON.stringify(body)),
   };
 }
 

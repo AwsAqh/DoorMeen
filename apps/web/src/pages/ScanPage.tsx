@@ -1,26 +1,27 @@
 // src/pages/ScanPage.tsx
-import { useCallback, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback } from "react";
+
 import { Scanner ,type IDetectedBarcode} from "@yudiel/react-qr-scanner";
 
 export default function ScanPage() {
-  const navigate = useNavigate();
-  const [error, setError] = useState<string | null>(null);
-  const lock = useRef(false); // prevent multiple navigations
+ 
 
-  const handleDecode = useCallback((decoded: string) => {
-    // parse id from decoded and navigate(`/q/${id}`)
+  type BarcodeLike = Partial<
+  Record<"rawValue" | "displayValue" | "text" | "value", unknown>
+>;
+  const handleDecode = useCallback(() => {
+    console.log("this is not empty...")
   }, [/* navigate */]);
   
   const extractText = (codes: IDetectedBarcode[]): string | null => {
-    // different engines expose different fields
+    const keys = ["rawValue", "displayValue", "text", "value"] as const;
+  
     for (const c of codes) {
-      const t =
-        (c as any)?.rawValue ??
-        (c as any)?.displayValue ??
-        (c as any)?.text ??
-        (c as any)?.value;
-      if (typeof t === "string" && t.trim()) return t;
+      const b = c as BarcodeLike;
+      for (const k of keys) {
+        const v = b[k];
+        if (typeof v === "string" && v.trim() !== "") return v;
+      }
     }
     return null;
   };
@@ -29,7 +30,7 @@ export default function ScanPage() {
     <Scanner
       onScan={(codes: IDetectedBarcode[]) => {
         const text = extractText(codes);
-        if (text) handleDecode(text);
+        if (text) handleDecode();
       }}
       onError={(e) => console.log(e)}
       constraints={{ facingMode: "environment" }}

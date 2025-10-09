@@ -1,4 +1,4 @@
-import { apiCreateQueue, apiGetCustomers } from "../services/api";
+import {  apiGetCustomers } from "../services/api";
 export type GetData={QueueId:number}
 
 export async function handleGetCustomers(data:GetData){

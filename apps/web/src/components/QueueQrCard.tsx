@@ -40,7 +40,7 @@ export default function QueueQrCard({ queueId, size = 224 }: Props) {
 
   return (
     <div className="w-full max-w-sm mx-auto text-center space-y-4">
-      {/* Keep a white box behind the QR for best scan reliability */}
+   
       <div className="inline-block rounded-2xl bg-white p-3 shadow">
         <QRCodeSVG value={url} size={size} />
       </div>

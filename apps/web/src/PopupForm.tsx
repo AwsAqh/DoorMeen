@@ -2,7 +2,7 @@ import React from "react"
 
 import type { Mode } from "../src/components/Helpers/popupFormTypes";
 import { COPIES } from "../src/components/Helpers/popupFormTypes";
-import { useNavigate } from "react-router-dom";
+
 type PopupFormProps = {
   open: boolean;
   onClose: () => void;

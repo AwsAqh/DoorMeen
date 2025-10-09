@@ -1,5 +1,5 @@
 // src/components/Carousel.tsx
-import React, {
+import  {
   Children,
   ReactNode,
   useCallback,
@@ -38,8 +38,8 @@ export default function Carousel({
   showArrows = true,
   showDots = true,
   pauseOnHover = true,
-  className = "w-full",                 // <- width
-  viewportClassName = "h-[380px]",      // <- height; or "aspect-[16/9
+  className = "w-full",                
+   
 }: CarouselProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const [index, setIndex] = useState(0);

@@ -1,4 +1,4 @@
-import { apiCreateQueue } from "../services/api";
+
 import { apiCancelRegister } from "../services/api";
 export type CancelData={queueId:number ,customerId:number,token:string }
 

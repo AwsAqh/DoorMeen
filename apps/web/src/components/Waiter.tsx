@@ -1,10 +1,9 @@
 // components/Waiter.tsx
-import React from "react";
+
 import "../customstyle.css";
 import LogoutIcon from '@mui/icons-material/Logout';
 import { STATUS_LABEL,Status } from "./Helpers/status";
-import { StatusEditor } from "./StatusEditor";
-import { CancelData, handleCancel } from "@/features/queue/handlers/cancel";
+
 export default function Waiter({
     id,
   name ,

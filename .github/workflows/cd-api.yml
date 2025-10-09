@@ -2,25 +2,33 @@ name: Deploy API (Azure App Service Free)
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   api:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/api  
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      - run: dotnet restore
-      - run: dotnet build -c Release --no-restore
-      - run: dotnet publish -c Release -o publish
+
+      
+
+      - name: Restore
+        run: dotnet restore Api/Api.csproj
+
+      - name: Build
+        run: dotnet build -c Release --no-restore Api/Api.csproj
+
+      - name: Publish
+        run: dotnet publish -c Release -o Api/publish Api/Api.csproj
+
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
         with:
-          app-name: doormeen-api    
+          app-name: doormeen-api
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: apps/api/publish
+          package: Api/publish   

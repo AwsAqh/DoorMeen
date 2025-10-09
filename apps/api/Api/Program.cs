@@ -14,6 +14,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
     p.WithOrigins("http://localhost:5173").AllowAnyHeader().AllowAnyMethod()));
+var config = builder.Configuration;
+
 
 
 var cs = builder.Configuration.GetConnectionString("Default");
@@ -25,12 +27,16 @@ builder.Services.AddControllers().AddJsonOptions(o =>
     o.JsonSerializerOptions.DictionaryKeyPolicy = null;
 });
 
-var jwt = builder.Configuration.GetSection("Jwt");
-var keyBytes = Encoding.UTF8.GetBytes(jwt["Key"]!);
+var jwtSection = builder.Configuration.GetSection("Jwt");
+var jwtIssuer = jwtSection["Issuer"] ?? throw new InvalidOperationException("Missing Jwt:Issuer (ENV Jwt__Issuer).");
+var jwtAudience = jwtSection["Audience"] ?? throw new InvalidOperationException("Missing Jwt:Audience (ENV Jwt__Audience).");
+var jwtKey = jwtSection["Key"] ?? throw new InvalidOperationException("Missing Jwt:Key (ENV Jwt__Key).");
+var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
+
 
 builder.Services.AddHttpContextAccessor();
 builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme) 
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(o =>
     {
         o.TokenValidationParameters = new TokenValidationParameters
@@ -38,11 +44,11 @@ builder.Services
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = jwt["Issuer"],
-            ValidAudience = jwt["Audience"],
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
             IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
             ClockSkew = TimeSpan.FromMinutes(1),
-            RoleClaimType = "role" 
+            RoleClaimType = "role"
         };
     });
 builder.Services.AddAuthorization(options =>

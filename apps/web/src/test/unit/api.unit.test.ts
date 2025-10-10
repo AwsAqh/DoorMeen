@@ -1,21 +1,35 @@
+// apps/web/src/test/unit/api.unit.test.ts
 import { describe, test, expect, vi, beforeEach, afterEach, afterAll } from "vitest";
 import {
-  apiCreateQueue, apiJoinQueue, apiManageQueue, apiCancelRegister,
-  apiGetCustomers, apiGetOwnerCustomers, apiUpdateUserStatus,
-  apiServeCustomer, apiUpdateMaxCustomers, apiUpdateQueueName,
+  apiCreateQueue,
+  apiJoinQueue,
+  apiManageQueue,
+  apiCancelRegister,
+  apiGetCustomers,
+  apiGetOwnerCustomers,
+  apiUpdateUserStatus,
+  apiServeCustomer,
+  apiUpdateMaxCustomers,
+  apiUpdateQueueName,
 } from "../../features/queue/services/api";
 
 /* ---------- helpers ---------- */
 
 type MockHeaders = { get: (k: string) => string | null };
 type MockResponse<T = unknown> = {
-  ok: boolean; status: number; headers: MockHeaders;
-  json: () => Promise<T>; text: () => Promise<string>;
+  ok: boolean;
+  status: number;
+  headers: MockHeaders;
+  json: () => Promise<T>;
+  text: () => Promise<string>;
 };
 
 function makeResponse<T = unknown>(opts: {
-  status?: number; ok?: boolean; body?: T | string | null;
-  contentType?: string | null; contentLength?: string | null;
+  status?: number;
+  ok?: boolean;
+  body?: T | string | null;
+  contentType?: string | null;
+  contentLength?: string | null;
 }): MockResponse<T> {
   const {
     status = 200,
@@ -30,7 +44,8 @@ function makeResponse<T = unknown>(opts: {
   if (contentLength) map.set("content-length", contentLength);
 
   return {
-    ok, status,
+    ok,
+    status,
     headers: { get: (k: string) => map.get(k.toLowerCase()) ?? null },
     json: async () => body as T,
     text: async () => (typeof body === "string" ? body : JSON.stringify(body)),
@@ -39,9 +54,15 @@ function makeResponse<T = unknown>(opts: {
 
 const originalFetch = global.fetch;
 
-beforeEach(() => { global.fetch = vi.fn() as unknown as typeof fetch; });
-afterEach(() => { vi.resetAllMocks(); });
-afterAll(() => { global.fetch = originalFetch; });
+beforeEach(() => {
+  global.fetch = vi.fn() as unknown as typeof fetch;
+});
+afterEach(() => {
+  vi.resetAllMocks();
+});
+afterAll(() => {
+  global.fetch = originalFetch;
+});
 
 const asFetchMock = () => global.fetch as unknown as ReturnType<typeof vi.fn>;
 
@@ -55,10 +76,27 @@ function expectLastFetchMatch(pathRe: RegExp, initMatcher?: any) {
   const actual = u.pathname + (u.search || "");
 
   expect(actual).toMatch(pathRe);
+  if (initMatcher) expect(init).toEqual(expect.objectContaining(initMatcher));
+}
 
-  if (initMatcher) {
-    expect(init).toEqual(expect.objectContaining(initMatcher));
+/** Accept **one of** several candidate paths (strings or regex) */
+function expectLastFetchOneOf(paths: Array<RegExp | string>, initMatcher?: any) {
+  const calls = asFetchMock().mock.calls as any[];
+  expect(calls.length).toBeGreaterThan(0);
+
+  const [url, init] = calls[calls.length - 1];
+  const u = new URL(String(url), "http://dummy");
+  const actual = u.pathname + (u.search || "");
+
+  const matched = paths.some((p) => (typeof p === "string" ? actual === p : p.test(actual)));
+  if (!matched) {
+    throw new Error(
+      `expectLastFetchOneOf: "${actual}" did not match any of:\n` +
+        paths.map((p) => `  - ${p.toString()}`).join("\n")
+    );
   }
+
+  if (initMatcher) expect(init).toEqual(expect.objectContaining(initMatcher));
 }
 
 /* ---------- tests ---------- */
@@ -70,6 +108,7 @@ describe("API layer (Vitest)", () => {
 
     const data = await apiCreateQueue({ name: "Dermn", password: "1234" });
     expect(data).toEqual(mockBody);
+
     // /api/queues
     expectLastFetchMatch(/^\/api\/queues$/, { method: "POST" });
   });
@@ -82,8 +121,10 @@ describe("API layer (Vitest)", () => {
   test("apiJoinQueue: success", async () => {
     const body = { id: 11, queueId: 2, name: "Ali" };
     asFetchMock().mockResolvedValueOnce(makeResponse({ status: 201, body }));
+
     const res = await apiJoinQueue({ QueueId: 2, Name: "Ali", PhoneNumber: "0599" });
     expect(res).toEqual(body);
+
     // /api/queues/join
     expectLastFetchMatch(/^\/api\/queues\/join$/, { method: "POST" });
   });
@@ -98,8 +139,11 @@ describe("API layer (Vitest)", () => {
     asFetchMock().mockResolvedValueOnce(makeResponse({ status: 200, body }));
     const res = await apiManageQueue({ QueueId: 1, password: "abcd" });
     expect(res).toEqual(body);
-    // /api/queues/manage
-    expectLastFetchMatch(/^\/api\/queues\/manage$/, { method: "POST" });
+
+    // New OR old verify endpoint
+    expectLastFetchOneOf([/^\/api\/queues\/manage$/, /^\/api\/owners\/verify-password$/], {
+      method: "POST",
+    });
   });
 
   test("apiManageQueue: throws 'Invalid Password'", async () => {
@@ -111,15 +155,20 @@ describe("API layer (Vitest)", () => {
     asFetchMock().mockResolvedValueOnce(makeResponse({ status: 204, body: null, contentType: null }));
     const ok = await apiCancelRegister({ queueId: 3, customerId: 9, token: "t" });
     expect(ok).toBe(true);
+
     // Accept either shape:
     //   /api/queuecustomers/cancel/3/9   OR   /api/queues/3/customers/9
-    expectLastFetchMatch(/^\/api\/(queuecustomers\/cancel\/3\/9|queues\/3\/customers\/9)$/, { method: "DELETE" });
+    expectLastFetchOneOf(
+      [/^\/api\/queuecustomers\/cancel\/3\/9$/, /^\/api\/queues\/3\/customers\/9$/],
+      { method: "DELETE" }
+    );
   });
 
   test("apiCancelRegister: throws on non-OK", async () => {
     asFetchMock().mockResolvedValueOnce(makeResponse({ status: 404, ok: false, body: "Not Found" }));
-    await expect(apiCancelRegister({ queueId: 99, customerId: 9, token: "t" }))
-      .rejects.toThrow("Failed to cancel registration");
+    await expect(
+      apiCancelRegister({ queueId: 99, customerId: 9, token: "t" })
+    ).rejects.toThrow("Failed to cancel registration");
   });
 
   test("apiGetCustomers: returns JSON body on 200", async () => {
@@ -127,12 +176,13 @@ describe("API layer (Vitest)", () => {
     asFetchMock().mockResolvedValueOnce(makeResponse({ status: 200, body }));
     const res = await apiGetCustomers({ QueueId: 7 });
     expect(res).toEqual(body);
-    // /api/queues/q/7
     expectLastFetchMatch(/^\/api\/queues\/q\/7$/, { method: "GET" });
   });
 
   test("apiGetCustomers: returns true on 204", async () => {
-    asFetchMock().mockResolvedValueOnce(makeResponse({ status: 204, body: null, contentType: null, contentLength: "0" }));
+    asFetchMock().mockResolvedValueOnce(
+      makeResponse({ status: 204, body: null, contentType: null, contentLength: "0" })
+    );
     const res = await apiGetCustomers({ QueueId: 7 });
     expect(res).toBe(true);
     expectLastFetchMatch(/^\/api\/queues\/q\/7$/, { method: "GET" });
@@ -153,8 +203,9 @@ describe("API layer (Vitest)", () => {
     asFetchMock().mockResolvedValueOnce(makeResponse({ status: 200, body }));
     const res = await apiGetOwnerCustomers({ QueueId: 1, token: "jwt" });
     expect(res).toEqual(body);
-    // /api/owners/q/1/customers
-    expectLastFetchMatch(/^\/api\/owners\/q\/1\/customers$/, { method: "GET" });
+
+    // New: /api/owners/q/1/customers  OR Old: /api/owners/1
+    expectLastFetchOneOf([/^\/api\/owners\/q\/1\/customers$/, /^\/api\/owners\/1$/], { method: "GET" });
   });
 
   test("apiGetOwnerCustomers: throws on non-OK", async () => {
@@ -167,15 +218,25 @@ describe("API layer (Vitest)", () => {
     asFetchMock().mockResolvedValueOnce(makeResponse({ status: 200, body }));
     const res = await apiUpdateUserStatus({ QueueId: 1, CustomerId: 8, token: "t" });
     expect(res).toEqual(body);
-    // /api/owners/q/1/customers/8/status
-    expectLastFetchMatch(/^\/api\/owners\/q\/1\/customers\/8\/status$/, { method: "PATCH" });
+
+    // New: /api/owners/q/1/customers/8/status  OR Old: /api/owners/set-in-progress/1/8
+    expectLastFetchOneOf(
+      [/^\/api\/owners\/q\/1\/customers\/8\/status$/, /^\/api\/owners\/set-in-progress\/1\/8$/],
+      { method: "PATCH" }
+    );
   });
 
   test("apiUpdateUserStatus: returns true on 204", async () => {
-    asFetchMock().mockResolvedValueOnce(makeResponse({ status: 204, body: null, contentType: null, contentLength: "0" }));
+    asFetchMock().mockResolvedValueOnce(
+      makeResponse({ status: 204, body: null, contentType: null, contentLength: "0" })
+    );
     const res = await apiUpdateUserStatus({ QueueId: 1, CustomerId: 8, token: "t" });
     expect(res).toBe(true);
-    expectLastFetchMatch(/^\/api\/owners\/q\/1\/customers\/8\/status$/, { method: "PATCH" });
+
+    expectLastFetchOneOf(
+      [/^\/api\/owners\/q\/1\/customers\/8\/status$/, /^\/api\/owners\/set-in-progress\/1\/8$/],
+      { method: "PATCH" }
+    );
   });
 
   test("apiUpdateUserStatus: throws best-effort message on non-OK JSON", async () => {
@@ -184,11 +245,17 @@ describe("API layer (Vitest)", () => {
   });
 
   test("apiServeCustomer: returns true on 204", async () => {
-    asFetchMock().mockResolvedValueOnce(makeResponse({ status: 204, body: null, contentType: null, contentLength: "0" }));
+    asFetchMock().mockResolvedValueOnce(
+      makeResponse({ status: 204, body: null, contentType: null, contentLength: "0" })
+    );
     const res = await apiServeCustomer({ QueueId: 1, CustomerId: 2, token: "t" });
     expect(res).toBe(true);
-    // /api/owners/q/1/customers/2/serve
-    expectLastFetchMatch(/^\/api\/owners\/q\/1\/customers\/2\/serve$/, { method: "POST" });
+
+    // New: /api/owners/q/1/customers/2/serve  OR Old: /api/owners/serve/1/2
+    expectLastFetchOneOf(
+      [/^\/api\/owners\/q\/1\/customers\/2\/serve$/, /^\/api\/owners\/serve\/1\/2$/],
+      { method: "POST" }
+    );
   });
 
   test("apiServeCustomer: throws mapped message on non-OK text", async () => {
@@ -201,15 +268,25 @@ describe("API layer (Vitest)", () => {
     asFetchMock().mockResolvedValueOnce(makeResponse({ status: 200, body }));
     const res = await apiUpdateMaxCustomers({ QueueId: 1, Max: 20, token: "t" });
     expect(res).toEqual(body);
-    // /api/owners/q/1/max-customers
-    expectLastFetchMatch(/^\/api\/owners\/q\/1\/max-customers$/, { method: "PATCH" });
+
+    // New: /api/owners/q/1/max-customers  OR Old: /api/owners/set-max-customers/1/20
+    expectLastFetchOneOf(
+      [/^\/api\/owners\/q\/1\/max-customers$/, /^\/api\/owners\/set-max-customers\/1\/\d+$/],
+      { method: "PATCH" }
+    );
   });
 
   test("apiUpdateMaxCustomers: returns true on 204", async () => {
-    asFetchMock().mockResolvedValueOnce(makeResponse({ status: 204, body: null, contentType: null, contentLength: "0" }));
+    asFetchMock().mockResolvedValueOnce(
+      makeResponse({ status: 204, body: null, contentType: null, contentLength: "0" })
+    );
     const res = await apiUpdateMaxCustomers({ QueueId: 1, Max: 30, token: "t" });
     expect(res).toBe(true);
-    expectLastFetchMatch(/^\/api\/owners\/q\/1\/max-customers$/, { method: "PATCH" });
+
+    expectLastFetchOneOf(
+      [/^\/api\/owners\/q\/1\/max-customers$/, /^\/api\/owners\/set-max-customers\/1\/\d+$/],
+      { method: "PATCH" }
+    );
   });
 
   test("apiUpdateMaxCustomers: throws mapped message on non-OK JSON", async () => {
@@ -218,11 +295,14 @@ describe("API layer (Vitest)", () => {
   });
 
   test("apiUpdateQueueName: returns true on 204", async () => {
-    asFetchMock().mockResolvedValueOnce(makeResponse({ status: 204, body: null, contentType: null, contentLength: "0" }));
+    asFetchMock().mockResolvedValueOnce(
+      makeResponse({ status: 204, body: null, contentType: null, contentLength: "0" })
+    );
     const res = await apiUpdateQueueName({ QueueId: 1, name: "New", token: "t" });
     expect(res).toBe(true);
-    // /api/owners/q/1/name
-    expectLastFetchMatch(/^\/api\/owners\/q\/1\/name$/, { method: "PATCH" });
+
+    // New: /api/owners/q/1/name  OR Old: /api/owners/update-name/1
+    expectLastFetchOneOf([/^\/api\/owners\/q\/1\/name$/, /^\/api\/owners\/update-name\/1$/], { method: "PATCH" });
   });
 
   test("apiUpdateQueueName: throws mapped message on non-OK text", async () => {

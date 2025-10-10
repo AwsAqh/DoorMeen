@@ -1,11 +1,15 @@
 // src/hooks/useOwnerGuard.ts
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {jwtDecode} from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 
-type OwnerToken = { role?: string; queueId?: string | number; exp?: number };
+type OwnerToken = {
+  role?: string; Role?: string;
+  queueId?: number | string; QueueId?: number | string; qid?: number | string;
+  exp?: number | string; Exp?: number | string;
+};
 
-export function useOwnerGuard(queueId: string | number, mode: string) {
+export function useOwnerGuard(queueId: number, mode: string) {
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -13,27 +17,35 @@ export function useOwnerGuard(queueId: string | number, mode: string) {
 
     const key = `queue${queueId} token`;
     const token = localStorage.getItem(key);
-
-    const redirect = () => {
-      localStorage.removeItem(key);
+    const goPublic = (): void => {
       navigate(`/queue/${queueId}`, { replace: true });
     };
-
-    if (!token) return redirect();
+    if (!token) return goPublic();
 
     try {
-      const { role, queueId: qid, exp } = jwtDecode<OwnerToken>(token);
+      const p = jwtDecode<OwnerToken>(token) ?? {};
+
+      const role = (p.role ?? p.Role ?? "").toString().toLowerCase();
+      const q = Number(p.queueId ?? p.QueueId ?? p.qid);
+      const expRaw = p.exp ?? p.Exp;
+      const expSec =
+        typeof expRaw === "string" ? parseInt(expRaw, 10) : Number(expRaw);
+
       const now = Math.floor(Date.now() / 1000);
 
-      const valid =
-        role === "owner" &&
-        String(qid) === String(queueId) &&
-        typeof exp === "number" &&
-        exp > now;
+      const roleOK = role === "owner";
+      const queueOK = Number.isFinite(q) && q === Number(queueId);
+      const expOK = Number.isFinite(expSec) && expSec > now;
 
-      if (!valid) redirect();
+      if (!(roleOK && queueOK && expOK)) {
+        // only remove if clearly invalid for THIS queue or expired
+        if (!queueOK || !expOK) localStorage.removeItem(key);
+        goPublic();
+      }
     } catch {
-      redirect();
+      // bad token format: remove and bounce
+      localStorage.removeItem(key);
+      goPublic();
     }
   }, [mode, queueId, navigate]);
 }

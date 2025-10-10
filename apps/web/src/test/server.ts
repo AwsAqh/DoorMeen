@@ -11,7 +11,7 @@ function hasProp<K extends PropertyKey>(
 
 export const server = setupServer(
 
-  http.post("https://localhost:7014/api/queues", async ({ request }) => {
+  http.post("*/api/queues", async ({ request }) => {
     const body = (await request.json()) as unknown;
 
     if (!hasProp(body, "name") || typeof body.name !== "string" || !body.name.trim()) {
@@ -23,7 +23,7 @@ export const server = setupServer(
   }),
 
   
-  http.get("https://localhost:7014/api/queues/q/:id", ({ params }) => {
+  http.get("*/api/queues/q/:id", ({ params }) => {
     const id = Number(params.id);
     if (id === 404) {
       return HttpResponse.json({ title: "Not found" }, { status: 404 });

@@ -47,7 +47,7 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
     const [users, setUsers] = useState<User[]>([]);
     const [queueName,setQueueName]=useState<string>("")
     const [notFound,setNotFound]=useState<boolean>(false)
-    const { signedIn } = useOwnerSession(currentQueueId!, `${API}/${Number(currentQueueId)}`)
+    const { signedIn } = useOwnerSession(currentQueueId!, `${API}/api/owners/check-owner/${Number(currentQueueId)}`)
     const [currentMaxCustomers, setCurrentMaxCustomers] = useState<number | null>(null);
     const [draftMax, setDraftMax] = useState<number>((currentMaxCustomers ?? 10));
     const [anyChange, setAnyChange] = useState(false);

@@ -201,7 +201,7 @@ const updateStatus=async(nextStatus:string,CustomerId:number)=>{
   
   await handleupdateStatus(payload)
   setUsers(prev => {
-    const updated = prev.map(u =>
+    const updated = prev?.map(u =>
       u.Id === CustomerId ? { ...u,State: "in_progress" as Status} : u
     );
     return sortUsers(updated);
@@ -461,7 +461,7 @@ default:break
                 }}
               />
             ) : owner ? (
-              users.map(u => (
+              users?.map(u => (
                 <UserRow
                   key={u.Id}
                   user={u}
@@ -469,7 +469,7 @@ default:break
                 />
               ))
             ) : (
-              users.map(u => (
+              users?.map(u => (
                 <Waiter
                   key={u.Id}
                   id={u.Id}

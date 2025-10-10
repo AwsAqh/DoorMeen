@@ -66,7 +66,6 @@ afterAll(() => {
 
 const asFetchMock = () => global.fetch as unknown as ReturnType<typeof vi.fn>;
 
-/** Assert last fetch call path matches a regex (host-agnostic) and optionally match init */
 function expectLastFetchMatch(pathRe: RegExp, initMatcher?: any) {
   const calls = asFetchMock().mock.calls as any[];
   expect(calls.length).toBeGreaterThan(0);
@@ -79,7 +78,6 @@ function expectLastFetchMatch(pathRe: RegExp, initMatcher?: any) {
   if (initMatcher) expect(init).toEqual(expect.objectContaining(initMatcher));
 }
 
-/** Accept **one of** several candidate paths (strings or regex) */
 function expectLastFetchOneOf(paths: Array<RegExp | string>, initMatcher?: any) {
   const calls = asFetchMock().mock.calls as any[];
   expect(calls.length).toBeGreaterThan(0);
@@ -109,8 +107,7 @@ describe("API layer (Vitest)", () => {
     const data = await apiCreateQueue({ name: "Dermn", password: "1234" });
     expect(data).toEqual(mockBody);
 
-    // /api/queues
-    expectLastFetchMatch(/^\/api\/queues$/, { method: "POST" });
+    expectLastFetchMatch(/^\/api\/owners\/queues$/, { method: "POST" });
   });
 
   test("apiCreateQueue: throws on non-OK", async () => {
@@ -125,8 +122,10 @@ describe("API layer (Vitest)", () => {
     const res = await apiJoinQueue({ QueueId: 2, Name: "Ali", PhoneNumber: "0599" });
     expect(res).toEqual(body);
 
-    // /api/queues/join
-    expectLastFetchMatch(/^\/api\/queues\/join$/, { method: "POST" });
+    expectLastFetchMatch(/^\/api\/queuecustomers$/, {
+      method: "POST",
+      headers: expect.objectContaining({ "Content-type": "application/json" }),
+    });
   });
 
   test("apiJoinQueue: throws with response body on non-OK", async () => {
@@ -140,7 +139,6 @@ describe("API layer (Vitest)", () => {
     const res = await apiManageQueue({ QueueId: 1, password: "abcd" });
     expect(res).toEqual(body);
 
-    // New OR old verify endpoint
     expectLastFetchOneOf([/^\/api\/queues\/manage$/, /^\/api\/owners\/verify-password$/], {
       method: "POST",
     });
@@ -156,12 +154,7 @@ describe("API layer (Vitest)", () => {
     const ok = await apiCancelRegister({ queueId: 3, customerId: 9, token: "t" });
     expect(ok).toBe(true);
 
-    // Accept either shape:
-    //   /api/queuecustomers/cancel/3/9   OR   /api/queues/3/customers/9
-    expectLastFetchOneOf(
-      [/^\/api\/queuecustomers\/cancel\/3\/9$/, /^\/api\/queues\/3\/customers\/9$/],
-      { method: "DELETE" }
-    );
+    expectLastFetchMatch(/^\/api\/queuecustomers\/\d+\/cancel$/, { method: "POST" });
   });
 
   test("apiCancelRegister: throws on non-OK", async () => {
@@ -176,7 +169,7 @@ describe("API layer (Vitest)", () => {
     asFetchMock().mockResolvedValueOnce(makeResponse({ status: 200, body }));
     const res = await apiGetCustomers({ QueueId: 7 });
     expect(res).toEqual(body);
-    expectLastFetchMatch(/^\/api\/queues\/q\/7$/, { method: "GET" });
+    expectLastFetchMatch(/^\/api\/queues\/7\/customers$/, { method: "GET" });
   });
 
   test("apiGetCustomers: returns true on 204", async () => {
@@ -185,7 +178,7 @@ describe("API layer (Vitest)", () => {
     );
     const res = await apiGetCustomers({ QueueId: 7 });
     expect(res).toBe(true);
-    expectLastFetchMatch(/^\/api\/queues\/q\/7$/, { method: "GET" });
+    expectLastFetchMatch(/^\/api\/queues\/7\/customers$/, { method: "GET" });
   });
 
   test("apiGetCustomers: throws text message when non-OK + text", async () => {
@@ -204,8 +197,10 @@ describe("API layer (Vitest)", () => {
     const res = await apiGetOwnerCustomers({ QueueId: 1, token: "jwt" });
     expect(res).toEqual(body);
 
-    // New: /api/owners/q/1/customers  OR Old: /api/owners/1
-    expectLastFetchOneOf([/^\/api\/owners\/q\/1\/customers$/, /^\/api\/owners\/1$/], { method: "GET" });
+    expectLastFetchOneOf(
+      [/^\/api\/owners\/q\/1$/, /^\/api\/owners\/q\/1\/customers$/, /^\/api\/owners\/1\/customers$/],
+      { method: "GET" }
+    );
   });
 
   test("apiGetOwnerCustomers: throws on non-OK", async () => {
@@ -219,11 +214,7 @@ describe("API layer (Vitest)", () => {
     const res = await apiUpdateUserStatus({ QueueId: 1, CustomerId: 8, token: "t" });
     expect(res).toEqual(body);
 
-    // New: /api/owners/q/1/customers/8/status  OR Old: /api/owners/set-in-progress/1/8
-    expectLastFetchOneOf(
-      [/^\/api\/owners\/q\/1\/customers\/8\/status$/, /^\/api\/owners\/set-in-progress\/1\/8$/],
-      { method: "PATCH" }
-    );
+    expectLastFetchMatch(/^\/api\/owners\/1\/customers\/8\/status$/, { method: "PATCH" });
   });
 
   test("apiUpdateUserStatus: returns true on 204", async () => {
@@ -233,10 +224,7 @@ describe("API layer (Vitest)", () => {
     const res = await apiUpdateUserStatus({ QueueId: 1, CustomerId: 8, token: "t" });
     expect(res).toBe(true);
 
-    expectLastFetchOneOf(
-      [/^\/api\/owners\/q\/1\/customers\/8\/status$/, /^\/api\/owners\/set-in-progress\/1\/8$/],
-      { method: "PATCH" }
-    );
+    expectLastFetchMatch(/^\/api\/owners\/1\/customers\/8\/status$/, { method: "PATCH" });
   });
 
   test("apiUpdateUserStatus: throws best-effort message on non-OK JSON", async () => {
@@ -251,11 +239,7 @@ describe("API layer (Vitest)", () => {
     const res = await apiServeCustomer({ QueueId: 1, CustomerId: 2, token: "t" });
     expect(res).toBe(true);
 
-    // New: /api/owners/q/1/customers/2/serve  OR Old: /api/owners/serve/1/2
-    expectLastFetchOneOf(
-      [/^\/api\/owners\/q\/1\/customers\/2\/serve$/, /^\/api\/owners\/serve\/1\/2$/],
-      { method: "POST" }
-    );
+    expectLastFetchMatch(/^\/api\/owners\/1\/customers\/2\/serve$/, { method: "POST" });
   });
 
   test("apiServeCustomer: throws mapped message on non-OK text", async () => {
@@ -269,11 +253,7 @@ describe("API layer (Vitest)", () => {
     const res = await apiUpdateMaxCustomers({ QueueId: 1, Max: 20, token: "t" });
     expect(res).toEqual(body);
 
-    // New: /api/owners/q/1/max-customers  OR Old: /api/owners/set-max-customers/1/20
-    expectLastFetchOneOf(
-      [/^\/api\/owners\/q\/1\/max-customers$/, /^\/api\/owners\/set-max-customers\/1\/\d+$/],
-      { method: "PATCH" }
-    );
+    expectLastFetchMatch(/^\/api\/queues\/1\/max-customers$/, { method: "PATCH" });
   });
 
   test("apiUpdateMaxCustomers: returns true on 204", async () => {
@@ -283,10 +263,7 @@ describe("API layer (Vitest)", () => {
     const res = await apiUpdateMaxCustomers({ QueueId: 1, Max: 30, token: "t" });
     expect(res).toBe(true);
 
-    expectLastFetchOneOf(
-      [/^\/api\/owners\/q\/1\/max-customers$/, /^\/api\/owners\/set-max-customers\/1\/\d+$/],
-      { method: "PATCH" }
-    );
+    expectLastFetchMatch(/^\/api\/queues\/1\/max-customers$/, { method: "PATCH" });
   });
 
   test("apiUpdateMaxCustomers: throws mapped message on non-OK JSON", async () => {
@@ -301,8 +278,7 @@ describe("API layer (Vitest)", () => {
     const res = await apiUpdateQueueName({ QueueId: 1, name: "New", token: "t" });
     expect(res).toBe(true);
 
-    // New: /api/owners/q/1/name  OR Old: /api/owners/update-name/1
-    expectLastFetchOneOf([/^\/api\/owners\/q\/1\/name$/, /^\/api\/owners\/update-name\/1$/], { method: "PATCH" });
+    expectLastFetchMatch(/^\/api\/queues\/1\/name$/, { method: "PATCH" });
   });
 
   test("apiUpdateQueueName: throws mapped message on non-OK text", async () => {

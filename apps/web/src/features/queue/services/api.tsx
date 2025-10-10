@@ -1,4 +1,6 @@
 
+const API=import.meta.env.VITE_API_BASE_URL
+
 export class ApiError extends Error {
     constructor(public status: number, message: string) {
       super(message);
@@ -21,7 +23,7 @@ export class ApiError extends Error {
   
   export async function apiCreateQueue(input: { name: string; password: string }) {
     
-    const res=await fetch("https://localhost:7014/api/queues",{method:"POST",headers:{"Content-type":"application/json"} , body:JSON.stringify(input) })
+    const res=await fetch(`${API}/api/queues`,{method:"POST",headers:{"Content-type":"application/json"} , body:JSON.stringify(input) })
     if(!res.ok) throw new Error("failed to create a queue")
     const data=await res.json()
     return data
@@ -30,7 +32,7 @@ export class ApiError extends Error {
   
   export async function apiJoinQueue(input: {QueueId:number, Name: string; PhoneNumber: string }) {
     console.log("joining....")
-    const res=await fetch("https://localhost:7014/api/queuecustomers",{method:"POST",headers:{"Content-type":"application/json"} , body:JSON.stringify(input) })
+    const res=await fetch(`${API}/api/queuecustomers`,{method:"POST",headers:{"Content-type":"application/json"} , body:JSON.stringify(input) })
     console.log("done")
     const data=await res.json()
     console.log("sdsdsdsdsd",data)
@@ -40,7 +42,7 @@ export class ApiError extends Error {
   }
   
   export async function apiManageQueue(input: {QueueId:number, password: string }) {
-    const res=await fetch("https://localhost:7014/api/owners/verify-password",{method:"POST",headers:{"Content-type":"application/json"} , body:JSON.stringify(input) })
+    const res=await fetch(`${API}/api/owners/verify-password`,{method:"POST",headers:{"Content-type":"application/json"} , body:JSON.stringify(input) })
     if(!res.ok) throw new Error("Invalid Password")
     const data=await res.json()
    
@@ -48,7 +50,7 @@ export class ApiError extends Error {
   }
 
   export async function apiCancelRegister(input :{queueId:number,customerId:number,token:string}){
-    const res=await fetch(`https://localhost:7014/api/queuecustomers/cancel/${input.queueId}/${input.customerId}`,{method:"DELETE",headers:{"Content-type":"application/json","X-Cancel-Token":input.token} })
+    const res=await fetch(`${API}/api/queuecustomers/cancel/${input.queueId}/${input.customerId}`,{method:"DELETE",headers:{"Content-type":"application/json","X-Cancel-Token":input.token} })
     
 
     if(!res.ok) throw new Error("Failed to cancel registration")
@@ -57,7 +59,7 @@ export class ApiError extends Error {
   }
 
   export async function apiGetCustomers(input :{QueueId:number}){
-    const res=await fetch(`https://localhost:7014/api/queues/q/${input.QueueId}`,{method:"GET",headers:{"Content-type":"application/json"} })
+    const res=await fetch(`${API}/api/queues/q/${input.QueueId}`,{method:"GET",headers:{"Content-type":"application/json"} })
     const body = await readBody(res);
 
     if (!res.ok) {
@@ -74,7 +76,7 @@ export class ApiError extends Error {
   }
 
   export async function apiGetOwnerCustomers(input :{QueueId:number,token:string}){
-    const res=await fetch(`https://localhost:7014/api/owners/q/${input.QueueId}`,{method:"GET",headers:{"Content-type":"application/json","Authorization":`Bearer ${input.token}`} })
+    const res=await fetch(`${API}/api/owners/q/${input.QueueId}`,{method:"GET",headers:{"Content-type":"application/json","Authorization":`Bearer ${input.token}`} })
     
     const data=await res.json()
     if(!res.ok) throw new Error(data)
@@ -85,7 +87,7 @@ export class ApiError extends Error {
 
 
   export async function apiUpdateUserStatus(input :{QueueId:number,CustomerId:number,token:string}){
-    const res=await fetch(`https://localhost:7014/api/owners/set-in-progress/${input.QueueId}/${input.CustomerId}`,{method:"PUT",headers:{"Content-type":"application/json","Authorization":`Bearer ${input.token}`}  })
+    const res=await fetch(`${API}/api/owners/set-in-progress/${input.QueueId}/${input.CustomerId}`,{method:"PUT",headers:{"Content-type":"application/json","Authorization":`Bearer ${input.token}`}  })
     const body = await readBody(res);
     if (!res.ok) {
       // try to surface a meaningful message
@@ -103,7 +105,7 @@ export class ApiError extends Error {
   
 
   export async function apiServeCustomer(input :{QueueId:number,CustomerId:number,token:string}){
-    const res=await fetch(`https://localhost:7014/api/owners/serve/${input.QueueId}/${input.CustomerId}`,{method:"DELETE",headers:{"Content-type":"application/json","Authorization":`Bearer ${input.token}`}  })
+    const res=await fetch(`${API}/api/owners/serve/${input.QueueId}/${input.CustomerId}`,{method:"DELETE",headers:{"Content-type":"application/json","Authorization":`Bearer ${input.token}`}  })
     const body = await readBody(res);
 
       if (!res.ok) {
@@ -121,7 +123,7 @@ export class ApiError extends Error {
   }
 
   export async function apiUpdateMaxCustomers(input :{QueueId:number,Max:number, token:string}){
-    const res=await fetch(`https://localhost:7014/api/owners/set-max-customers/${input.QueueId}/${input.Max}`,{method:"PUT",headers:{"Content-type":"application/json","Authorization":`Bearer ${input.token}`}  })
+    const res=await fetch(`${API}/api/owners/set-max-customers/${input.QueueId}/${input.Max}`,{method:"PUT",headers:{"Content-type":"application/json","Authorization":`Bearer ${input.token}`}  })
     const body = await readBody(res);
     if (!res.ok) {
       // try to surface a meaningful message
@@ -138,7 +140,7 @@ export class ApiError extends Error {
 
 
   export async function apiUpdateQueueName(input :{QueueId:number,name:string, token:string}){
-    const res=await fetch(`https://localhost:7014/api/owners/update-name/${input.QueueId}`,{method:"PUT",headers:{"Content-type":"application/json","Authorization":`Bearer ${input.token}`},body:JSON.stringify(input.name)  })
+    const res=await fetch(`${API}/api/owners/update-name/${input.QueueId}`,{method:"PUT",headers:{"Content-type":"application/json","Authorization":`Bearer ${input.token}`},body:JSON.stringify(input.name)  })
     const body = await readBody(res);
     if (!res.ok) {
       // try to surface a meaningful message

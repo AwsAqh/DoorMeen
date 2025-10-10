@@ -13,7 +13,7 @@ using Api.Application.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
-    p.WithOrigins("http://localhost:5173").AllowAnyHeader().AllowAnyMethod()));
+    p.WithOrigins("https://lively-mushroom-01f6be41e.1.azurestaticapps.net").AllowAnyHeader().AllowAnyMethod()));
 var config = builder.Configuration;
 
 

@@ -74,12 +74,12 @@ afterAll(() => {
   global.fetch = originalFetch;
 });
 
-/** Strictly-typed mock for global.fetch (vitest's Mock takes a single function type) */
-type FetchFn = (input: RequestInfo | URL, init?: RequestInit) => Promise<any>;
+type FetchFn = (input: RequestInfo | URL, init?: RequestInit) => Promise<unknown>;
 type FetchMock = Mock<FetchFn>;
 const asFetchMock = () => global.fetch as unknown as FetchMock;
 
 type FetchCall = [RequestInfo | URL, RequestInit?];
+
 
 /** Assert last fetch call path matches a regex (host-agnostic) and optionally match init */
 function expectLastFetchMatch(pathRe: RegExp, initMatcher?: Partial<RequestInit>) {

@@ -18,8 +18,8 @@ var config = builder.Configuration;
 
 
 
-var cs = builder.Configuration.GetConnectionString("Default");
-builder.Services.AddDbContext<DoorMeenDbContext>(opt => opt.UseNpgsql(cs));
+var cs = builder.Configuration.GetConnectionString("Default")??throw new InvalidOperationException("Connection string Default not found");
+    builder.Services.AddDbContext<DoorMeenDbContext>(opt => opt.UseNpgsql(cs));
 
 builder.Services.AddControllers().AddJsonOptions(o =>
 {

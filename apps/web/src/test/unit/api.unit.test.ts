@@ -1,5 +1,14 @@
 // apps/web/src/test/unit/api.unit.test.ts
-import { describe, test, expect, vi, beforeEach, afterEach, afterAll } from "vitest";
+import {
+  describe,
+  test,
+  expect,
+  vi,
+  beforeEach,
+  afterEach,
+  afterAll,
+} from "vitest";
+import type { Mock } from "vitest";
 import {
   apiCreateQueue,
   apiJoinQueue,
@@ -12,6 +21,8 @@ import {
   apiUpdateMaxCustomers,
   apiUpdateQueueName,
 } from "../../features/queue/services/api";
+
+/* ---------- helpers ---------- */
 
 type MockHeaders = { get: (k: string) => string | null };
 type MockResponse<T = unknown> = {
@@ -46,7 +57,8 @@ function makeResponse<T = unknown>(opts: {
     status,
     headers: { get: (k: string) => map.get(k.toLowerCase()) ?? null },
     json: async () => body as T,
-    text: async () => (typeof body === "string" ? body : JSON.stringify(body)),
+    text: async () =>
+      typeof body === "string" ? body : body == null ? "" : JSON.stringify(body),
   };
 }
 
@@ -62,24 +74,35 @@ afterAll(() => {
   global.fetch = originalFetch;
 });
 
-const asFetchMock = () => global.fetch as unknown as ReturnType<typeof vi.fn>;
+/** Strictly-typed mock for global.fetch (vitest's Mock takes a single function type) */
+type FetchFn = (input: RequestInfo | URL, init?: RequestInit) => Promise<any>;
+type FetchMock = Mock<FetchFn>;
+const asFetchMock = () => global.fetch as unknown as FetchMock;
 
-function expectLastFetchMatch(pathRe: RegExp, initMatcher?: any) {
-  const calls = asFetchMock().mock.calls as any[];
+type FetchCall = [RequestInfo | URL, RequestInit?];
+
+/** Assert last fetch call path matches a regex (host-agnostic) and optionally match init */
+function expectLastFetchMatch(pathRe: RegExp, initMatcher?: Partial<RequestInit>) {
+  const calls = asFetchMock().mock.calls as unknown as FetchCall[];
   expect(calls.length).toBeGreaterThan(0);
+
   const [url, init] = calls[calls.length - 1];
   const u = new URL(String(url), "http://dummy");
   const actual = u.pathname + (u.search || "");
+
   expect(actual).toMatch(pathRe);
-  if (initMatcher) expect(init).toEqual(expect.objectContaining(initMatcher));
+  if (initMatcher) expect(init ?? {}).toEqual(expect.objectContaining(initMatcher));
 }
 
-function expectLastFetchOneOf(paths: Array<RegExp | string>, initMatcher?: any) {
-  const calls = asFetchMock().mock.calls as any[];
+/** Accept one of several candidate paths (strings or regex) */
+function expectLastFetchOneOf(paths: Array<RegExp | string>, initMatcher?: Partial<RequestInit>) {
+  const calls = asFetchMock().mock.calls as unknown as FetchCall[];
   expect(calls.length).toBeGreaterThan(0);
+
   const [url, init] = calls[calls.length - 1];
   const u = new URL(String(url), "http://dummy");
   const actual = u.pathname + (u.search || "");
+
   const matched = paths.some((p) => (typeof p === "string" ? actual === p : p.test(actual)));
   if (!matched) {
     throw new Error(
@@ -87,8 +110,11 @@ function expectLastFetchOneOf(paths: Array<RegExp | string>, initMatcher?: any) 
         paths.map((p) => `  - ${p.toString()}`).join("\n")
     );
   }
-  if (initMatcher) expect(init).toEqual(expect.objectContaining(initMatcher));
+
+  if (initMatcher) expect(init ?? {}).toEqual(expect.objectContaining(initMatcher));
 }
+
+/* ---------- tests ---------- */
 
 describe("API layer (Vitest)", () => {
   test("apiCreateQueue: success 200", async () => {

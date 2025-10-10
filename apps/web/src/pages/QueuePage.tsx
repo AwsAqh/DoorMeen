@@ -40,14 +40,14 @@ type User = {
 type PageMode = "public" | "owner";
 
 export default function QueuePage({ mode  }: { mode: PageMode }) {
-  
+  const API=import.meta.env.VITE_API_BASE_URL
   const params = useParams<{ id?: string }>();
   const currentQueueId: number = Number(params.id ?? 0);
     const navigate = useNavigate();
     const [users, setUsers] = useState<User[]>([]);
     const [queueName,setQueueName]=useState<string>("")
     const [notFound,setNotFound]=useState<boolean>(false)
-    const { signedIn } = useOwnerSession(currentQueueId!, `https://localhost:7014/api/owners/check-owner/${Number(currentQueueId)}`)
+    const { signedIn } = useOwnerSession(currentQueueId!, `${API}/${Number(currentQueueId)}`)
     const [currentMaxCustomers, setCurrentMaxCustomers] = useState<number | null>(null);
     const [draftMax, setDraftMax] = useState<number>((currentMaxCustomers ?? 10));
     const [anyChange, setAnyChange] = useState(false);

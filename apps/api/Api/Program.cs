@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using Api.Application.Interfaces;
 using Api.Application.Services;
+using Microsoft.AspNetCore.Routing;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddCors(o => o.AddPolicy("app",p  =>
@@ -99,7 +100,16 @@ app.UseExceptionHandler(errorApp =>
 app.UseRouting();
 app.UseCors("app");
 app.MapGet("/health", () => Results.Ok(new { ok = true, time = DateTime.UtcNow }));
+app.MapGet("/_routes", (EndpointDataSource eds) =>
+    Results.Ok(eds.Endpoints.Select(e => e.DisplayName)));
 
+app.MapGet("/_env", (IConfiguration cfg) =>
+    Results.Ok(new
+    {
+        Environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
+        PathBase = Environment.GetEnvironmentVariable("ASPNETCORE_PATHBASE"),
+        Urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS")
+    }));
 
 
 

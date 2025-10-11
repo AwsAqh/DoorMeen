@@ -1,28 +1,29 @@
-name: Deploy API (Azure App Service Free)
+name: Deploy API (Azure App Service)
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
-  api:
+  deploy-api:
     runs-on: ubuntu-latest
+
     env:
-      PUBLISH_DIR: ${{ github.workspace }}/publish   # absolute path
+      DOTNET_VERSION: '8.0.x'
+      PUBLISH_DIR: ${{ github.workspace }}/publish
+      ZIP_PATH:     ${{ github.workspace }}/app.zip
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-dotnet@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Show tree (top 3 levels)
-        run: |
-          pwd
-          ls -la
-          find . -maxdepth 3 -type f -name "*.csproj" -print
-
+      # --- Locate the Web API project reliably ---
       - name: Locate Api.csproj
         id: locate
         shell: bash
@@ -30,29 +31,51 @@ jobs:
           set -e
           PROJ=$(git ls-files '**/Api.csproj' | head -n1)
           if [ -z "$PROJ" ]; then
-            echo "Api.csproj not found"; exit 1
+            echo "pi.csproj not found"; exit 1
           fi
           echo "PROJECT_PATH=$PROJ" >> $GITHUB_ENV
           echo "PROJECT_DIR=$(dirname "$PROJ")" >> $GITHUB_ENV
-          echo "Found: $PROJ"
+          echo "Found project at: $PROJ"
 
       - name: Restore
         working-directory: ${{ env.PROJECT_DIR }}
         run: dotnet restore "$(basename "${{ env.PROJECT_PATH }}")"
 
-      - name: Build
+      - name: Build (Release)
         working-directory: ${{ env.PROJECT_DIR }}
         run: dotnet build "$(basename "${{ env.PROJECT_PATH }}")" -c Release --no-restore
 
+     
       - name: Publish
         working-directory: ${{ env.PROJECT_DIR }}
         run: |
-          dotnet publish "$(basename "${{ env.PROJECT_PATH }}")" -c Release -o "$PUBLISH_DIR"
-          ls -la "$PUBLISH_DIR"  # prove the folder exists and has files
+          rm -rf "$PUBLISH_DIR" "$ZIP_PATH"
+          dotnet publish "$(basename "${{ env.PROJECT_PATH }}")" -c Release \
+            -p:PublishTrimmed=false -p:PublishAot=false -p:SelfContained=false \
+            -o "$PUBLISH_DIR"
+
+          echo "Remove any backup runtimeconfig files (Azure Oryx gets confused):"
+          find "$PUBLISH_DIR" -maxdepth 1 -type f -iname "*backup*.runtimeconfig.json" -print -delete || true
+
+          echo "List publish output:"
+          ls -la "$PUBLISH_DIR"
+
+          echo "Assert exactly one runtimeconfig.json remains:"
+          COUNT=$(find "$PUBLISH_DIR" -maxdepth 1 -type f -name "*.runtimeconfig.json" | wc -l)
+          if [ "$COUNT" -ne 1 ]; then
+            echo "Expected exactly 1 *.runtimeconfig.json, found $COUNT"; exit 1
+          fi
+
+      - name: Zip artifact
+        run: |
+          cd "$PUBLISH_DIR"
+          zip -r "$ZIP_PATH" .
+          cd -
+          echo "Created: $ZIP_PATH"
 
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
         with:
-          app-name: doormeen-api
+          app-name: doormeen-api   
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: ${{ env.PUBLISH_DIR }}   # deploy the absolute folder
+          package: ${{ env.ZIP_PATH }}

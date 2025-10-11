@@ -96,7 +96,7 @@ app.UseExceptionHandler(errorApp =>
         await context.Response.WriteAsJsonAsync(details);
     });
 });
-app.UseCors();
+app.UseCors("app");
 
 
 

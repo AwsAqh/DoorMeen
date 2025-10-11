@@ -7,6 +7,7 @@ on:
 jobs:
   api:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -14,33 +15,30 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+    
       - name: Show tree
         run: |
           pwd
           ls -la
           find . -maxdepth 3 -type f -name "*.csproj" -print
 
-      - name: Detect project
-        run: |
-          PROJ=$(find . -type f -name "*.csproj" | head -n1)
-          if [ -z "$PROJ" ]; then
-            echo "No .csproj found. Did you commit it?" >&2
-            exit 1
-          fi
-          echo "PROJECT_PATH=$PROJ" >> "$GITHUB_ENV"
-
+   
       - name: Restore
-        run: dotnet restore "$PROJECT_PATH"
+        working-directory: apps/Api
+        run: dotnet restore Api.csproj
 
       - name: Build
-        run: dotnet build -c Release --no-restore "$PROJECT_PATH"
+        working-directory: apps/Api
+        run: dotnet build Api.csproj -c Release --no-restore
 
       - name: Publish
-        run: dotnet publish -c Release -o publish "$PROJECT_PATH"
+        working-directory: apps/Api
+        # Output two levels up (repo root) into ./publish
+        run: dotnet publish Api.csproj -c Release -o ../../publish
 
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
         with:
-          app-name: doormeen-api
+          app-name: doormeen-api        
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: publish
+          package: publish             

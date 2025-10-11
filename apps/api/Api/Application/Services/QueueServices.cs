@@ -21,7 +21,7 @@ namespace Api.Application.Services
     }
     public class QueueServices: Services,IQueueServices
     {
-
+         
 
         public QueueServices(DoorMeenDbContext db) : base(db) { }
         public async Task<Object> CreateQueue(string queueName,string password) {

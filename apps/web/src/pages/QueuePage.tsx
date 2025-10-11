@@ -172,7 +172,8 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
     }
   };
   
-  const submitManageForm = async () => {
+  const submitManageForm = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (owner) return;
   
     const a = firstInputRef.current?.value?.trim() ?? "";

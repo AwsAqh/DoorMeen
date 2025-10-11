@@ -7,7 +7,6 @@ on:
 jobs:
   api:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -15,30 +14,42 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-    
-      - name: Show tree
+      - name: Show tree (top 3 levels)
         run: |
           pwd
           ls -la
           find . -maxdepth 3 -type f -name "*.csproj" -print
 
-   
+      # Locate the Web API project *by filename*
+      - name: Locate Api.csproj
+        id: locate
+        shell: bash
+        run: |
+          set -e
+          PROJ=$(git ls-files '**/Api.csproj' | head -n1)
+          if [ -z "$PROJ" ]; then
+            echo "Could not find Api.csproj in the repo." >&2
+            exit 1
+          fi
+          echo "PROJECT_PATH=$PROJ" >> $GITHUB_ENV
+          echo "PROJECT_DIR=$(dirname "$PROJ")" >> $GITHUB_ENV
+          echo "Found: $PROJ"
+
       - name: Restore
-        working-directory: apps/Api
-        run: dotnet restore Api.csproj
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: dotnet restore "$(basename "${{ env.PROJECT_PATH }}")"
 
       - name: Build
-        working-directory: apps/Api
-        run: dotnet build Api.csproj -c Release --no-restore
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: dotnet build "$(basename "${{ env.PROJECT_PATH }}")" -c Release --no-restore
 
       - name: Publish
-        working-directory: apps/Api
-        # Output two levels up (repo root) into ./publish
-        run: dotnet publish Api.csproj -c Release -o ../../publish
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: dotnet publish "$(basename "${{ env.PROJECT_PATH }}")" -c Release -o ../../publish
 
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
         with:
-          app-name: doormeen-api        
+          app-name: doormeen-api
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: publish             
+          package: publish

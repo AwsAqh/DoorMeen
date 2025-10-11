@@ -171,6 +171,7 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
       toast.error(getErrorMessage(err), { className: CLASS, duration: 5000, id });
     }
   };
+
   
   const submitManageForm = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -190,10 +191,11 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
   
       toast.success("Verified!", { id, className: CLASS, duration: 2500 });
   
-      localStorage.setItem(`queue:${queueId} token`, token);
+      localStorage.setItem(`queue${queueId} token`, token);
       setOpen(false);
-      navigate(`/owner/q/${queueId}`, { state: { owner: true } });
-    }  catch (err :unknown) {
+      navigate(`/owner/q/${queueId}`, {replace:true });
+    }  
+    catch (err :unknown) {
       toast.error(getErrorMessage(err), { className: CLASS, duration: 5000, id });
     
     }

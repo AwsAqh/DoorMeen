@@ -141,6 +141,9 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
 
   const CLASS = "bg-card text-card-foreground border-border";
 
+  const getErrorMessage = (e: unknown): string =>
+    e instanceof Error ? e.message : typeof e === "string" ? e : "Something went wrong";
+
   const submitJoinForm = async (e: React.FormEvent) => {
     e.preventDefault();
     const a = firstInputRef.current?.value?.trim() ?? "";
@@ -164,12 +167,8 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
       setUsers(prev => [...prev, newUser]);
       localStorage.setItem("queueCancelToken", Token);
       setOpen(false);
-    } catch (err) {
-      toast.error((err as any)?.message ?? "Failed to join", {
-        id,
-        className: CLASS,
-        duration: 5000,
-      });
+    } catch (err :unknown) {
+      toast.error(getErrorMessage(err), { className: CLASS, duration: 5000, id });
     }
   };
   
@@ -193,12 +192,9 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
       localStorage.setItem(`queue:${queueId}:token`, token); // no spaces in key
       setOpen(false);
       navigate(`/owner/q/${queueId}`, { state: { owner: true } });
-    } catch (err) {
-      toast.error((err as any)?.message ?? "Failed to verify", {
-        id,
-        className: CLASS,
-        duration: 5000,
-      });
+    }  catch (err :unknown) {
+      toast.error(getErrorMessage(err), { className: CLASS, duration: 5000, id });
+    
     }
   };
   

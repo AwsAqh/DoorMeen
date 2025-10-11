@@ -98,6 +98,8 @@ app.UseExceptionHandler(errorApp =>
 });
 app.UseRouting();
 app.UseCors("app");
+app.MapGet("/health", () => Results.Ok(new { ok = true, time = DateTime.UtcNow }));
+
 
 
 

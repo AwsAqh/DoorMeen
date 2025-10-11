@@ -189,7 +189,7 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
   
       toast.success("Verified!", { id, className: CLASS, duration: 2500 });
   
-      localStorage.setItem(`queue:${queueId}:token`, token); // no spaces in key
+      localStorage.setItem(`queue:${queueId} token`, token);
       setOpen(false);
       navigate(`/owner/q/${queueId}`, { state: { owner: true } });
     }  catch (err :unknown) {

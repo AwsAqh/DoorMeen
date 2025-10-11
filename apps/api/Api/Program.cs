@@ -12,7 +12,7 @@ using Api.Application.Interfaces;
 using Api.Application.Services;
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
+builder.Services.AddCors(o => o.AddPolicy("app",p  =>
     p.WithOrigins("https://lively-mushroom-01f6be41e.1.azurestaticapps.net" , "http://localhost:5173").AllowAnyHeader().AllowAnyMethod()));
 var config = builder.Configuration;
 
@@ -96,6 +96,7 @@ app.UseExceptionHandler(errorApp =>
         await context.Response.WriteAsJsonAsync(details);
     });
 });
+app.UseRouting();
 app.UseCors("app");
 
 

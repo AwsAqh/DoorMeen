@@ -27,6 +27,7 @@ import ModeEditIcon from '@mui/icons-material/ModeEdit';
 import { handleUpdateMaxCustomers,UpdateMaxCustomersData } from "@/features/queue/handlers/updateMaxCustomers";
 import { handleUpdateQueueName,UpdateQueueNameData } from "@/features/queue/handlers/updateQueueName";
 import Footer from "@/components/Footer";
+import { toast } from "sonner"
 
 type User = {
   Id: number;
@@ -138,34 +139,68 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
   const firstInputRef = useRef<HTMLInputElement>(null);
   const secondInputRef = useRef<HTMLInputElement>(null);
 
-  const submitForm = async (e: React.FormEvent) => {
+  const CLASS = "bg-card text-card-foreground border-border";
+
+  const submitJoinForm = async (e: React.FormEvent) => {
     e.preventDefault();
     const a = firstInputRef.current?.value?.trim() ?? "";
     const b = secondInputRef.current?.value?.trim() ?? "";
-
+  
+    if (popupMode !== "join") return;     
+    if (!a || !b) {
+      toast.error("Please fill all fields", { className: CLASS, duration: 3000 });
+      return;
+    }
+  
+    const id = toast.loading("Joining queue…", { className: CLASS, duration: Infinity });
+  
     try {
-      if (popupMode === "join") {
-        const payload: JoinData = { QueueId: currentQueueId, Name: a, PhoneNumber: b };
-        const { Id , Token} = await handleJoin(payload);
-        const newUser: User = { ...payload, Id: Id , State: "waiting"  };
-        setUsers(prev => [...prev, newUser]);
-        localStorage.setItem("queueCancelToken",Token)  
-        setOpen(false)
-
-      } else if (!owner) {
-        
-        const payload: ManageData = { QueueId: currentQueueId, password: a };
-        const {queueId,token}= await handleManage(payload);
-        console.log("VERIFIED")
-        localStorage.setItem(`queue${queueId} token`,token)
-        setOpen(false)
-        navigate(`/owner/q/${currentQueueId}`, { state: { owner: true } });
-      }
+      const payload: JoinData = { QueueId: currentQueueId, Name: a, PhoneNumber: b };
+      const { Id, Token } = await handleJoin(payload);
+  
+      toast.success("Joined!", { id, className: CLASS, duration: 2500 });
+  
+      const newUser: User = { ...payload, Id, State: "waiting" };
+      setUsers(prev => [...prev, newUser]);
+      localStorage.setItem("queueCancelToken", Token);
+      setOpen(false);
     } catch (err) {
-      console.error("submit error:", err);
+      toast.error((err as any)?.message ?? "Failed to join", {
+        id,
+        className: CLASS,
+        duration: 5000,
+      });
     }
   };
-
+  
+  const submitManageForm = async () => {
+    if (owner) return;
+  
+    const a = firstInputRef.current?.value?.trim() ?? "";
+    if (!a) {
+      toast.error("Enter PIN", { className: CLASS, duration: 3000 });
+      return;
+    }
+  
+    const id = toast.loading("Checking PIN…", { className: CLASS, duration: Infinity });
+  
+    try {
+      const payload: ManageData = { QueueId: currentQueueId, password: a };
+      const { queueId, token } = await handleManage(payload);
+  
+      toast.success("Verified!", { id, className: CLASS, duration: 2500 });
+  
+      localStorage.setItem(`queue:${queueId}:token`, token); // no spaces in key
+      setOpen(false);
+      navigate(`/owner/q/${queueId}`, { state: { owner: true } });
+    } catch (err) {
+      toast.error((err as any)?.message ?? "Failed to verify", {
+        id,
+        className: CLASS,
+        duration: 5000,
+      });
+    }
+  };
   
 
   const cancelRegister=async(cancelId:number)=>{
@@ -496,7 +531,7 @@ default:break
           <PopupForm
             open={open}
             onClose={() => setOpen(false)}
-            onSubmit={submitForm}
+            onSubmit={popupMode==="join"? submitJoinForm: submitManageForm }
             firstInputRef={firstInputRef}
             secondInputRef={secondInputRef}
             type={popupMode}

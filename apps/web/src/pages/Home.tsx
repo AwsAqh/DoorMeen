@@ -13,6 +13,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { CreateData,handleCreate } from "../features/queue/handlers";
 import { useNavigate } from "react-router-dom";
 import Footer from "../components/Footer";
+import { toast, Toaster } from "sonner"
 const Home = () => {
   const navigate=useNavigate()
   const firstInputRef=useRef<HTMLInputElement>(null)
@@ -26,9 +27,12 @@ const Home = () => {
   const [open, setOpen] = useState(false);
   const [textIndex, setTextIndex] = useState<number>(0);
 
+  const getErrorMessage = (e: unknown): string =>
+    e instanceof Error ? e.message : typeof e === "string" ? e : "Something went wrong";
+ const CLASS = "bg-card text-card-foreground border-border";
   const handleSubmit=(e:React.FormEvent)=>{
     e.preventDefault();
-
+    const id = toast.loading("Creating...", { className: CLASS, duration: Infinity });
     (async()=>{
 
     
@@ -38,18 +42,18 @@ const Home = () => {
     try{
     const payload:CreateData={name:a,password:b}
       const res=await handleCreate(payload)
-
+      toast.success("Created!",{ id, className: CLASS, duration: 2500 })
       setOpen(false)
       navigate(`/queue/${res.id}`)
       
       
   }
     catch(err){ 
-      if (err instanceof Error) {
-        console.log(err.message);
-      } else {
-        console.log(String(err));
-      }
+     
+       
+          toast.error(getErrorMessage(err), { className: CLASS, duration: 5000, id });
+        
+      
     }
   })()
 
@@ -62,7 +66,7 @@ const Home = () => {
   
       <div className="min-h-screen bg-gray-500 overflow-x-hidden flex flex-col justify-between">
         <Header />
-
+        <Toaster position="top-center" offset={16} />
         {/* hero */}
         <main
           className="

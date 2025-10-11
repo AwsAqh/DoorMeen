@@ -12,7 +12,7 @@ export const COPIES = {
       input2type:"password",
       input2MinLength:4,
       input2MaxLength:6,
-      pattern:"",
+       pattern: "\\d{4,6}",
       note: "Only digits, 4–6 length.",
       action: "Create",
    

@@ -27,7 +27,7 @@ import ModeEditIcon from '@mui/icons-material/ModeEdit';
 import { handleUpdateMaxCustomers,UpdateMaxCustomersData } from "@/features/queue/handlers/updateMaxCustomers";
 import { handleUpdateQueueName,UpdateQueueNameData } from "@/features/queue/handlers/updateQueueName";
 import Footer from "@/components/Footer";
-import { toast } from "sonner"
+import { toast, Toaster } from "sonner"
 
 type User = {
   Id: number;
@@ -226,7 +226,7 @@ const sortUsers = (list: User[]) =>
 
 
 const updateStatus=async(nextStatus:string,CustomerId:number)=>{
-
+  const id = toast.loading("Updating...", { className: CLASS, duration: Infinity });
   try{
   const payload:UpdateData={QueueId:currentQueueId,CustomerId,token:localStorage.getItem(`queue${currentQueueId} token`)||""}
 
@@ -234,6 +234,7 @@ const updateStatus=async(nextStatus:string,CustomerId:number)=>{
   case "in_progress":{
   
   await handleupdateStatus(payload)
+  toast.success("Updated!",{ id, className: CLASS, duration: 2500 })
   setUsers(prev => {
     const updated = prev?.map(u =>
       u.Id === CustomerId ? { ...u,State: "in_progress" as Status} : u
@@ -247,6 +248,7 @@ const updateStatus=async(nextStatus:string,CustomerId:number)=>{
   case "served":{
   
   await handleServeCustomer(payload)
+  toast.success("Served!",{ id, className: CLASS, duration: 2500 })
   setUsers(prev=>prev.filter(u=>u.Id!==CustomerId))
     break
 }
@@ -254,8 +256,9 @@ default:break
   
 }
   }
-  catch(err){
-    console.log(err,"failed to update status")
+  catch (err :unknown) {
+    toast.error(getErrorMessage(err), { className: CLASS, duration: 5000, id });
+  
   }
 
 }
@@ -296,30 +299,35 @@ default:break
   }
 
   const updateMaxCustomers=async()=>{
+    const id = toast.loading("Updating max customer...", { className: CLASS, duration: Infinity });
     try{
       const payload:UpdateMaxCustomersData={QueueId:currentQueueId,Max:draftMax,token:localStorage.getItem(`queue${currentQueueId} token`)||""}
       setSaveLoading(true)
       await handleUpdateMaxCustomers(payload)
+      toast.success("Updated!",{ id, className: CLASS, duration: 2500 })
       setCurrentMaxCustomers(currentMaxCustomers)
       setAnyChange(false)
       setSaveLoading(false)
     }
-    catch(err){
+    catch (err :unknown) {
       setSaveLoading(false)
-        console.log(err)
+      toast.error(getErrorMessage(err), { className: CLASS, duration: 5000, id });
+    
     }
   }
 
   const updateQueueName=async()=>{
-
+    const id = toast.loading("Checking PIN…", { className: CLASS, duration: Infinity });
     try{
       const payload:UpdateQueueNameData={QueueId:currentQueueId,name:queueNameRef.current?.value??"",token:localStorage.getItem(`queue${currentQueueId} token`)||""}
       await handleUpdateQueueName(payload)
+      toast.success("Updated!",{ id, className: CLASS, duration: 2500 })
       setQueueName(queueNameRef.current?.value??"")
       setIsNameEditing(false)
     }
-    catch(err){
-      console.log(err)
+    catch (err :unknown) {
+      toast.error(getErrorMessage(err), { className: CLASS, duration: 5000, id });
+    
     }
 
   }
@@ -329,7 +337,7 @@ default:break
     <MorphingBlobs>
       <div className="min-h-[100svh] flex flex-col font-poppins overflow-x-hidden justify-between">
         <Header />
-
+        <Toaster position="top-center" offset={16} />
    
         <div className="flex-1 w-full flex flex-col items-center gap-8 px-4 py-10">
         {   notFound? <QueueNotFound/>:

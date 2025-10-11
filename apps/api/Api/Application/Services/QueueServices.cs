@@ -7,8 +7,8 @@ using Microsoft.EntityFrameworkCore;
 using Api.models;
 using Api.security;
 using System.ComponentModel.DataAnnotations;
+using System.Data;
 
-using System.Data;               
 using Microsoft.EntityFrameworkCore;
 namespace Api.Application.Services
 {
@@ -16,7 +16,8 @@ namespace Api.Application.Services
     public class Services
     {
         protected readonly DoorMeenDbContext _db;
-        public Services(DoorMeenDbContext db) { _db = db; }
+       
+        public Services(DoorMeenDbContext db) { _db = db; ; }
     }
     public class QueueServices: Services,IQueueServices
     {
@@ -27,7 +28,7 @@ namespace Api.Application.Services
 
           
             if (queueName is null || password is null) throw new ArgumentNullException();
-
+          
             var queue = new QueueItem
             {
 
@@ -36,9 +37,9 @@ namespace Api.Application.Services
 
 
             };
+           
             _db.Queues.Add(queue);
             await _db.SaveChangesAsync();
-
             return queue;
 
         }

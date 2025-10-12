@@ -14,7 +14,7 @@ import { CreateData,handleCreate } from "../features/queue/handlers";
 import { useNavigate } from "react-router-dom";
 import Footer from "../components/Footer";
 import { toast, Toaster } from "sonner"
-import { METHODS } from "http";
+
 const Home = () => {
   const navigate=useNavigate()
   const firstInputRef=useRef<HTMLInputElement>(null)

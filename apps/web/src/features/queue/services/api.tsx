@@ -27,12 +27,7 @@ export class ApiError extends Error {
     const body = await readBody(res);
 
     if (!res.ok) {
-      // try to surface a meaningful message
-      const msg =
-        typeof body === "string"
-          ? body
-          : body?.message || body?.detail || body?.title || `HTTP ${res.status}`;
-      throw new Error(msg);
+    throw new Error("failed to create a queue")
     }
 
     // success: return parsed body or true for 204
@@ -62,7 +57,7 @@ export class ApiError extends Error {
     const body = await readBody(res);
 
     if (!res.ok) {
-      // try to surface a meaningful message
+      if(res.status===401) throw new Error("Invalid Password")
       const msg =
         typeof body === "string"
           ? body

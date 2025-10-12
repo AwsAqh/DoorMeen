@@ -67,7 +67,7 @@ export default function ScanPage() {
           toast.error("QR doesn’t contain a link", { id, duration: 3000 });
           navigatingRef.current = false;
         }
-      } catch (e) {
+      } catch  {
         toast.error("Failed to open link", { id, duration: 3000 });
         navigatingRef.current = false;
       }

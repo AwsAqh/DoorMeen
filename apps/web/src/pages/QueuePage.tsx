@@ -87,6 +87,7 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
             setQueueName(data.Name);
             setUsers(data.Waiters);
           } catch (err :unknown) {
+            setNotFound(true)
             toast.error(getErrorMessage(err), { className: CLASS, duration: 5000, id });
           }
         };

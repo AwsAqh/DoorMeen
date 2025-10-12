@@ -8,7 +8,7 @@ using Api.models;
 using Api.security;
 using System.ComponentModel.DataAnnotations;
 using System.Data;
-
+using Api.models;
 using Microsoft.EntityFrameworkCore;
 namespace Api.Application.Services
 {
@@ -24,7 +24,7 @@ namespace Api.Application.Services
          
 
         public QueueServices(DoorMeenDbContext db) : base(db) { }
-        public async Task<Object> CreateQueue(string queueName,string password) {
+        public async Task<QueueItem> CreateQueue(string queueName,string password) {
 
           
             if (queueName is null || password is null) throw new ArgumentNullException();

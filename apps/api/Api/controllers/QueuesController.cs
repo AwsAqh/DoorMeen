@@ -29,11 +29,11 @@ namespace Api.Controllers
 
 
         [HttpPost]
-        public async Task<ActionResult<QueueItem>> AddQueueItem([FromBody] AddQueueDTO req )
+        public async Task<IActionResult> AddQueueItem([FromBody] AddQueueDTO req )
         {
             var res = await _services.CreateQueue(req.Name, req.Password);
             if(res is null) return BadRequest();
-            return Created();
+            return Created("",new {id=res.Id});
 
         }
 

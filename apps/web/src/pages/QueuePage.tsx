@@ -79,7 +79,7 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
       //get customers for public
       useEffect(() => {
         const getCustomer = async () => {
-          const id = toast.loading("Joining queue…", { className: CLASS, duration: Infinity });
+          const id = toast.loading("Fetching data...", { className: CLASS, duration: Infinity });
           try {
             const payload: GetData = { QueueId: currentQueueId };
             const data = await handleGetCustomers(payload);
@@ -101,11 +101,12 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
 
             //get customer as owner
             useEffect(() => {
-              const id = toast.loading("Fetching data...", { className: CLASS, duration: Infinity });
+            
               const token = localStorage.getItem(`queue${currentQueueId} token`);
               if (!token) return;
             
               const getOwnerCustomers = async () => {
+                const id = toast.loading("Fetching data...", { className: CLASS, duration: Infinity });
                 try {
                   const payload: GetOwnerCustomersData = {
                     QueueId: currentQueueId,

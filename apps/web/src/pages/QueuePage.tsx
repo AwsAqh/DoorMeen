@@ -118,7 +118,7 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
               if (!token) return;
             
               const getOwnerCustomers = async () => {
-                const LOADING_ID = `queue:${currentQueueId}:fetch`; 
+                const LOADING_ID = `queue:${currentQueueId}:fetch:owner`; 
                 toast.loading("Fetching data...", {
                   id: LOADING_ID,
                   className: CLASS,
@@ -131,6 +131,7 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
                   };
                   const data = await handleGetOwnerCustomers(payload);
                   toast.dismiss(LOADING_ID)
+                  
                   setQueueName(data.Name);
                   setUsers(data.Waiters);
                   setCurrentMaxCustomers(data.MaxCustomers ?? null);
@@ -228,7 +229,7 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
   
 
   const cancelRegister=async(cancelId:number)=>{
-    const id = toast.loading("Joining queue…", { className: CLASS, duration: Infinity });
+    const id = toast.loading("Canceling…", { className: CLASS, duration: Infinity });
     try{
         const payload:CancelData={queueId:currentQueueId, customerId:cancelId , token:localStorage.getItem("queueCancelToken")||""}
         await handleCancel(payload)
@@ -342,7 +343,7 @@ default:break
   }
 
   const updateQueueName=async()=>{
-    const id = toast.loading("Checking PIN…", { className: CLASS, duration: Infinity });
+    const id = toast.loading("Updating…", { className: CLASS, duration: Infinity });
     try{
       const payload:UpdateQueueNameData={QueueId:currentQueueId,name:queueNameRef.current?.value??"",token:localStorage.getItem(`queue${currentQueueId} token`)||""}
       await handleUpdateQueueName(payload)

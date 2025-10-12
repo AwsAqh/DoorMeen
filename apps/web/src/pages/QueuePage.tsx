@@ -71,18 +71,23 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
     // the value users see/choose (10 represents "+10"/unlimited)
     const effectiveCurrent = currentMaxCustomers ?? 10;
     
+    const CLASS = "bg-card text-card-foreground border-border";
+
+  const getErrorMessage = (e: unknown): string =>
+    e instanceof Error ? e.message : typeof e === "string" ? e : "Something went wrong";
 
       //get customers for public
       useEffect(() => {
         const getCustomer = async () => {
+          const id = toast.loading("Joining queue…", { className: CLASS, duration: Infinity });
           try {
             const payload: GetData = { QueueId: currentQueueId };
             const data = await handleGetCustomers(payload);
+            toast.dismiss(id)
             setQueueName(data.Name);
             setUsers(data.Waiters);
-          } catch (err) {
-            setNotFound(true);
-            console.log(err, "error while getting customers");
+          } catch (err :unknown) {
+            toast.error(getErrorMessage(err), { className: CLASS, duration: 5000, id });
           }
         };
       
@@ -95,6 +100,7 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
 
             //get customer as owner
             useEffect(() => {
+              const id = toast.loading("Fetching data...", { className: CLASS, duration: Infinity });
               const token = localStorage.getItem(`queue${currentQueueId} token`);
               if (!token) return;
             
@@ -105,12 +111,13 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
                     token: token ?? "",
                   };
                   const data = await handleGetOwnerCustomers(payload);
+                  toast.dismiss(id)
                   setQueueName(data.Name);
                   setUsers(data.Waiters);
                   setCurrentMaxCustomers(data.MaxCustomers ?? null);
                   setEditingQueueName(data.Name);
-                } catch (err) {
-                  console.log(err, "failed to fetch for owner");
+                } catch (err :unknown) {
+                  toast.error(getErrorMessage(err), { className: CLASS, duration: 5000, id });
                 }
               };
             
@@ -139,10 +146,7 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
   const firstInputRef = useRef<HTMLInputElement>(null);
   const secondInputRef = useRef<HTMLInputElement>(null);
 
-  const CLASS = "bg-card text-card-foreground border-border";
-
-  const getErrorMessage = (e: unknown): string =>
-    e instanceof Error ? e.message : typeof e === "string" ? e : "Something went wrong";
+  
 
   const submitJoinForm = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -203,16 +207,16 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
   
 
   const cancelRegister=async(cancelId:number)=>{
-        console.log(cancelId)
-        console.log(currentQueueId)
+    const id = toast.loading("Joining queue…", { className: CLASS, duration: Infinity });
     try{
         const payload:CancelData={queueId:currentQueueId, customerId:cancelId , token:localStorage.getItem("queueCancelToken")||""}
         await handleCancel(payload)
+        toast.success("Canceled!", { id, className: CLASS, duration: 2500 });
         setUsers(users.filter(u=>u.Id!=payload.customerId))
 
     }
-    catch(err){
-    console.log(err ,"error at cancelation ")
+    catch (err :unknown) {
+      toast.error(getErrorMessage(err), { className: CLASS, duration: 5000, id });
     }
 
 }

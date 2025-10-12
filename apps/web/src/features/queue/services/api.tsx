@@ -24,29 +24,54 @@ export class ApiError extends Error {
   export async function apiCreateQueue(input: { name: string; password: string }) {
     
     const res=await fetch(`${API}/api/queues`,{method:"POST",headers:{"Content-type":"application/json"} , body:JSON.stringify(input) })
-    if(!res.ok) throw new Error("failed to create a queue")
-    const data=await res.json()
-    return data
-  
+    const body = await readBody(res);
+
+    if (!res.ok) {
+      // try to surface a meaningful message
+      const msg =
+        typeof body === "string"
+          ? body
+          : body?.message || body?.detail || body?.title || `HTTP ${res.status}`;
+      throw new Error(msg);
+    }
+
+    // success: return parsed body or true for 204
+    return body ?? true; 
   } 
   
   export async function apiJoinQueue(input: {QueueId:number, Name: string; PhoneNumber: string }) {
-    console.log("joining....")
-    const res=await fetch(`${API}/api/queuecustomers`,{method:"POST",headers:{"Content-type":"application/json"} , body:JSON.stringify(input) })
-    console.log("done")
-    const data=await res.json()
-    console.log("sdsdsdsdsd",data)
-    if(!res.ok)  throw new Error(data)
     
-    return data
+    const res=await fetch(`${API}/api/queuecustomers`,{method:"POST",headers:{"Content-type":"application/json"} , body:JSON.stringify(input) })
+    const body = await readBody(res);
+
+    if (!res.ok) {
+      // try to surface a meaningful message
+      const msg =
+        typeof body === "string"
+          ? body
+          : body?.message || body?.detail || body?.title || `HTTP ${res.status}`;
+      throw new Error(msg);
+    }
+
+    // success: return parsed body or true for 204
+    return body ?? true; 
   }
   
   export async function apiManageQueue(input: {QueueId:number, password: string }) {
     const res=await fetch(`${API}/api/owners/verify-password`,{method:"POST",headers:{"Content-type":"application/json"} , body:JSON.stringify(input) })
-    if(!res.ok) throw new Error("Invalid Password")
-    const data=await res.json()
-   
-    return data
+    const body = await readBody(res);
+
+    if (!res.ok) {
+      // try to surface a meaningful message
+      const msg =
+        typeof body === "string"
+          ? body
+          : body?.message || body?.detail || body?.title || `HTTP ${res.status}`;
+      throw new Error(msg);
+    }
+
+    // success: return parsed body or true for 204
+    return body ?? true; 
   }
 
   export async function apiCancelRegister(input :{queueId:number,customerId:number,token:string}){

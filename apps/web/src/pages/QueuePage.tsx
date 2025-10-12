@@ -78,25 +78,37 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
 
       //get customers for public
       useEffect(() => {
+        if (mode !== "public") return;
+      
+        const LOADING_ID = `queue:${currentQueueId}:fetch`; 
+      
         const getCustomer = async () => {
-          const id = toast.loading("Fetching data...", { className: CLASS, duration: Infinity });
+          toast.loading("Fetching data...", {
+            id: LOADING_ID,
+            className: CLASS,
+            duration: Infinity,
+          });
+      
           try {
             const payload: GetData = { QueueId: currentQueueId };
             const data = await handleGetCustomers(payload);
-            toast.dismiss(id)
             setQueueName(data.Name);
             setUsers(data.Waiters);
-          } catch (err :unknown) {
-            setNotFound(true)
-            toast.error(getErrorMessage(err), { className: CLASS, duration: 5000, id });
+            toast.dismiss(LOADING_ID); 
+          } catch (err) {
+            setNotFound(true);
+            toast.dismiss(LOADING_ID);
+            toast.error(getErrorMessage(err), { className: CLASS, duration: 5000 });
           }
         };
       
-        if (mode === "public") {
-          void getCustomer();
-        }
+        void getCustomer();
       
-      }, [mode, currentQueueId ]);
+        // cleanup in case the effect re-runs/unmounts
+        return () => {
+          toast.dismiss(LOADING_ID);
+        };
+      }, [mode, currentQueueId]);
       
 
             //get customer as owner
@@ -106,20 +118,27 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
               if (!token) return;
             
               const getOwnerCustomers = async () => {
-                const id = toast.loading("Fetching data...", { className: CLASS, duration: Infinity });
+                const LOADING_ID = `queue:${currentQueueId}:fetch`; 
+                toast.loading("Fetching data...", {
+                  id: LOADING_ID,
+                  className: CLASS,
+                  duration: Infinity,
+                });
                 try {
                   const payload: GetOwnerCustomersData = {
                     QueueId: currentQueueId,
                     token: token ?? "",
                   };
                   const data = await handleGetOwnerCustomers(payload);
-                  toast.dismiss(id)
+                  toast.dismiss(LOADING_ID)
                   setQueueName(data.Name);
                   setUsers(data.Waiters);
                   setCurrentMaxCustomers(data.MaxCustomers ?? null);
                   setEditingQueueName(data.Name);
-                } catch (err :unknown) {
-                  toast.error(getErrorMessage(err), { className: CLASS, duration: 5000, id });
+                } catch (err) {
+                  setNotFound(true);
+                  toast.dismiss(LOADING_ID); 
+                  toast.error(getErrorMessage(err), { className: CLASS, duration: 5000 });
                 }
               };
             

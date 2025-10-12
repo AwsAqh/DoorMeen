@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import PopupForm from "../PopupForm";
 
 import PublicPageImage from "@/assets/image.png"
@@ -14,6 +14,7 @@ import { CreateData,handleCreate } from "../features/queue/handlers";
 import { useNavigate } from "react-router-dom";
 import Footer from "../components/Footer";
 import { toast, Toaster } from "sonner"
+import { METHODS } from "http";
 const Home = () => {
   const navigate=useNavigate()
   const firstInputRef=useRef<HTMLInputElement>(null)
@@ -26,6 +27,14 @@ const Home = () => {
 
   const [open, setOpen] = useState(false);
   const [textIndex, setTextIndex] = useState<number>(0);
+
+
+    useEffect(()=>{
+      const ping=async()=>{
+      await fetch(`${import.meta.env.VITE_API_BASE_URL}/health`,{method:"GET", headers:{"Content-type":"application/json"}})
+      }
+     ping() 
+    },[])
 
   const getErrorMessage = (e: unknown): string =>
     e instanceof Error ? e.message : typeof e === "string" ? e : "Something went wrong";

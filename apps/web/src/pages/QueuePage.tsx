@@ -191,7 +191,7 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
   
       const newUser: User = { ...payload, Id, State: "waiting" };
       setUsers(prev => [...prev, newUser]);
-      localStorage.setItem("queueCancelToken", Token);
+      localStorage.setItem(`queueCancelToken${Id}`, Token);
       setOpen(false);
     } catch (err :unknown) {
       toast.error(getErrorMessage(err), { className: CLASS, duration: 5000, id });
@@ -231,7 +231,7 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
   const cancelRegister=async(cancelId:number)=>{
     const id = toast.loading("Canceling…", { className: CLASS, duration: Infinity });
     try{
-        const payload:CancelData={queueId:currentQueueId, customerId:cancelId , token:localStorage.getItem("queueCancelToken")||""}
+        const payload:CancelData={queueId:currentQueueId, customerId:cancelId , token:localStorage.getItem(`queueCancelToken${cancelId}`)||""}
         await handleCancel(payload)
         toast.success("Canceled!", { id, className: CLASS, duration: 2500 });
         setUsers(users.filter(u=>u.Id!=payload.customerId))

@@ -16,7 +16,11 @@ export default function Waiter({
     status === "served"    ? "status-done"    :
                            "status-waiting";
 
-    
+    const checkUserRow=()=>{
+      var token=localStorage.getItem(`queueCancelToken${id}`)
+      return token?  true: false
+    }
+
   return (
     <div className="waiter-row">
       <div className="waiter-meta">
@@ -29,7 +33,7 @@ export default function Waiter({
       <span className={`status-chip ${statusClass}`}>
        {STATUS_LABEL[status]}
       </span>
-      {status==="waiting" ? <span><LogoutIcon onClick={()=>onCancel(id)}/></span>: null  }
+      {status==="waiting" &&checkUserRow() ? <span><LogoutIcon onClick={()=>onCancel(id)}/></span>: null  }
       </span>
    
     </div>

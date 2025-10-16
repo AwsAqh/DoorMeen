@@ -17,7 +17,7 @@ export default function Waiter({
                            "status-waiting";
 
     const checkUserRow=()=>{
-      var token=localStorage.getItem(`queueCancelToken${id}`)
+      const token=localStorage.getItem(`queueCancelToken${id}`)
       return token?  true: false
     }
 

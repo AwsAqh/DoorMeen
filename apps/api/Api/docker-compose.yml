@@ -1,0 +1,9 @@
+services:
+  api:
+    build: .
+    container_name: DoorMeen_api
+    ports:
+      - "8080:8080"
+    restart: always
+    env_file:
+      - .env

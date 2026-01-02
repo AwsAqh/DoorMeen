@@ -1,4 +1,4 @@
-// src/hooks/useOwnerSession.ts
+
 import { useEffect, useState } from "react"
 import { jwtDecode } from "jwt-decode"
 
@@ -20,7 +20,7 @@ export function useOwnerSession(queueId: number | string, pingUrl?: string) {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(key))
   const [signedIn, setSignedIn] = useState<boolean>(() => isValidOwnerToken(token, queueId))
 
-  // watch localStorage changes from other tabs/windows
+
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key === key) {
@@ -33,7 +33,7 @@ export function useOwnerSession(queueId: number | string, pingUrl?: string) {
     return () => window.removeEventListener("storage", onStorage)
   }, [key, queueId])
 
-  // optional: server ping to be extra sure / support revocation
+  
   useEffect(() => {
     if (!pingUrl || !signedIn || !token) return
     fetch(pingUrl, { headers: { Authorization: `Bearer ${token}` } })

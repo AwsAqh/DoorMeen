@@ -16,7 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 
 builder.Services.AddCors(o => o.AddPolicy("app",p  =>
-    p.WithOrigins("https://door-meen.vercel.app" , "http://localhost:5173" , "http://localhost:3000").AllowAnyHeader().AllowAnyMethod()));
+    p.WithOrigins("https://door-meen-git-main-awsaqhs-projects.vercel.app" , "http://localhost:5173" , "http://localhost:3000").AllowAnyHeader().AllowAnyMethod()));
 var config = builder.Configuration;
 
 

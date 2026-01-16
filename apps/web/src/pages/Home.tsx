@@ -93,7 +93,7 @@ const Home = () => {
           {/* Left: carousel */}
           <div className="mx-auto w-full sm:max-w-[520px] md:max-w-[600px] lg:max-w-[680px] xl:max-w-[720px] 2xl:max-w-[768px]">
   <div className="aspect-[16/10] rounded-3xl overflow-hidden shadow-xl">
-       <Carousel className="w-full h-full rounded-3xl overflow-hidden shadow-xl"  onNextImage={(i)=>setTextIndex(i)}>
+       <Carousel className="w-full h-full rounded-3xl overflow-hidden shadow-xl"  onNextImage={(i)=>setTextIndex(i) }>
       <img src={BannerImage} alt="Banner" className="w-full h-full object-contain bg-white" />
      
       <img src={OwnerPageImage} alt="Owner" className="w-full h-full object-contain bg-white" />

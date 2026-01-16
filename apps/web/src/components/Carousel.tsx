@@ -88,7 +88,7 @@ export default function Carousel({
     }
     
     el.scrollTo({ left: targetScroll, behavior: "smooth" });
-    setActiveIndex(i);
+    setActiveIndex(Math.max(0,Math.min(i, count - 1)));
   };
 
   const prev = useCallback(

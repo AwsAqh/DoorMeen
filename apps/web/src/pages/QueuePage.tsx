@@ -1,5 +1,6 @@
 // pages/QueuePage.tsx
 import React, { useState, useRef, useEffect } from "react";
+import { useTranslation } from 'react-i18next';
 import Header from "../components/Header";
 import MorphingBlobs from "@/components/background/MorphingBlobs";
 import Waiter from "@/components/Waiter";
@@ -41,6 +42,7 @@ type User = {
 type PageMode = "public" | "owner";
 
 export default function QueuePage({ mode  }: { mode: PageMode }) {
+  const { t } = useTranslation();
   const API=import.meta.env.VITE_API_BASE_URL
   const params = useParams<{ id?: string }>();
   const currentQueueId: number = Number(params.id ?? 0);
@@ -74,7 +76,7 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
     const CLASS = "bg-card text-card-foreground border-border";
 
   const getErrorMessage = (e: unknown): string =>
-    e instanceof Error ? e.message : typeof e === "string" ? e : "Something went wrong";
+    e instanceof Error ? e.message : typeof e === "string" ? e : t('common.error');
 
       //get customers for public
       useEffect(() => {
@@ -83,7 +85,7 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
         const LOADING_ID = `queue:${currentQueueId}:fetch`; 
       
         const getCustomer = async () => {
-          toast.loading("Fetching data...", {
+          toast.loading(t('queue.fetching'), {
             id: LOADING_ID,
             className: CLASS,
             duration: Infinity,
@@ -119,7 +121,7 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
             
               const getOwnerCustomers = async () => {
                 const LOADING_ID = `queue:${currentQueueId}:fetch:owner`; 
-                toast.loading("Fetching data...", {
+                toast.loading(t('queue.fetching'), {
                   id: LOADING_ID,
                   className: CLASS,
                   duration: Infinity,
@@ -177,17 +179,17 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
   
     if (popupMode !== "join") return;     
     if (!a || !b) {
-      toast.error("Please fill all fields", { className: CLASS, duration: 3000 });
+      toast.error(t('common.error'), { className: CLASS, duration: 3000 });
       return;
     }
   
-    const id = toast.loading("Joining queue…", { className: CLASS, duration: Infinity });
+    const id = toast.loading(t('queue.joining'), { className: CLASS, duration: Infinity });
   
     try {
       const payload: JoinData = { QueueId: currentQueueId, Name: a, PhoneNumber: b };
       const { Id, Token } = await handleJoin(payload);
   
-      toast.success("Joined!", { id, className: CLASS, duration: 2500 });
+      toast.success(t('common.success'), { id, className: CLASS, duration: 2500 });
   
       const newUser: User = { ...payload, Id, State: "waiting" };
       setUsers(prev => [...prev, newUser]);
@@ -205,17 +207,17 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
   
     const a = firstInputRef.current?.value?.trim() ?? "";
     if (!a) {
-      toast.error("Enter PIN", { className: CLASS, duration: 3000 });
+      toast.error(t('common.error'), { className: CLASS, duration: 3000 });
       return;
     }
   
-    const id = toast.loading("Checking PIN…", { className: CLASS, duration: Infinity });
+    const id = toast.loading(t('queue.managing'), { className: CLASS, duration: Infinity });
   
     try {
       const payload: ManageData = { QueueId: currentQueueId, password: a };
       const { queueId, token } = await handleManage(payload);
   
-      toast.success("Verified!", { id, className: CLASS, duration: 2500 });
+      toast.success(t('common.success'), { id, className: CLASS, duration: 2500 });
   
       localStorage.setItem(`queue${queueId} token`, token);
       setOpen(false);
@@ -229,11 +231,11 @@ export default function QueuePage({ mode  }: { mode: PageMode }) {
   
 
   const cancelRegister=async(cancelId:number)=>{
-    const id = toast.loading("Canceling…", { className: CLASS, duration: Infinity });
+    const id = toast.loading(t('queue.canceling'), { className: CLASS, duration: Infinity });
     try{
         const payload:CancelData={queueId:currentQueueId, customerId:cancelId , token:localStorage.getItem(`queueCancelToken${cancelId}`)||""}
         await handleCancel(payload)
-        toast.success("Canceled!", { id, className: CLASS, duration: 2500 });
+        toast.success(t('common.success'), { id, className: CLASS, duration: 2500 });
         setUsers(users.filter(u=>u.Id!=payload.customerId))
 
     }
@@ -252,7 +254,7 @@ const sortUsers = (list: User[]) =>
 
 
 const updateStatus=async(nextStatus:string,CustomerId:number)=>{
-  const id = toast.loading("Updating...", { className: CLASS, duration: Infinity });
+  const id = toast.loading(t('queue.updating'), { className: CLASS, duration: Infinity });
   try{
   const payload:UpdateData={QueueId:currentQueueId,CustomerId,token:localStorage.getItem(`queue${currentQueueId} token`)||""}
 
@@ -260,7 +262,7 @@ const updateStatus=async(nextStatus:string,CustomerId:number)=>{
   case "in_progress":{
   
   await handleupdateStatus(payload)
-  toast.success("Updated!",{ id, className: CLASS, duration: 2500 })
+  toast.success(t('common.success'),{ id, className: CLASS, duration: 2500 })
   setUsers(prev => {
     const updated = prev?.map(u =>
       u.Id === CustomerId ? { ...u,State: "in_progress" as Status} : u
@@ -274,7 +276,7 @@ const updateStatus=async(nextStatus:string,CustomerId:number)=>{
   case "served":{
   
   await handleServeCustomer(payload)
-  toast.success("Served!",{ id, className: CLASS, duration: 2500 })
+  toast.success(t('common.success'),{ id, className: CLASS, duration: 2500 })
   setUsers(prev=>prev.filter(u=>u.Id!==CustomerId))
     break
 }
@@ -325,12 +327,12 @@ default:break
   }
 
   const updateMaxCustomers=async()=>{
-    const id = toast.loading("Updating max customer...", { className: CLASS, duration: Infinity });
+    const id = toast.loading(t('queue.updating'), { className: CLASS, duration: Infinity });
     try{
       const payload:UpdateMaxCustomersData={QueueId:currentQueueId,Max:draftMax,token:localStorage.getItem(`queue${currentQueueId} token`)||""}
       setSaveLoading(true)
       await handleUpdateMaxCustomers(payload)
-      toast.success("Updated!",{ id, className: CLASS, duration: 2500 })
+      toast.success(t('common.success'),{ id, className: CLASS, duration: 2500 })
       setCurrentMaxCustomers(currentMaxCustomers)
       setAnyChange(false)
       setSaveLoading(false)
@@ -343,11 +345,11 @@ default:break
   }
 
   const updateQueueName=async()=>{
-    const id = toast.loading("Updating…", { className: CLASS, duration: Infinity });
+    const id = toast.loading(t('queue.updating'), { className: CLASS, duration: Infinity });
     try{
       const payload:UpdateQueueNameData={QueueId:currentQueueId,name:queueNameRef.current?.value??"",token:localStorage.getItem(`queue${currentQueueId} token`)||""}
       await handleUpdateQueueName(payload)
-      toast.success("Updated!",{ id, className: CLASS, duration: 2500 })
+      toast.success(t('common.success'),{ id, className: CLASS, duration: 2500 })
       setQueueName(queueNameRef.current?.value??"")
       setIsNameEditing(false)
     }
@@ -383,7 +385,7 @@ default:break
           ref={queueNameRef}
           value={editingQueueName??""}
           onChange={onNameChange}
-          placeholder="Queue name…"
+          placeholder={t('queue.queueName')}
           className="
             text-3xl font-semibold tracking-tight
             bg-transparent
@@ -407,7 +409,7 @@ default:break
           }}
           className="inline-flex h-10 w-10 items-center justify-center rounded-full
                      bg-white shadow hover:bg-slate-50 active:scale-95 transition"
-          title="Rename"
+          title={t('queue.actions.updateName')}
         >
           <ModeEditIcon fontSize="small" />
         </button>
@@ -418,7 +420,7 @@ default:break
             className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white
                        shadow-sm hover:bg-indigo-700 active:scale-95 transition"
           >
-            Save
+            {t('common.save')}
           </button>
           <button
             onClick={() => {
@@ -428,7 +430,7 @@ default:break
             className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm
                        text-slate-700 hover:bg-slate-50 active:scale-95 transition"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
         </div>
       )}
@@ -448,14 +450,14 @@ default:break
                   }
                 }}
               >
-                {mode === "owner" ? "Signed in" : "Manage"}
+                {mode === "owner" ? t('queue.signedIn') : t('queue.actions.manage')}
               </button>
 
               {mode === "owner" && (
                 <>
                 <button
                   type="button"
-                  aria-label="View as customer"
+                  aria-label={t('common.close')}
                   onClick={() => navigate(`/queue/${currentQueueId}`)}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white shadow hover:bg-slate-100 active:scale-95 cursor-pointer"
                 >
@@ -478,11 +480,11 @@ default:break
     transition-colors
   "
     >
-      <option disabled>Max customers</option>
-      <option value="2">2 customers</option>
-      <option value="5">5 customers</option>
-      <option value="8">8 customers</option>
-      <option value="10">+10 customers</option>
+      <option disabled>{t('queue.maxCustomers')}</option>
+      <option value="2">2 {t('queue.customers')}</option>
+      <option value="5">5 {t('queue.customers')}</option>
+      <option value="8">8 {t('queue.customers')}</option>
+      <option value="10">+10 {t('queue.customers')}</option>
     </select>
 
     {/* Arrow */}
@@ -509,7 +511,7 @@ default:break
               transition
             "
           >
-            {saveLoading? "Saving...":"Save" }
+            {saveLoading? t('queue.saving'): t('common.save') }
           </button>
   )}
 </div>
@@ -553,7 +555,7 @@ default:break
              {  users?.length!==0 && <aside className="mt-4 md:mt-0 md:sticky md:self-start md:top-[calc(100svh-5.5rem)]">
               <button
                 onClick={() => { setPopupMode("join"); setOpen(true); }}
-                aria-label="Join queue"
+                aria-label={t('queue.joinQueue')}
                 className="w-12 h-12 rounded-full bg-white shadow-lg hover:bg-slate-100 active:scale-95 transition flex items-center justify-center"
               >
                 <AddIcon fontSize="small" />

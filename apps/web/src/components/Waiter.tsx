@@ -2,7 +2,7 @@
 
 import "../customstyle.css";
 import LogoutIcon from '@mui/icons-material/Logout';
-import { STATUS_LABEL,Status } from "./Helpers/status";
+import { getStatusLabel, Status } from "./Helpers/status";
 
 export default function Waiter({
     id,
@@ -31,7 +31,7 @@ export default function Waiter({
         <span className="flex gap-2">
        
       <span className={`status-chip ${statusClass}`}>
-       {STATUS_LABEL[status]}
+       {getStatusLabel(status)}
       </span>
       {status==="waiting" &&checkUserRow() ? <span><LogoutIcon onClick={()=>onCancel(id)}/></span>: null  }
       </span>

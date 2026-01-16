@@ -1,0 +1,132 @@
+{
+  "common": {
+    "loading": "جاري التحميل...",
+    "error": "حدث خطأ ما",
+    "success": "نجح",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "close": "إغلاق",
+    "back": "رجوع",
+    "next": "التالي",
+    "previous": "السابق",
+    "submit": "إرسال",
+    "confirm": "تأكيد",
+    "yes": "نعم",
+    "no": "لا"
+  },
+  "header": {
+    "title": "دور مين"
+  },
+  "home": {
+    "title": "دور مين",
+    "subtitle1": "رمز QR فوري للعملاء",
+    "subtitle1Desc": "شارك وابدأ في أخذ الأسماء في ثوانٍ.",
+    "subtitle2": "إجراءات المالك فقط عبر PIN",
+    "subtitle2Desc": "خدم التالي، تخطي، أو إزالة—بدون صراخ.",
+    "subtitle3": "تتبع الانتظار مع حماية الخصوصية لرقم الهاتف",
+    "subtitle3Desc": "واضح، عادل، وسريع للجميع.",
+    "createQueue": "إنشاء طابور الآن!",
+    "scanQR": "مسح رمز QR",
+    "feature1": "رموز QR فورية",
+    "feature2": "إدارة محمية بكلمة مرور",
+    "feature3": "تصميم يراعي الخصوصية"
+  },
+  "popupForm": {
+    "create": {
+      "title": "إنشاء طابور",
+      "subTitle": "حدد اسمًا ورقم PIN (4-6 أرقام) للطابور.",
+      "label1": "اسم الطابور",
+      "placeholder1": "أدخل اسم الطابور…",
+      "label2": "PIN",
+      "placeholder2": "4-6 أرقام",
+      "note": "أرقام فقط، طول 4-6.",
+      "action": "إنشاء"
+    },
+    "join": {
+      "title": "الانضمام إلى طابور",
+      "subTitle": "انضم إلى هذا الطابور باسمك ورقم هاتفك",
+      "label1": "الاسم",
+      "placeholder1": "أدخل اسمك…",
+      "label2": "رقم الهاتف",
+      "placeholder2": "05xxxxxxxx",
+      "note": "أدخل رقم هاتفك المكون من 10 أرقام",
+      "action": "انضم"
+    },
+    "manage": {
+      "title": "إدارة هذا الطابور",
+      "subTitle": "أدخل PIN المالك لإدارة الطابور.",
+      "label1": "PIN المالك",
+      "placeholder1": "4-6 أرقام",
+      "note": "أرقام فقط، طول 4-6.",
+      "action": "إدارة"
+    }
+  },
+  "queue": {
+    "notFound": "لم يتم العثور على طابور!",
+    "noCustomers": "لا يوجد عملاء بعد",
+    "noCustomersOwner": "طابورك فارغ. أضف أول عميل أو شارك رمز QR.",
+    "noCustomersPublic": "كن أول من ينضم إلى هذا الطابور.",
+    "addCustomer": "إضافة عميل",
+    "joinQueue": "الانضمام إلى الطابور",
+    "fetching": "جاري جلب البيانات...",
+    "creating": "جاري الإنشاء...",
+    "joining": "جاري الانضمام...",
+    "managing": "جاري الإدارة...",
+    "updating": "جاري التحديث...",
+    "serving": "جاري الخدمة...",
+    "canceling": "جاري الإلغاء...",
+    "queueName": "اسم الطابور",
+    "maxCustomers": "الحد الأقصى للعملاء",
+    "unlimited": "غير محدود",
+    "customers": "عملاء",
+    "position": "الموقع",
+    "status": {
+      "waiting": "في الانتظار",
+      "inProgress": "قيد التنفيذ",
+      "served": "تمت الخدمة"
+    },
+    "actions": {
+      "serveNext": "خدم التالي",
+      "setInProgress": "تعيين قيد التنفيذ",
+      "remove": "إزالة",
+      "updateName": "تحديث الاسم",
+      "updateMax": "تحديث الحد الأقصى للعملاء",
+      "manage": "إدارة"
+    },
+    "signedIn": "تم تسجيل الدخول",
+    "saving": "جاري الحفظ...",
+    "errors": {
+      "createFailed": "فشل في إنشاء طابور",
+      "joinFailed": "فشل في الانضمام إلى الطابور",
+      "invalidPassword": "كلمة مرور غير صحيحة",
+      "cancelFailed": "فشل في إلغاء التسجيل",
+      "updateFailed": "فشل في التحديث",
+      "serveFailed": "فشل في خدمة العميل"
+    }
+  },
+  "scan": {
+    "title": "وجّه الكاميرا نحو رمز QR.",
+    "opening": "جاري فتح الرابط…",
+    "navigating": "جاري التنقل",
+    "scannedURL": "تم مسح الرابط",
+    "openingLink": "جاري الفتح",
+    "noLink": "رمز QR لا يحتوي على رابط",
+    "failedToOpen": "فشل في فتح الرابط",
+    "cameraError": "خطأ في الكاميرا — تحقق من الأذونات"
+  },
+  "footer": {
+    "tagline": "إدارة طوابير بسيطة للشركات الحديثة",
+    "contact": "اتصل بنا",
+    "privacy": "سياسة الخصوصية",
+    "terms": "شروط الخدمة",
+    "copyright": "© {{year}} دور مين. جميع الحقوق محفوظة."
+  },
+  "language": {
+    "switch": "تغيير اللغة",
+    "english": "English",
+    "arabic": "العربية"
+  }
+}
+

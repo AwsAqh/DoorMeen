@@ -55,3 +55,7 @@ publish/
 .eslintcache
 .stylelintcache
 .tailwindcss-cache/
+
+
+apps/web/**/*.md
+apps/api/Api/**/*.md

@@ -56,14 +56,38 @@ export default function Carousel({
   const onScroll = () => {
     const el = viewportRef.current;
     if (!el) return;
-    const i = Math.round(el.scrollLeft / el.clientWidth);
-    setActiveIndex(i);
+    const isRTL = document.documentElement.dir === 'rtl';
+    
+    // In RTL, scrollLeft can be negative or work differently
+    // We calculate based on scroll position relative to scrollWidth
+    let scrollPosition: number;
+    if (isRTL) {
+      // For RTL, scrollLeft is typically negative or calculated from the right
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      scrollPosition = maxScroll + el.scrollLeft; // scrollLeft is negative in RTL
+    } else {
+      scrollPosition = el.scrollLeft;
+    }
+    
+    const i = Math.round(scrollPosition / el.clientWidth);
+    setActiveIndex(Math.max(0, Math.min(i, count - 1)));
   };
 
   const scrollToIndex = (i: number) => {
     const el = viewportRef.current;
     if (!el) return;
-    el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" });
+    const isRTL = document.documentElement.dir === 'rtl';
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    
+    let targetScroll: number;
+    if (isRTL) {
+      // In RTL, scroll to negative value or calculate from right
+      targetScroll = -(maxScroll - (i * el.clientWidth));
+    } else {
+      targetScroll = i * el.clientWidth;
+    }
+    
+    el.scrollTo({ left: targetScroll, behavior: "smooth" });
     setActiveIndex(i);
   };
 
@@ -131,6 +155,7 @@ export default function Carousel({
           flex h-full w-full overflow-x-auto snap-x snap-mandatory
           no-scrollbar rounded-xl
         "
+        style={{ direction: 'ltr' }} // Force LTR for scroll calculations
         aria-live="polite"
       >
         {Children.map(children, (child, i) => (
@@ -148,7 +173,7 @@ export default function Carousel({
             onClick={prev}
             aria-label="Previous slide"
             className="
-              absolute left-3 top-1/2 -translate-y-1/2
+              absolute left-3 rtl:left-auto rtl:right-3 top-1/2 -translate-y-1/2
               rounded-full bg-black/50 text-white p-3 md:p-4 text-2xl
               hover:bg-black/70 focus:outline-none focus:ring
             "
@@ -159,7 +184,7 @@ export default function Carousel({
             onClick={next}
             aria-label="Next slide"
             className="
-              absolute right-3 top-1/2 -translate-y-1/2
+              absolute right-3 rtl:right-auto rtl:left-3 top-1/2 -translate-y-1/2
               rounded-full bg-black/50 text-white p-3 md:p-4 text-2xl
               hover:bg-black/70 focus:outline-none focus:ring
             "

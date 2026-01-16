@@ -1,0 +1,132 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "header": {
+    "title": "Door Meen"
+  },
+  "home": {
+    "title": "Door Meen",
+    "subtitle1": "Instant QR for customers",
+    "subtitle1Desc": "Share and start taking names in seconds.",
+    "subtitle2": "Owner-only actions via PIN",
+    "subtitle2Desc": "Serve next, skip, or remove—no shouting.",
+    "subtitle3": "Track waiting with privacy protection for the phone number",
+    "subtitle3Desc": "Clear, fair, and fast for everyone.",
+    "createQueue": "Create a queue now!",
+    "scanQR": "Scan a QR",
+    "feature1": "Instant QR codes",
+    "feature2": "PIN-protected management",
+    "feature3": "Privacy-first design"
+  },
+  "popupForm": {
+    "create": {
+      "title": "Create a Queue",
+      "subTitle": "Set a name and a PIN (4–6 digits) for the queue.",
+      "label1": "Queue name",
+      "placeholder1": "Enter queue name…",
+      "label2": "PIN",
+      "placeholder2": "4–6 digits",
+      "note": "Only digits, 4–6 length.",
+      "action": "Create"
+    },
+    "join": {
+      "title": "Join a queue",
+      "subTitle": "Join this queue with your name and phone number",
+      "label1": "Name",
+      "placeholder1": "Enter your name…",
+      "label2": "Phone number",
+      "placeholder2": "05xxxxxxxx",
+      "note": "Enter your 10 digits phone number",
+      "action": "Join"
+    },
+    "manage": {
+      "title": "Manage this queue",
+      "subTitle": "Enter owner PIN to manage the queue.",
+      "label1": "Owner PIN",
+      "placeholder1": "4–6 digits",
+      "note": "Only digits, 4–6 length.",
+      "action": "Manage"
+    }
+  },
+  "queue": {
+    "notFound": "No queue found!",
+    "noCustomers": "No customers yet",
+    "noCustomersOwner": "Your queue is empty. Add the first customer or share the QR.",
+    "noCustomersPublic": "Be the first to join this queue.",
+    "addCustomer": "Add customer",
+    "joinQueue": "Join queue",
+    "fetching": "Fetching data...",
+    "creating": "Creating...",
+    "joining": "Joining...",
+    "managing": "Managing...",
+    "updating": "Updating...",
+    "serving": "Serving...",
+    "canceling": "Canceling...",
+    "queueName": "Queue Name",
+    "maxCustomers": "Max Customers",
+    "unlimited": "Unlimited",
+    "customers": "customers",
+    "position": "Position",
+    "status": {
+      "waiting": "Waiting",
+      "inProgress": "In progress",
+      "served": "Served"
+    },
+    "actions": {
+      "serveNext": "Serve Next",
+      "setInProgress": "Set In Progress",
+      "remove": "Remove",
+      "updateName": "Update Name",
+      "updateMax": "Update Max Customers",
+      "manage": "Manage"
+    },
+    "signedIn": "Signed in",
+    "saving": "Saving...",
+    "errors": {
+      "createFailed": "Failed to create a queue",
+      "joinFailed": "Failed to join queue",
+      "invalidPassword": "Invalid Password",
+      "cancelFailed": "Failed to cancel registration",
+      "updateFailed": "Failed to update",
+      "serveFailed": "Failed to serve customer"
+    }
+  },
+  "scan": {
+    "title": "Point the camera at a QR code.",
+    "opening": "Opening link…",
+    "navigating": "Navigating",
+    "scannedURL": "Scanned URL",
+    "openingLink": "Opening",
+    "noLink": "QR doesn't contain a link",
+    "failedToOpen": "Failed to open link",
+    "cameraError": "Camera error — check permissions"
+  },
+  "footer": {
+    "tagline": "Simple queue management for modern businesses",
+    "contact": "Contact",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "copyright": "© {{year}} Door Meen. All rights reserved."
+  },
+  "language": {
+    "switch": "Switch Language",
+    "english": "English",
+    "arabic": "العربية"
+  }
+}
+

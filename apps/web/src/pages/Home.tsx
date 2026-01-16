@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from 'react-i18next';
 import PopupForm from "../PopupForm";
 
 import PublicPageImage from "@/assets/image.png"
@@ -16,13 +17,14 @@ import Footer from "../components/Footer";
 import { toast, Toaster } from "sonner"
 
 const Home = () => {
+  const { t } = useTranslation();
   const navigate=useNavigate()
   const firstInputRef=useRef<HTMLInputElement>(null)
   const secondInputRef=useRef<HTMLInputElement>(null)
   const texts = [
-    { h: "Instant QR for customers", p: "Share and start taking names in seconds." },
-    { h: "Owner-only actions via PIN", p: "Serve next, skip, or remove—no shouting." },
-    { h: "Track waiting with privacy protection for the phone number", p: "Clear, fair, and fast for everyone." }
+    { h: t('home.subtitle1'), p: t('home.subtitle1Desc') },
+    { h: t('home.subtitle2'), p: t('home.subtitle2Desc') },
+    { h: t('home.subtitle3'), p: t('home.subtitle3Desc') }
   ];
 
   const [open, setOpen] = useState(false);
@@ -37,11 +39,11 @@ const Home = () => {
     },[])
 
   const getErrorMessage = (e: unknown): string =>
-    e instanceof Error ? e.message : typeof e === "string" ? e : "Something went wrong";
+    e instanceof Error ? e.message : typeof e === "string" ? e : t('common.error');
  const CLASS = "bg-card text-card-foreground border-border";
   const handleSubmit=(e:React.FormEvent)=>{
     e.preventDefault();
-    const id = toast.loading("Creating...", { className: CLASS, duration: Infinity });
+    const id = toast.loading(t('queue.creating'), { className: CLASS, duration: Infinity });
     (async()=>{
 
     
@@ -51,7 +53,7 @@ const Home = () => {
     try{
     const payload:CreateData={name:a,password:b}
       const res=await handleCreate(payload)
-      toast.success("Created!",{ id, className: CLASS, duration: 2500 })
+      toast.success(t('common.success'),{ id, className: CLASS, duration: 2500 })
       setOpen(false)
       navigate(`/queue/${res.id}`)
       
@@ -125,29 +127,29 @@ const Home = () => {
             {/* Buttons: stack on mobile, row on >=sm */}
             <div className=" flex flex-col sm:flex-row items-stretch sm:items-center justify-center md:justify-start gap-3 sm:gap-4 pt-2">
               <button onClick={() => setOpen(true)} className="btn btn-lg cursor-pointer !bg-gray-900 hover:shadow-2xl">
-                Create a queue now!
+                {t('home.createQueue')}
               </button>
 
               <a
                 href="/scan"
                 className="bg-white border-2 border-primary text-primary px-6 py-3 rounded-lg hover:bg-teal-50 transition"
               >
-                Scan a QR
+                {t('home.scanQR')}
               </a>
             </div>
 
             <ul className="text-secondary space-y-2">
               <li className="flex items-center gap-2">
                 <span className="text-primary">•</span>
-                📱 Instant QR for customers
+                📱 {t('home.feature1')}
               </li>
               <li className="flex items-center gap-2">
                 <span className="text-primary">•</span>
-                🔒 Owner-only actions via PIN
+                🔒 {t('home.feature2')}
               </li>
               <li className="flex items-center gap-2">
                 <span className="text-primary">•</span>
-                ⏱️ Track waiting & serve next
+                ⏱️ {t('home.feature3')}
               </li>
             </ul>
           </div>

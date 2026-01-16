@@ -1,5 +1,5 @@
 import React from "react"
-
+import { useTranslation } from 'react-i18next';
 import type { Mode } from "../src/components/Helpers/popupFormTypes";
 import { COPIES } from "../src/components/Helpers/popupFormTypes";
 
@@ -14,8 +14,23 @@ type PopupFormProps = {
 
 
 const PopupForm: React.FC<PopupFormProps> = ({ open, onClose ,onSubmit,type ,firstInputRef,secondInputRef}) => {
+  const { t } = useTranslation();
   if (!open) return null
-  const copy = COPIES[type];
+  const copy = {
+    title: t(`popupForm.${type}.title`),
+    subTitle: t(`popupForm.${type}.subTitle`),
+    label1: t(`popupForm.${type}.label1`),
+    placeholder1: t(`popupForm.${type}.placeholder1`),
+    input1type: COPIES[type].input1type,
+    label2: t(`popupForm.${type}.label2`),
+    placeholder2: t(`popupForm.${type}.placeholder2`),
+    input2type: COPIES[type].input2type,
+    input2MinLength: COPIES[type].input2MinLength,
+    input2MaxLength: COPIES[type].input2MaxLength,
+    pattern: COPIES[type].pattern,
+    note: t(`popupForm.${type}.note`),
+    action: t(`popupForm.${type}.action`),
+  };
   
   return (
     <div
@@ -78,7 +93,7 @@ const PopupForm: React.FC<PopupFormProps> = ({ open, onClose ,onSubmit,type ,fir
                 onClick={onClose}
                 className="rounded-xl border border-gray-300 px-4 py-2 text-gray-700 transition hover:bg-gray-50 active:scale-[.99]"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="submit"
@@ -93,7 +108,7 @@ const PopupForm: React.FC<PopupFormProps> = ({ open, onClose ,onSubmit,type ,fir
 
       {/* click outside to close */}
       <button
-        aria-label="Close"
+        aria-label={t('common.close')}
         onClick={onClose}
         className="absolute inset-0 -z-10 cursor-default"
       />

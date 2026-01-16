@@ -1,5 +1,6 @@
 // src/components/NoCustomersFound.tsx
 import React from "react";
+import { useTranslation } from 'react-i18next';
 
 export default function NoCustomersFound({
   owner = false,
@@ -8,6 +9,7 @@ export default function NoCustomersFound({
   owner?: boolean;
   onAction?: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="w-full rounded-2xl border border-dashed border-gray-300 bg-white/60 p-8 text-center">
       {/* icon */}
@@ -24,11 +26,11 @@ export default function NoCustomersFound({
         </svg>
       </div>
 
-      <h3 className="text-lg font-semibold">No customers yet</h3>
+      <h3 className="text-lg font-semibold">{t('queue.noCustomers')}</h3>
       <p className="mt-1 text-sm text-gray-600">
         {owner
-          ? "Your queue is empty. Add the first customer or share the QR."
-          : "Be the first to join this queue."}
+          ? t('queue.noCustomersOwner')
+          : t('queue.noCustomersPublic')}
       </p>
 
       {onAction && (
@@ -36,7 +38,7 @@ export default function NoCustomersFound({
           onClick={onAction}
           className="mt-4 rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-black active:scale-[.99]"
         >
-          {owner ? "Add customer" : "Join queue"}
+          {owner ? t('queue.addCustomer') : t('queue.joinQueue')}
         </button>
       )}
     </div>

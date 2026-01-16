@@ -3,6 +3,10 @@ export default {
     content: ["./index.html", "./src/**/*.{ts,tsx}"],
     
     plugins: [],
+    // Enable RTL support
+    corePlugins: {
+        preflight: true,
+    },
     theme: {
     extend: {
       fontFamily: {

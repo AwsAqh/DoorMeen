@@ -1,6 +1,7 @@
 
 import { useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from 'react-i18next';
 import { Scanner, type IDetectedBarcode } from "@yudiel/react-qr-scanner";
 import { toast } from "sonner";
 
@@ -9,6 +10,7 @@ type BarcodeLike = Partial<
 >;
 
 export default function ScanPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const navigatingRef = useRef(false);          // prevent multiple navigations
   const loaderIdRef = useRef<string | number>(null); 
@@ -31,14 +33,14 @@ export default function ScanPage() {
       navigatingRef.current = true;
 
       // show a spinner while we decide where to go
-      const id = toast.loading("Opening link…", { duration: Infinity });
+      const id = toast.loading(t('scan.opening'), { duration: Infinity });
       loaderIdRef.current = id;
 
       try {
         // Full external URL?
         if (/^https?:\/\//i.test(text)) {
         
-          toast.success("Scanned URL", { description: text, duration: 1000, id });
+          toast.success(t('scan.scannedURL'), { description: text, duration: 1000, id });
          
           setTimeout(() => window.location.assign(text), 250);
           return;
@@ -46,7 +48,7 @@ export default function ScanPage() {
 
         // App-relative path?
         if (text.startsWith("/")) {
-          toast.success("Navigating", { description: text, duration: 800, id });
+          toast.success(t('scan.navigating'), { description: text, duration: 800, id });
           setTimeout(() => navigate(text, { replace: true }), 200);
           return;
         }
@@ -54,7 +56,7 @@ export default function ScanPage() {
         // Try to coerce to URL relative to current origin
         try {
           const url = new URL(text, window.location.origin);
-          toast.success("Opening", { description: url.toString(), duration: 800, id });
+          toast.success(t('scan.openingLink'), { description: url.toString(), duration: 800, id });
           setTimeout(() => {
             if (url.origin === window.location.origin) {
               navigate(url.pathname + url.search + url.hash, { replace: true });
@@ -64,11 +66,11 @@ export default function ScanPage() {
           }, 200);
         } catch {
           // Not a URL or path
-          toast.error("QR doesn’t contain a link", { id, duration: 3000 });
+          toast.error(t('scan.noLink'), { id, duration: 3000 });
           navigatingRef.current = false;
         }
       } catch  {
-        toast.error("Failed to open link", { id, duration: 3000 });
+        toast.error(t('scan.failedToOpen'), { id, duration: 3000 });
         navigatingRef.current = false;
       }
     },
@@ -77,7 +79,7 @@ export default function ScanPage() {
 
   return (
     <div className="p-4 space-y-3">
-      <p className="text-sm opacity-80">Point the camera at a QR code.</p>
+      <p className="text-sm opacity-80">{t('scan.title')}</p>
 
       <Scanner
         onScan={(codes) => {
@@ -88,7 +90,7 @@ export default function ScanPage() {
           console.error(e);
           // show an error once if the camera fails
           if (!loaderIdRef.current) {
-            loaderIdRef.current = toast.error("Camera error — check permissions");
+            loaderIdRef.current = toast.error(t('scan.cameraError'));
           }
         }}
         constraints={{ facingMode: "environment" }}

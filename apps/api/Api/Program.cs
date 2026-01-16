@@ -14,10 +14,26 @@ using Microsoft.AspNetCore.Routing;
 var builder = WebApplication.CreateBuilder(args);
 
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("app", p =>
+        p.SetIsOriginAllowed(origin =>
+        {
+            if (string.IsNullOrWhiteSpace(origin)) return false;
 
-builder.Services.AddCors(o => o.AddPolicy("app",p  =>
-    p.WithOrigins("https://door-meen-git-main-awsaqhs-projects.vercel.app" , "http://localhost:5173" , "http://localhost:3000").AllowAnyHeader().AllowAnyMethod()));
-var config = builder.Configuration;
+            // local dev
+            if (origin == "http://localhost:5173") return true;
+            if (origin == "http://localhost:3000") return true;
+
+           
+            if (origin == "https://door-meen.vercel.app") return true;
+
+            return origin.StartsWith("https://door-meen-") && origin.EndsWith(".vercel.app");
+        })
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+    );
+});var config = builder.Configuration;
 
 
 

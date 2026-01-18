@@ -6,6 +6,7 @@ import './App.css'
 import QueuePage from './pages/QueuePage'
 import { RequireOwner } from './Guards/RequireOwner'
 import ScanPage from './pages/ScanPage'
+import { Analytics } from "@vercel/analytics/react"
 
 function App() {
   const { i18n } = useTranslation();
@@ -29,6 +30,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <Analytics />
       <Routes>
         <Route path="/" element={<Home />} />
    

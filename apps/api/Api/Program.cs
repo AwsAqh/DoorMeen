@@ -11,6 +11,7 @@ using System.ComponentModel.DataAnnotations;
 using Api.Application.Interfaces;
 using Api.Application.Services;
 using Microsoft.AspNetCore.Routing;
+using DotNetEnv;
 var builder = WebApplication.CreateBuilder(args);
 
 
@@ -35,10 +36,11 @@ builder.Services.AddCors(options =>
     );
 });var config = builder.Configuration;
 
-
-
+DotNetEnv.Env.Load();
+builder.Configuration.AddEnvironmentVariables();
 var cs = builder.Configuration.GetConnectionString("Default")??throw new InvalidOperationException("Connection string Default not found");
     builder.Services.AddDbContext<DoorMeenDbContext>(opt => opt.UseNpgsql(cs));
+builder.Services.AddScoped<IJoinVerification, EmailJoinVerification>();
 
 builder.Services.AddControllers().AddJsonOptions(o =>
 {
@@ -127,3 +129,4 @@ app.MapControllers();
 
 
 app.Run();
+public partial class Program { }

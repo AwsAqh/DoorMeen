@@ -20,23 +20,48 @@ namespace Api.Controllers
         public QueueCustomersController(ICustomersServices service) =>_service =service;
 
 
-        [HttpPost]
+
+        [HttpPost("joinQueue")]
         public async Task<ActionResult> AddCustomerToQueue([FromBody] AddCustomerDTO req)
         {
 
-             var customer=await _service.JoinQueue(req.QueueId, req.Name, req.PhoneNumber);
+             var customer=await _service.JoinQueue(req.QueueId, req.Name, req.PhoneNumber, req.Email);
               
                return Created("",customer);  
         }
 
 
+        [HttpPost("sendVerificationEmail")]
+        public async Task<IActionResult> SendVerificationEmail([FromBody] SendVerificationEmailDTO req)
+        {
+            var ok=await _service.SendVerificationEmail(req.CustomerId);
+            if(!ok) return BadRequest("Failed to send verification email");
+            return Ok();
+        }
+ 
 
+
+        
+        [HttpPost("verifyEmail")]
+        public async Task<ActionResult> VerifyEmail([FromBody] VerifyEmailDTO req)
+        {
+            var ok=await _service.VerifyEmail(req.CustomerId, req.Email, req.Digits);
+            if(!ok) return Unauthorized("Invalid digits");
+            return NoContent();
+        }
 
         [HttpDelete("cancel/{queueId:int}/{customerId:int}")]
         public async Task<ActionResult> CancelRegisteration(int queueId, int customerId, [FromHeader (Name ="X-Cancel-Token")] string token)
         {
-            await _service.CancelRegistration(queueId,customerId, token);  
-            return NoContent();
+            try
+            {
+                await _service.CancelRegistration(queueId,customerId, token);  
+                return NoContent();
+            }
+            catch (Exception)
+            {
+                return BadRequest("Invalid cancel token");
+            }
             
 
         }

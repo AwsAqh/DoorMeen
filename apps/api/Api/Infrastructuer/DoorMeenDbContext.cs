@@ -30,7 +30,11 @@ namespace Api.Infrastructuer
                 e.Property(x => x.QueueId).IsRequired();
                 e.Property(x => x.Name).HasMaxLength(120).IsRequired();
                 e.Property(x => x.Phone).HasMaxLength(32);
-                e.Property(x => x.State).HasMaxLength(12);
+                e.Property(x => x.State).HasMaxLength(20);
+                e.Property(x=>x.Email).HasMaxLength(120);
+                e.Property(x=>x.EmailVerificationTokenHash).HasMaxLength(200);
+                e.Property(x=>x.EmailVerificationTokenExpiry).HasColumnType("timestamp with time zone");
+                e.Property(x=>x.IsEmailVerified).HasColumnType("boolean");
                 e.Property(x => x.CreatedAt)
                  .HasColumnType("timestamp with time zone")
                  .HasDefaultValueSql("now() at time zone 'utc'");
@@ -41,6 +45,8 @@ namespace Api.Infrastructuer
                  .OnDelete(DeleteBehavior.Cascade);
 
                 e.HasIndex(x => new { x.QueueId, x.State, x.CreatedAt }); // fast FIFO “next”
+                
+
             });
         }
 

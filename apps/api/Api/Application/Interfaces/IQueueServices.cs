@@ -12,8 +12,10 @@ namespace Api.Application.Interfaces
 
     public interface ICustomersServices
     {
-        Task <JoinQueueResDTO> JoinQueue(int queueId,string name, string phoneNumber);
-        Task CancelRegistration(int queueId, int customerId, string cancelToken);
+       public Task <JoinQueueResDTO> JoinQueue(int queueId,string name, string phoneNumber, string email);
+       public Task<bool> SendVerificationEmail(int customerId);
+       public Task<bool> VerifyEmail(int customerId, string email, int digits);
+       public Task CancelRegistration(int queueId, int customerId, string cancelToken);
     }
 
 

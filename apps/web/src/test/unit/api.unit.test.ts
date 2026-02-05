@@ -20,6 +20,8 @@ import {
   apiServeCustomer,
   apiUpdateMaxCustomers,
   apiUpdateQueueName,
+  apiVerifyEmail,
+  apiResendVerificationEmail,
 } from "../../features/queue/services/api";
 
 /* ---------- helpers ---------- */
@@ -107,7 +109,7 @@ function expectLastFetchOneOf(paths: Array<RegExp | string>, initMatcher?: Parti
   if (!matched) {
     throw new Error(
       `expectLastFetchOneOf: "${actual}" did not match any of:\n` +
-        paths.map((p) => `  - ${p.toString()}`).join("\n")
+      paths.map((p) => `  - ${p.toString()}`).join("\n")
     );
   }
 
@@ -133,17 +135,37 @@ describe("API layer (Vitest)", () => {
   test("apiJoinQueue: success", async () => {
     const body = { id: 11, queueId: 2, name: "Ali" };
     asFetchMock().mockResolvedValueOnce(makeResponse({ status: 201, body }));
-    const res = await apiJoinQueue({ QueueId: 2, Name: "Ali", PhoneNumber: "0599" });
+    const res = await apiJoinQueue({ QueueId: 2, Name: "Ali", PhoneNumber: "0599", Email: "test@test.com" });
     expect(res).toEqual(body);
-    expectLastFetchMatch(/^\/api\/queuecustomers$/, {
+    expectLastFetchMatch(/^\/api\/queuecustomers\/joinQueue$/, {
       method: "POST",
       headers: expect.objectContaining({ "Content-type": "application/json" }),
     });
   });
 
+  test("apiVerifyEmail: success", async () => {
+    asFetchMock().mockResolvedValueOnce(makeResponse({ status: 200 }));
+    const res = await apiVerifyEmail({ CustomerId: 1, Email: "a@a.com", Digits: 1234 });
+    expect(res).toBe(true);
+    expectLastFetchMatch(/^\/api\/queuecustomers\/verifyEmail$/, {
+      method: "POST",
+      body: JSON.stringify({ CustomerId: 1, Email: "a@a.com", Digits: 1234 }),
+    });
+  });
+
+  test("apiResendVerificationEmail: success", async () => {
+    asFetchMock().mockResolvedValueOnce(makeResponse({ status: 200 }));
+    const res = await apiResendVerificationEmail({ CustomerId: 1 });
+    expect(res).toBe(true);
+    expectLastFetchMatch(/^\/api\/queuecustomers\/sendVerificationEmail$/, {
+      method: "POST",
+      body: JSON.stringify({ CustomerId: 1 }),
+    });
+  });
+
   test("apiJoinQueue: throws with response body on non-OK", async () => {
     asFetchMock().mockResolvedValueOnce(makeResponse({ status: 409, ok: false, body: { detail: "Already joined" } }));
-    await expect(apiJoinQueue({ QueueId: 2, Name: "Ali", PhoneNumber: "0599" })).rejects.toBeInstanceOf(Error);
+    await expect(apiJoinQueue({ QueueId: 2, Name: "Ali", PhoneNumber: "0599", Email: "test@test.com" })).rejects.toBeInstanceOf(Error);
   });
 
   test("apiManageQueue: success", async () => {

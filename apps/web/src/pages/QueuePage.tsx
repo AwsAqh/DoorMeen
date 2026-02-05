@@ -9,7 +9,7 @@ import Header from "../components/Header";
 import Footer from "@/components/Footer";
 import MorphingBlobs from "@/components/background/MorphingBlobs";
 import Waiter from "@/components/Waiter";
-import PopupForm from "@/PopupForm";
+import PopupForm from "@/components/PopupForm";
 import QueueQrCard from "@/components/QueueQrCard";
 import { StatusEditor } from "@/components/StatusEditor";
 import QueueNotFound from "@/components/QueueNotFound";
@@ -28,6 +28,7 @@ import { CancelData, handleCancel } from "@/features/queue/handlers/cancel";
 import { GetData, handleGetCustomers } from "@/features/queue/handlers/getCustomers";
 import { UpdateData, handleupdateStatus } from "@/features/queue/handlers/update";
 import { handleGetOwnerCustomers, GetOwnerCustomersData } from "@/features/queue/handlers/getOwnerCustomers";
+import { apiVerifyEmail, apiResendVerificationEmail } from "@/features/queue/services/api";
 import { handleServeCustomer } from "@/features/queue/handlers/serveCustomer";
 import { handleUpdateMaxCustomers, UpdateMaxCustomersData } from "@/features/queue/handlers/updateMaxCustomers";
 import { handleUpdateQueueName, UpdateQueueNameData } from "@/features/queue/handlers/updateQueueName";
@@ -159,16 +160,19 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
 
   const [open, setOpen] = useState(false);
   const [popupMode, setPopupMode] = useState<Mode>("join");
+  const [pendingJoinData, setPendingJoinData] = useState<(JoinData & { Id: number }) | null>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
   const secondInputRef = useRef<HTMLInputElement>(null);
+  const thirdInputRef = useRef<HTMLInputElement>(null);
 
   const submitJoinForm = async (e: React.FormEvent) => {
     e.preventDefault();
     const a = firstInputRef.current?.value?.trim() ?? "";
     const b = secondInputRef.current?.value?.trim() ?? "";
+    const c = thirdInputRef.current?.value?.trim() ?? "";
 
     if (popupMode !== "join") return;
-    if (!a || !b) {
+    if (!a || !b || !c) {
       toast.error(t('common.error'), { className: CLASS, duration: 3000 });
       return;
     }
@@ -176,15 +180,69 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
     const id = toast.loading(t('queue.joining'), { className: CLASS, duration: Infinity });
 
     try {
-      const payload: JoinData = { QueueId: currentQueueId, Name: a, PhoneNumber: b };
+      const payload: JoinData = { QueueId: currentQueueId, Name: a, PhoneNumber: b, Email: c };
       const { Id, Token } = await handleJoin(payload);
-      toast.success(t('common.success'), { id, className: CLASS, duration: 2500 });
-      const newUser: User = { ...payload, Id, State: "waiting" };
-      setUsers(prev => [...prev, newUser]);
-      localStorage.setItem(`queueCancelToken${Id}`, Token);
-      setOpen(false);
+      toast.success(t('queue.pinSent'), { id, className: CLASS, duration: 2500 });
+
+      // Store pending data and switch to verify mode
+      setPendingJoinData({ ...payload, Id });
+
+      if (firstInputRef.current) firstInputRef.current.value = "";
+      setPopupMode("verify");
     } catch (err: unknown) {
       toast.error(getErrorMessage(err), { className: CLASS, duration: 5000, id });
+    }
+  };
+
+  const submitVerifyForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pendingJoinData) return;
+
+    // In verify mode, firstInputRef is the PIN
+    const pin = firstInputRef.current?.value?.trim() ?? "";
+    if (!pin) {
+      toast.error(t('common.error'), { className: CLASS });
+      return;
+    }
+
+    const id = toast.loading("Verifying...", { className: CLASS, duration: Infinity });
+
+    try {
+      const res = await apiVerifyEmail({
+        CustomerId: pendingJoinData.Id,
+        Email: pendingJoinData.Email,
+        Digits: Number(pin)
+      });
+
+      toast.success(t('common.success'), { id, className: CLASS, duration: 2500 });
+
+      if (res?.Token) {
+        localStorage.setItem(`queueCancelToken${pendingJoinData.Id}`, res.Token);
+      }
+
+      // Verification successful, add user to list
+      const newUser: User = {
+        ...pendingJoinData,
+        State: "waiting"
+      };
+      setUsers(prev => [...prev, newUser]);
+
+      setOpen(false);
+      setPopupMode("join");
+      setPendingJoinData(null);
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err), { className: CLASS, duration: 5000, id });
+    }
+  };
+
+  const handleResendPin = async () => {
+    if (!pendingJoinData) return;
+    const id = toast.loading("Sending...", { className: CLASS });
+    try {
+      await apiResendVerificationEmail({ CustomerId: pendingJoinData.Id });
+      toast.success(t('popupForm.verify.resendSuccess'), { id, className: CLASS });
+    } catch (err) {
+      toast.error(t('popupForm.verify.resendError'), { id, className: CLASS });
     }
   };
 
@@ -608,9 +666,15 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
               <PopupForm
                 open={open}
                 onClose={() => setOpen(false)}
-                onSubmit={popupMode === "join" ? submitJoinForm : submitManageForm}
+                onSubmit={
+                  popupMode === "join" ? submitJoinForm :
+                    popupMode === "verify" ? submitVerifyForm :
+                      submitManageForm
+                }
+                onResend={popupMode === "verify" ? handleResendPin : undefined}
                 firstInputRef={firstInputRef}
                 secondInputRef={secondInputRef}
+                thirdInputRef={thirdInputRef}
                 type={popupMode}
               />
             </>

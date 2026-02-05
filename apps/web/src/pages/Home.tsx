@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { toast, Toaster } from "sonner";
 
-import PopupForm from "../PopupForm";
+import PopupForm from "@/components/PopupForm";
 import Header from "../components/Header";
 import Carousel from "../components/Carousel";
 import Footer from "../components/Footer";

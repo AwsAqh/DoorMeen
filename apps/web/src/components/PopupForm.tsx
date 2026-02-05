@@ -1,8 +1,8 @@
 import React from "react"
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { Mode } from "../src/components/Helpers/popupFormTypes";
-import { COPIES } from "../src/components/Helpers/popupFormTypes";
+import type { Mode } from "../components/Helpers/popupFormTypes";
+import { COPIES } from "../components/Helpers/popupFormTypes";
 
 type PopupFormProps = {
   open: boolean;
@@ -11,9 +11,10 @@ type PopupFormProps = {
   type: Mode;
   firstInputRef: React.Ref<HTMLInputElement>
   secondInputRef: React.Ref<HTMLInputElement>
+  thirdInputRef?: React.Ref<HTMLInputElement>
+  onResend?: () => void;
 };
-
-const PopupForm: React.FC<PopupFormProps> = ({ open, onClose, onSubmit, type, firstInputRef, secondInputRef }) => {
+const PopupForm: React.FC<PopupFormProps> = ({ open, onClose, onSubmit, type, firstInputRef, secondInputRef, thirdInputRef, onResend }) => {
   const { t } = useTranslation();
 
   const copy = {
@@ -30,6 +31,13 @@ const PopupForm: React.FC<PopupFormProps> = ({ open, onClose, onSubmit, type, fi
     pattern: COPIES[type].pattern,
     note: t(`popupForm.${type}.note`),
     action: t(`popupForm.${type}.action`),
+    // Optional 3rd input (Email)
+    label3: type === 'join' ? t(`popupForm.${type}.label3`) : undefined,
+    placeholder3: type === 'join' ? t(`popupForm.${type}.placeholder3`) : undefined,
+    input3type: type === 'join' ? COPIES[type].input3type : undefined,
+    note3: type === 'join' ? t(`popupForm.${type}.note3`) : undefined,
+    // Verify specific
+    resend: type === 'verify' ? t(`popupForm.verify.resend`) : undefined,
   };
 
   return (
@@ -96,7 +104,7 @@ const PopupForm: React.FC<PopupFormProps> = ({ open, onClose, onSubmit, type, fi
                   />
                 </div>
 
-                {type !== "manage" && (
+                {type !== "manage" && type !== "verify" && (
                   <div>
                     <label
                       htmlFor="Password"
@@ -129,6 +137,57 @@ const PopupForm: React.FC<PopupFormProps> = ({ open, onClose, onSubmit, type, fi
                     >
                       {copy.note}
                     </p>
+                  </div>
+                )}
+
+                {/* 3rd Input (Email for Join) */}
+                {type === "join" && thirdInputRef && (
+                  <div>
+                    <label
+                      htmlFor="Email"
+                      className="mb-1 block text-sm font-medium"
+                      style={{ color: 'var(--dm-text-secondary)' }}
+                    >
+                      {copy.label3}
+                    </label>
+                    <input
+                      ref={thirdInputRef}
+                      id="Email"
+                      name="Email"
+                      type={copy.input3type}
+                      placeholder={copy.placeholder3}
+                      required
+                      className="block w-full rounded-xl px-4 py-3 shadow-sm outline-none transition-all"
+                      style={{
+                        background: 'var(--dm-bg-primary)',
+                        color: 'var(--dm-text-primary)',
+                        border: '1px solid var(--dm-surface-border)',
+                      }}
+                    />
+                    {copy.note3 && (
+                      <p
+                        className="mt-1 text-xs"
+                        style={{ color: 'var(--dm-text-muted)' }}
+                      >
+                        {copy.note3}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+
+
+
+                {copy.resend && onResend && (
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={onResend}
+                      className="text-xs underline hover:text-white transition-colors"
+                      style={{ color: 'var(--dm-text-muted)' }}
+                    >
+                      {copy.resend}
+                    </button>
                   </div>
                 )}
 

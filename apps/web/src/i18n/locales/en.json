@@ -54,7 +54,21 @@
       "label2": "Phone number",
       "placeholder2": "05xxxxxxxx",
       "note": "Enter your 10 digits phone number",
+      "label3": "Email",
+      "placeholder3": "example@domain.com",
+      "note3": "We'll send a verification link",
       "action": "Join"
+    },
+    "verify": {
+      "title": "Verify Email",
+      "subTitle": "Enter the PIN sent to your email",
+      "label1": "PIN Code",
+      "placeholder1": "Enter PIN",
+      "note": "Check your spam folder if not found",
+      "action": "Verify",
+      "resend": "Resend PIN",
+      "resendSuccess": "PIN sent successfully",
+      "resendError": "Failed to resend PIN"
     },
     "manage": {
       "title": "Manage this queue",
@@ -101,6 +115,7 @@
     "signedIn": "Signed in",
     "dashboard": "Dashboard",
     "saving": "Saving...",
+    "pinSent": "PIN code sent to your email",
     "copyLink": "Copy link",
     "downloadPng": "Download PNG",
     "share": "Share",

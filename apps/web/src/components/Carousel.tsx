@@ -1,211 +1,197 @@
 // src/components/Carousel.tsx
-import  {
+import {
   Children,
   ReactNode,
   useCallback,
   useEffect,
-  useRef,
   useState,
 } from "react";
+import { AnimatePresence, motion, Variants } from "framer-motion";
 
 type CarouselProps = {
   children: ReactNode;
- 
   autoPlay?: boolean;
-  
   interval?: number;
-
   onNextImage?: (index: number) => void;
-  
   className?: string;
- 
   showArrows?: boolean;
-
   showDots?: boolean;
-
   pauseOnHover?: boolean;
-
-  viewportClassName?: string;
 };
 
+// Slide animation variants for flowing effect
+const slideVariants: Variants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? '100%' : '-100%',
+    opacity: 0,
+    scale: 0.95,
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+    scale: 1,
+    transition: {
+      x: { type: "spring", stiffness: 300, damping: 30 },
+      opacity: { duration: 0.3 },
+      scale: { duration: 0.3 },
+    },
+  },
+  exit: (direction: number) => ({
+    x: direction < 0 ? '100%' : '-100%',
+    opacity: 0,
+    scale: 0.95,
+    transition: {
+      x: { type: "spring", stiffness: 300, damping: 30 },
+      opacity: { duration: 0.2 },
+      scale: { duration: 0.2 },
+    },
+  }),
+};
 
 export default function Carousel({
   children,
   autoPlay = true,
   interval = 4000,
   onNextImage,
-
   showArrows = true,
   showDots = true,
   pauseOnHover = true,
-  className = "w-full",                
-   
+  className = "w-full",
 }: CarouselProps) {
-  const viewportRef = useRef<HTMLDivElement | null>(null);
-  const [index, setIndex] = useState(0);
-  const count = Children.count(children);
+  const [[page, direction], setPage] = useState([0, 0]);
+  const [isPaused, setIsPaused] = useState(false);
+  const childArray = Children.toArray(children);
+  const count = childArray.length;
 
-  const setActiveIndex = useCallback(
-    (i: number) => {
-      setIndex(i);
-      onNextImage?.(i);
-    },
-    [onNextImage]
-  );
+  // Wrap index for infinite loop effect
+  const index = ((page % count) + count) % count;
 
-  const onScroll = () => {
-    const el = viewportRef.current;
-    if (!el) return;
-    const isRTL = document.documentElement.dir === 'rtl';
-    
-    // In RTL, scrollLeft can be negative or work differently
-    // We calculate based on scroll position relative to scrollWidth
-    let scrollPosition: number;
-    if (isRTL) {
-      // For RTL, scrollLeft is typically negative or calculated from the right
-      const maxScroll = el.scrollWidth - el.clientWidth;
-      scrollPosition = maxScroll + el.scrollLeft; // scrollLeft is negative in RTL
-    } else {
-      scrollPosition = el.scrollLeft;
-    }
-    
-    const i = Math.round(scrollPosition / el.clientWidth);
-    setActiveIndex(Math.max(0, Math.min(i, count - 1)));
-  };
+  const paginate = useCallback((newDirection: number) => {
+    const newPage = page + newDirection;
+    setPage([newPage, newDirection]);
+    onNextImage?.(((newPage % count) + count) % count);
+  }, [page, count, onNextImage]);
 
-  const scrollToIndex = (i: number) => {
-    const el = viewportRef.current;
-    if (!el) return;
-    const isRTL = document.documentElement.dir === 'rtl';
-    const maxScroll = el.scrollWidth - el.clientWidth;
-    
-    let targetScroll: number;
-    if (isRTL) {
-      // In RTL, scroll to negative value or calculate from right
-      targetScroll = -(maxScroll - (i * el.clientWidth));
-    } else {
-      targetScroll = i * el.clientWidth;
-    }
-    
-    el.scrollTo({ left: targetScroll, behavior: "smooth" });
-    setActiveIndex(Math.max(0,Math.min(i, count - 1)));
-  };
-
-  const prev = useCallback(
-    () => scrollToIndex((index - 1 + count) % count),
-    [index, count]
-  );
-  const next = useCallback(
-    () => scrollToIndex((index + 1) % count),
-    [index, count]
-  );
+  const goToSlide = useCallback((targetIndex: number) => {
+    const currentIndex = ((page % count) + count) % count;
+    const direction = targetIndex > currentIndex ? 1 : -1;
+    // Calculate shortest path
+    const diff = targetIndex - currentIndex;
+    setPage([page + diff, direction]);
+    onNextImage?.(targetIndex);
+  }, [page, count, onNextImage]);
 
   // Autoplay
   useEffect(() => {
-    if (!autoPlay || count <= 1) return;
-    const el = viewportRef.current;
-    if (!el) return;
+    if (!autoPlay || count <= 1 || isPaused) return;
 
-    let paused = false;
-    const pause = () => (paused = true);
-    const resume = () => (paused = false);
-
-    if (pauseOnHover) {
-      el.addEventListener("mouseenter", pause);
-      el.addEventListener("mouseleave", resume);
-      el.addEventListener("focusin", pause);
-      el.addEventListener("focusout", resume);
-    }
-
-    const id = window.setInterval(() => {
-      if (!paused) next();
+    const timer = setInterval(() => {
+      paginate(1);
     }, interval);
 
-    return () => {
-      window.clearInterval(id);
-      if (pauseOnHover) {
-        el.removeEventListener("mouseenter", pause);
-        el.removeEventListener("mouseleave", resume);
-        el.removeEventListener("focusin", pause);
-        el.removeEventListener("focusout", resume);
-      }
-    };
-  }, [autoPlay, count, interval, pauseOnHover, next]);
+    return () => clearInterval(timer);
+  }, [autoPlay, count, interval, isPaused, paginate]);
 
   // Keyboard navigation
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight") next();
-      if (e.key === "ArrowLeft") prev();
+      if (e.key === "ArrowRight") paginate(1);
+      if (e.key === "ArrowLeft") paginate(-1);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [next, prev]);
+  }, [paginate]);
 
   return (
     <div
-      className={`relative ${className}`}
+      className={`relative overflow-hidden ${className}`}
       role="region"
       aria-label="Carousel"
+      onMouseEnter={pauseOnHover ? () => setIsPaused(true) : undefined}
+      onMouseLeave={pauseOnHover ? () => setIsPaused(false) : undefined}
     >
-      <div
-        ref={viewportRef}
-        onScroll={onScroll}
-        className="
-          flex h-full w-full overflow-x-auto snap-x snap-mandatory
-          no-scrollbar rounded-xl
-        "
-        style={{ direction: 'ltr' }} // Force LTR for scroll calculations
-        aria-live="polite"
-      >
-        {Children.map(children, (child, i) => (
-          <div key={i} className="w-full h-full flex-shrink-0 snap-center overflow-hidden rounded-xl">
-            <div className="w-full h-full [&>img]:w-full [&>img]:h-full [&>img]:object-cover">
-              {child}
+      {/* Slides Container */}
+      <div className="relative w-full h-full">
+        <AnimatePresence initial={false} custom={direction} mode="popLayout">
+          <motion.div
+            key={page}
+            custom={direction}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            className="absolute inset-0 w-full h-full"
+          >
+            <div className="w-full h-full [&>img]:w-full [&>img]:h-full [&>img]:object-cover rounded-xl overflow-hidden">
+              {childArray[index]}
             </div>
-          </div>
-        ))}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
+      {/* Navigation Arrows */}
       {showArrows && count > 1 && (
         <>
-          <button
-            onClick={prev}
+          <motion.button
+            onClick={() => paginate(-1)}
             aria-label="Previous slide"
             className="
-              absolute left-3 rtl:left-auto rtl:right-3 top-1/2 -translate-y-1/2
-              rounded-full bg-black/50 text-white p-3 md:p-4 text-2xl
-              hover:bg-black/70 focus:outline-none focus:ring
+              absolute left-3 rtl:left-auto rtl:right-3 top-1/2 -translate-y-1/2 z-10
+              rounded-full p-3 text-2xl
+              transition-all duration-200
             "
+            style={{
+              background: 'var(--dm-surface)',
+              color: 'var(--dm-text-primary)',
+              backdropFilter: 'blur(8px)',
+            }}
+            whileHover={{ scale: 1.1, background: 'var(--dm-accent)' }}
+            whileTap={{ scale: 0.95 }}
           >
             ‹
-          </button>
-          <button
-            onClick={next}
+          </motion.button>
+          <motion.button
+            onClick={() => paginate(1)}
             aria-label="Next slide"
             className="
-              absolute right-3 rtl:right-auto rtl:left-3 top-1/2 -translate-y-1/2
-              rounded-full bg-black/50 text-white p-3 md:p-4 text-2xl
-              hover:bg-black/70 focus:outline-none focus:ring
+              absolute right-3 rtl:right-auto rtl:left-3 top-1/2 -translate-y-1/2 z-10
+              rounded-full p-3 text-2xl
+              transition-all duration-200
             "
+            style={{
+              background: 'var(--dm-surface)',
+              color: 'var(--dm-text-primary)',
+              backdropFilter: 'blur(8px)',
+            }}
+            whileHover={{ scale: 1.1, background: 'var(--dm-accent)' }}
+            whileTap={{ scale: 0.95 }}
           >
             ›
-          </button>
+          </motion.button>
         </>
       )}
 
+      {/* Dot Indicators */}
       {showDots && count > 1 && (
-        <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2">
+        <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-10">
           {Array.from({ length: count }).map((_, i) => (
-            <button
+            <motion.button
               key={i}
-              onClick={() => scrollToIndex(i)}
+              onClick={() => goToSlide(i)}
               aria-label={`Go to slide ${i + 1}`}
               aria-current={index === i}
-              className={`h-2.5 w-2.5 rounded-full transition
-                ${index === i ? "bg-white" : "bg-white/50"}
-                focus:outline-none focus:ring
-              `}
+              className="rounded-full transition-all duration-300"
+              style={{
+                width: index === i ? '24px' : '10px',
+                height: '10px',
+                background: index === i ? 'var(--dm-accent)' : 'var(--dm-surface)',
+              }}
+              whileHover={{ scale: 1.2 }}
+              whileTap={{ scale: 0.9 }}
+              animate={{
+                width: index === i ? 24 : 10,
+              }}
+              transition={{ duration: 0.2 }}
             />
           ))}
         </div>

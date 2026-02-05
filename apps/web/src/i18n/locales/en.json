@@ -14,7 +14,9 @@
     "submit": "Submit",
     "confirm": "Confirm",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "copied": "Copied!",
+    "preparing": "Preparing…"
   },
   "header": {
     "title": "Door Meen"
@@ -85,7 +87,8 @@
     "status": {
       "waiting": "Waiting",
       "inProgress": "In progress",
-      "served": "Served"
+      "served": "Served",
+      "pending_verification": "Pending Verification"
     },
     "actions": {
       "serveNext": "Serve Next",
@@ -96,7 +99,12 @@
       "manage": "Manage"
     },
     "signedIn": "Signed in",
+    "dashboard": "Dashboard",
     "saving": "Saving...",
+    "copyLink": "Copy link",
+    "downloadPng": "Download PNG",
+    "share": "Share",
+    "addToQueue": "Add to Queue",
     "errors": {
       "createFailed": "Failed to create a queue",
       "joinFailed": "Failed to join queue",
@@ -129,4 +137,3 @@
     "arabic": "العربية"
   }
 }
-

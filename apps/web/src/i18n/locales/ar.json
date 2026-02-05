@@ -14,7 +14,9 @@
     "submit": "إرسال",
     "confirm": "تأكيد",
     "yes": "نعم",
-    "no": "لا"
+    "no": "لا",
+    "copied": "تم النسخ!",
+    "preparing": "جاري التحضير…"
   },
   "header": {
     "title": "دور مين"
@@ -85,7 +87,8 @@
     "status": {
       "waiting": "في الانتظار",
       "inProgress": "قيد التنفيذ",
-      "served": "تمت الخدمة"
+      "served": "تمت الخدمة",
+      "pending_verification": "قيد التحقق"
     },
     "actions": {
       "serveNext": "خدم التالي",
@@ -96,7 +99,12 @@
       "manage": "إدارة"
     },
     "signedIn": "تم تسجيل الدخول",
+    "dashboard": "لوحة التحكم",
     "saving": "جاري الحفظ...",
+    "copyLink": "نسخ الرابط",
+    "downloadPng": "تحميل PNG",
+    "share": "مشاركة",
+    "addToQueue": "الانضمام للطابور",
     "errors": {
       "createFailed": "فشل في إنشاء طابور",
       "joinFailed": "فشل في الانضمام إلى الطابور",
@@ -129,4 +137,3 @@
     "arabic": "العربية"
   }
 }
-

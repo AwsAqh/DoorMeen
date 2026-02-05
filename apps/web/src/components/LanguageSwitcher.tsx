@@ -1,5 +1,5 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { motion } from 'framer-motion';
 import LanguageIcon from '@mui/icons-material/Language';
 
 export default function LanguageSwitcher() {
@@ -11,17 +11,23 @@ export default function LanguageSwitcher() {
   };
 
   return (
-    <button
+    <motion.button
       onClick={toggleLanguage}
-      className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors"
+      className="flex items-center gap-2 px-3 py-2 rounded-full transition-colors"
+      style={{
+        background: 'var(--dm-surface)',
+        color: 'var(--dm-text-primary)',
+        border: '1px solid var(--dm-surface-border)',
+      }}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
       aria-label={t('language.switch')}
       title={t('language.switch')}
     >
-      <LanguageIcon />
+      <LanguageIcon fontSize="small" />
       <span className="text-sm font-medium">
         {i18n.language === 'en' ? t('language.arabic') : t('language.english')}
       </span>
-    </button>
+    </motion.button>
   );
 }
-

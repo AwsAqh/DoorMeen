@@ -8,6 +8,7 @@ import { RequireOwner } from './Guards/RequireOwner'
 import ScanPage from './pages/ScanPage'
 import { Analytics } from "@vercel/analytics/react"
 
+
 function App() {
   const { i18n } = useTranslation();
 
@@ -32,15 +33,16 @@ function App() {
     <BrowserRouter>
       <Analytics />
       <Routes>
+
         <Route path="/" element={<Home />} />
-   
-        <Route path="/queue/:id" element={<QueuePage mode="public"/>}/>
+
+        <Route path="/queue/:id" element={<QueuePage mode="public" />} />
 
         <Route element={<RequireOwner />}>
-             <Route path="/owner/q/:id" element={<QueuePage mode="owner" />} />
-         </Route>
-        <Route path="/scan" element={<ScanPage/>}/>
-    
+          <Route path="/owner/q/:id" element={<QueuePage mode="owner" />} />
+        </Route>
+        <Route path="/scan" element={<ScanPage />} />
+
       </Routes>
     </BrowserRouter>
   )

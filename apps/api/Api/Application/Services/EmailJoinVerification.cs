@@ -53,7 +53,8 @@ If you didn't request this, ignore this email.";
     using var client = new SmtpClient(host, port)
     {
         EnableSsl = true,
-        Credentials = new NetworkCredential(user, pass)
+        Credentials = new NetworkCredential(user, pass),
+        Timeout = 5000
     };
 
     try

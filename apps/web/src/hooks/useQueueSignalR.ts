@@ -1,12 +1,13 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useRef, useState } from 'react';
 import * as signalR from '@microsoft/signalr';
 
 export interface UseQueueSignalRProps {
   queueId: string;
-  onCustomerJoined?: (customer: unknown) => void;
-  onCustomerVerified?: (customer: unknown) => void;
+  onCustomerJoined?: (customer: any) => void;
+  onCustomerVerified?: (customer: any) => void;
   onCustomerLeft?: (customerId: number) => void;
-  onCustomerStatusChanged?: (resDto: unknown) => void;
+  onCustomerStatusChanged?: (resDto: any) => void;
   onCustomerServed?: (customerId: number) => void;
   onMessageUpdated?: (message: string | null) => void;
 }

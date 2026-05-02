@@ -59,7 +59,13 @@ If you didn't request this, ignore this email.";
 
     try
     {
-        await client.SendMailAsync(message);
+        var sendTask = client.SendMailAsync(message);
+        var delayTask = Task.Delay(5000);
+        if (await Task.WhenAny(sendTask, delayTask) == delayTask)
+        {
+            return false;
+        }
+        await sendTask; // observe exceptions gracefully
         return true;
     }
     catch
@@ -110,7 +116,13 @@ Thanks for using DoorMeen!";
 
         try
         {
-            await client.SendMailAsync(message);
+            var sendTask = client.SendMailAsync(message);
+            var delayTask = Task.Delay(5000);
+            if (await Task.WhenAny(sendTask, delayTask) == delayTask)
+            {
+                return false;
+            }
+            await sendTask; 
             return true;
         }
         catch

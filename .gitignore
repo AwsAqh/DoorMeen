@@ -59,6 +59,7 @@ publish/
 # --- Temp build outputs ---
 temp_final_build*/
 temp_build_out/
+temp_verify_fix/
 err.log
 build_errors.log
 build_logs.txt

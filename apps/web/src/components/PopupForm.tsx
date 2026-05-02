@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useState, useEffect } from "react"
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Mode } from "../components/Helpers/popupFormTypes";
@@ -40,6 +40,20 @@ const PopupForm: React.FC<PopupFormProps> = ({ open, onClose, onSubmit, type, fi
     resend: type === 'verify' ? t(`popupForm.verify.resend`) : undefined,
   };
 
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const interval = setInterval(() => setCooldown((c) => c - 1), 1000);
+    return () => clearInterval(interval);
+  }, [cooldown]);
+
+  const handleResendClick = () => {
+    if (cooldown > 0 || !onResend) return;
+    onResend();
+    setCooldown(60);
+  };
+
   return (
     <AnimatePresence>
       {open && (
@@ -74,6 +88,11 @@ const PopupForm: React.FC<PopupFormProps> = ({ open, onClose, onSubmit, type, fi
                 >
                   {copy.subTitle}
                 </p>
+                {type === 'verify' && (
+                  <p className="mt-3 text-xs p-2.5 rounded-lg border" style={{ background: 'rgba(234, 179, 8, 0.1)', color: '#eab308', borderColor: 'rgba(234, 179, 8, 0.2)' }}>
+                    {t('popupForm.verify.timeoutWarning', '⏳ Please verify your PIN within 10 minutes. Unverified requests are automatically deleted.')}
+                  </p>
+                )}
               </div>
 
               <form
@@ -182,11 +201,16 @@ const PopupForm: React.FC<PopupFormProps> = ({ open, onClose, onSubmit, type, fi
                   <div className="flex justify-end">
                     <button
                       type="button"
-                      onClick={onResend}
-                      className="text-xs underline hover:text-white transition-colors"
-                      style={{ color: 'var(--dm-text-muted)' }}
+                      onClick={handleResendClick}
+                      disabled={cooldown > 0}
+                      className="text-xs transition-colors"
+                      style={{ 
+                        color: cooldown > 0 ? 'var(--dm-text-muted)' : 'var(--dm-accent)',
+                        textDecoration: cooldown > 0 ? 'none' : 'underline',
+                        cursor: cooldown > 0 ? 'not-allowed' : 'pointer'
+                      }}
                     >
-                      {copy.resend}
+                      {cooldown > 0 ? `Wait ${cooldown}s` : copy.resend}
                     </button>
                   </div>
                 )}

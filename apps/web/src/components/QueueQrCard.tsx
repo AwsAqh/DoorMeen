@@ -8,7 +8,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import ShareIcon from '@mui/icons-material/Share';
 
 type Props = {
-  queueId: number;
+  queueId: string | number;
   size?: number;
 };
 

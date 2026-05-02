@@ -56,6 +56,20 @@ publish/
 .stylelintcache
 .tailwindcss-cache/
 
+# --- Temp build outputs ---
+temp_final_build*/
+temp_build_out/
+err.log
+build_errors.log
+build_logs.txt
+build_output.txt
+migration.log
+migration_cmd.log
 
+# --- Agent / AI tooling ---
+.gemini/
+.agents/
+
+# --- Internal .md files (keep root README.md) ---
 apps/web/**/*.md
 apps/api/Api/**/*.md

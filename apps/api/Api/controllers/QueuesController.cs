@@ -18,8 +18,8 @@ namespace Api.Controllers
 
       
 
-        [HttpGet("q/{id:int}")]
-        public async Task<ActionResult<Object>> GetQueueById(int id)
+        [HttpGet("q/{id}")]
+        public async Task<ActionResult<Object>> GetQueueById(string id)
         {
             var queue=await _services.GetQueueById(id);
             if(queue is null) return NotFound();

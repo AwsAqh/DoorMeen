@@ -3,7 +3,7 @@
     public interface IJwtTokenGenerator
     {
         
-        string GenerateToken(int queueId);
+        string GenerateToken(string queueId);
 
     }
 

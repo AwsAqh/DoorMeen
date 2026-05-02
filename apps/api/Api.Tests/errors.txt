@@ -1,0 +1,120 @@
+﻿
+C:\Program Files\dotnet\sdk\10.0.1
+00\Microsoft.Common.CurrentVersion
+.targets(2437,5): warning 
+MSB3277:     References which 
+depend on "Microsoft.EntityFramewo
+rkCore.Relational, 
+Version=9.0.1.0, Culture=neutral, 
+PublicKeyToken=adb9793829ddae60" [
+C:\Users\awsaq\.nuget\packages\mic
+rosoft.entityframeworkcore.relatio
+nal\9.0.1\lib\net8.0\Microsoft.Ent
+ityFrameworkCore.Relational.dll]. 
+[C:\Users\awsaq\Desktop\DoorMeen\a
+pps\api\Api.Tests\Api.Tests.csproj
+]
+C:\Program Files\dotnet\sdk\10.0.1
+00\Microsoft.Common.CurrentVersion
+.targets(2437,5): warning 
+MSB3277:         C:\Users\awsaq\.n
+uget\packages\microsoft.entityfram
+eworkcore.relational\9.0.1\lib\net
+8.0\Microsoft.EntityFrameworkCore.
+Relational.dll [C:\Users\awsaq\Des
+ktop\DoorMeen\apps\api\Api.Tests\A
+pi.Tests.csproj]
+C:\Program Files\dotnet\sdk\10.0.1
+00\Microsoft.Common.CurrentVersion
+.targets(2437,5): warning 
+MSB3277:           Project file 
+item includes which caused 
+reference "C:\Users\awsaq\.nuget\p
+ackages\microsoft.entityframeworkc
+ore.relational\9.0.1\lib\net8.0\Mi
+crosoft.EntityFrameworkCore.Relati
+onal.dll". [C:\Users\awsaq\Desktop
+\DoorMeen\apps\api\Api.Tests\Api.T
+ests.csproj]
+C:\Program Files\dotnet\sdk\10.0.1
+00\Microsoft.Common.CurrentVersion
+.targets(2437,5): warning 
+MSB3277:             C:\Users\awsa
+q\.nuget\packages\microsoft.entity
+frameworkcore.relational\9.0.1\lib
+\net8.0\Microsoft.EntityFrameworkC
+ore.Relational.dll [C:\Users\awsaq
+\Desktop\DoorMeen\apps\api\Api.Tes
+ts\Api.Tests.csproj]
+C:\Users\awsaq\Desktop\DoorMeen\ap
+ps\api\Api.Tests\Unit\Services\Cus
+tomersServicesTests.cs(22,48): 
+error CS0246: The type or 
+namespace name 
+'DoorMeenDbContext' could not be 
+found (are you missing a using 
+directive or an assembly 
+reference?) [C:\Users\awsaq\Deskto
+p\DoorMeen\apps\api\Api.Tests\Api.
+Tests.csproj]
+C:\Program Files\dotnet\sdk\10.0.1
+00\Microsoft.Common.CurrentVersion
+.targets(2437,5): warning 
+MSB3277:     References which 
+depend on "Microsoft.EntityFramewo
+rkCore.Relational, 
+Version=9.0.1.0, Culture=neutral, 
+PublicKeyToken=adb9793829ddae60" [
+C:\Users\awsaq\.nuget\packages\mic
+rosoft.entityframeworkcore.relatio
+nal\9.0.1\lib\net8.0\Microsoft.Ent
+ityFrameworkCore.Relational.dll]. 
+[C:\Users\awsaq\Desktop\DoorMeen\a
+pps\api\Api.Tests\Api.Tests.csproj
+]
+C:\Program Files\dotnet\sdk\10.0.1
+00\Microsoft.Common.CurrentVersion
+.targets(2437,5): warning 
+MSB3277:         C:\Users\awsaq\.n
+uget\packages\microsoft.entityfram
+eworkcore.relational\9.0.1\lib\net
+8.0\Microsoft.EntityFrameworkCore.
+Relational.dll [C:\Users\awsaq\Des
+ktop\DoorMeen\apps\api\Api.Tests\A
+pi.Tests.csproj]
+C:\Program Files\dotnet\sdk\10.0.1
+00\Microsoft.Common.CurrentVersion
+.targets(2437,5): warning 
+MSB3277:           Project file 
+item includes which caused 
+reference "C:\Users\awsaq\.nuget\p
+ackages\microsoft.entityframeworkc
+ore.relational\9.0.1\lib\net8.0\Mi
+crosoft.EntityFrameworkCore.Relati
+onal.dll". [C:\Users\awsaq\Desktop
+\DoorMeen\apps\api\Api.Tests\Api.T
+ests.csproj]
+C:\Program Files\dotnet\sdk\10.0.1
+00\Microsoft.Common.CurrentVersion
+.targets(2437,5): warning 
+MSB3277:             C:\Users\awsa
+q\.nuget\packages\microsoft.entity
+frameworkcore.relational\9.0.1\lib
+\net8.0\Microsoft.EntityFrameworkC
+ore.Relational.dll [C:\Users\awsaq
+\Desktop\DoorMeen\apps\api\Api.Tes
+ts\Api.Tests.csproj]
+C:\Users\awsaq\Desktop\DoorMeen\ap
+ps\api\Api.Tests\Unit\Services\Cus
+tomersServicesTests.cs(22,48): 
+error CS0246: The type or 
+namespace name 
+'DoorMeenDbContext' could not be 
+found (are you missing a using 
+directive or an assembly 
+reference?) [C:\Users\awsaq\Deskto
+p\DoorMeen\apps\api\Api.Tests\Api.
+Tests.csproj]
+    1 Error(s)
+
+

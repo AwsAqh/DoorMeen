@@ -1,5 +1,5 @@
 ﻿namespace Api.Infrastructuer.resDTO
 {
-    public record VerifyPasswordResDTO(int queueId,string token);
+    public record VerifyPasswordResDTO(string queueId,string token);
     
 }

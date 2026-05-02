@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Data;
 using Api.Application.Interfaces;
+using Microsoft.AspNetCore.RateLimiting;
 namespace Api.Controllers
 {
     [Route("api/queueCustomers")]
@@ -17,11 +18,16 @@ namespace Api.Controllers
 
 
         private readonly ICustomersServices _service;
-        public QueueCustomersController(ICustomersServices service) =>_service =service;
+        private readonly ILogger<QueueCustomersController> _logger;
 
-
+        public QueueCustomersController(ICustomersServices service, ILogger<QueueCustomersController> logger)
+        {
+            _service = service;
+            _logger = logger;
+        }
 
         [HttpPost("joinQueue")]
+        [EnableRateLimiting("JoinQueuePolicy")]
         public async Task<ActionResult> AddCustomerToQueue([FromBody] AddCustomerDTO req)
         {
 
@@ -32,6 +38,7 @@ namespace Api.Controllers
 
 
         [HttpPost("sendVerificationEmail")]
+        [EnableRateLimiting("ResendEmailPolicy")]
         public async Task<IActionResult> SendVerificationEmail([FromBody] SendVerificationEmailDTO req)
         {
             var ok=await _service.SendVerificationEmail(req.CustomerId);
@@ -45,26 +52,43 @@ namespace Api.Controllers
         [HttpPost("verifyEmail")]
         public async Task<ActionResult> VerifyEmail([FromBody] VerifyEmailDTO req)
         {
-            var ok=await _service.VerifyEmail(req.CustomerId, req.Email, req.Digits);
-            if(!ok) return Unauthorized("Invalid digits");
-            return NoContent();
+            var res = await _service.VerifyEmail(req.CustomerId, req.Email, req.Digits);
+            if(res == null) return Unauthorized("Invalid digits");
+            return Ok(res);
         }
 
-        [HttpDelete("cancel/{queueId:int}/{customerId:int}")]
-        public async Task<ActionResult> CancelRegisteration(int queueId, int customerId, [FromHeader (Name ="X-Cancel-Token")] string token)
+        [HttpDelete("cancel/{queueId}/{customerId:int}")]
+        public async Task<ActionResult> CancelRegisteration(string queueId, int customerId, [FromHeader (Name ="X-Cancel-Token")] string token)
         {
             try
             {
                 await _service.CancelRegistration(queueId,customerId, token);  
                 return NoContent();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Failed to cancel registration for customer {CustomerId} in queue {QueueId}", customerId, queueId);
                 return BadRequest("Invalid cancel token");
             }
             
 
         }
+
+        [HttpPut("snooze/{queueId}/{customerId:int}")]
+        public async Task<ActionResult> SnoozeRegistration(string queueId, int customerId, [FromHeader (Name ="X-Cancel-Token")] string token)
+        {
+            try
+            {
+                await _service.SnoozeRegistration(queueId, customerId, token);  
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to snooze registration for customer {CustomerId} in queue {QueueId}", customerId, queueId);
+                return BadRequest("Invalid cancel token or boundary limit");
+            }
+        }
+
 
     }
 }

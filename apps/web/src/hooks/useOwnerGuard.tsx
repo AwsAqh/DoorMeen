@@ -9,7 +9,7 @@ type OwnerToken = {
   exp?: number | string; Exp?: number | string;
 };
 
-export function useOwnerGuard(queueId: number, mode: string) {
+export function useOwnerGuard(queueId: string | number, mode: string) {
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,7 +26,7 @@ export function useOwnerGuard(queueId: number, mode: string) {
       const p = jwtDecode<OwnerToken>(token) ?? {};
 
       const role = (p.role ?? p.Role ?? "").toString().toLowerCase();
-      const q = Number(p.queueId ?? p.QueueId ?? p.qid);
+      const q = (p.queueId ?? p.QueueId ?? p.qid);
       const expRaw = p.exp ?? p.Exp;
       const expSec =
         typeof expRaw === "string" ? parseInt(expRaw, 10) : Number(expRaw);
@@ -34,7 +34,7 @@ export function useOwnerGuard(queueId: number, mode: string) {
       const now = Math.floor(Date.now() / 1000);
 
       const roleOK = role === "owner";
-      const queueOK = Number.isFinite(q) && q === Number(queueId);
+      const queueOK = q && String(q) === String(queueId);
       const expOK = Number.isFinite(expSec) && expSec > now;
 
       if (!(roleOK && queueOK && expOK)) {

@@ -47,10 +47,8 @@ public class QueueServicesTests
         using var db = DbContextFactory.CreateInMemory();
         var sut = new QueueServices(db);
 
-        var dto = await sut.GetQueueById(999999);
+        var dto = await sut.GetQueueById("non_existent_id");
 
         dto.Should().BeNull();
     }
 }
-
-

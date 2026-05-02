@@ -3,7 +3,7 @@
     public class QueueCustomer
     {
         public int Id { get; set; } = default!;
-        public int QueueId { get; set; } = default!;
+        public string QueueId { get; set; } = default!;
         public QueueItem? Queue { get; set; }
         public string Name { get; set; } = "";
         public string Phone { get; set; } = "";
@@ -15,6 +15,7 @@
         public bool IsEmailVerified { get; set; } = false;
         public DateTime? EmailVerificationTokenExpiry { get; set; }
         public string? Email { get; set; }
+        public bool IsNextNotificationSent { get; set; } = false;
 
     }
 }

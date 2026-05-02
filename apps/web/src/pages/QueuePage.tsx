@@ -27,17 +27,18 @@ import { handleJoin, handleManage } from "@/features/queue/handlers";
 import { CancelData, handleCancel } from "@/features/queue/handlers/cancel";
 import { GetData, handleGetCustomers } from "@/features/queue/handlers/getCustomers";
 import { UpdateData, handleupdateStatus } from "@/features/queue/handlers/update";
-import { handleGetOwnerCustomers, GetOwnerCustomersData } from "@/features/queue/handlers/getOwnerCustomers";
-import { apiVerifyEmail, apiResendVerificationEmail } from "@/features/queue/services/api";
+import { GetOwnerCustomersData, handleGetOwnerCustomers } from "@/features/queue/handlers/getOwnerCustomers";
+import { apiVerifyEmail, apiResendVerificationEmail, apiUpdateOwnerMessage, apiUpdateAvgServiceTime, apiSnoozeRegistration, apiUpdateClosingTime } from "@/features/queue/services/api";
 import { handleServeCustomer } from "@/features/queue/handlers/serveCustomer";
 import { handleUpdateMaxCustomers, UpdateMaxCustomersData } from "@/features/queue/handlers/updateMaxCustomers";
 import { handleUpdateQueueName, UpdateQueueNameData } from "@/features/queue/handlers/updateQueueName";
 import { useOwnerGuard } from "@/hooks/useOwnerGuard";
 import { useOwnerSession } from "@/hooks/useOwnerSession";
+import { useQueueSignalR } from "@/hooks/useQueueSignalR";
 
 type User = {
   Id: number;
-  QueueId: number;
+  QueueId: string;
   Name: string;
   PhoneNumber: string;
   State: Status;
@@ -46,24 +47,56 @@ type User = {
 
 type PageMode = "public" | "owner";
 
+function UserRow({
+  user,
+  onChange,
+}: {
+  user: User;
+  onChange: (nextStatus: string, CustomerId: number) => void | Promise<void>;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.2 }}
+    >
+      <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+        <div className="waiter-row">
+          <div className="waiter-meta">
+            <span className="waiter-name">{user.Name}</span>
+            <span className="waiter-phone">{user.PhoneNumber}</span>
+          </div>
+          <StatusEditor value={user.State} onSave={(nextStatus) => { onChange(nextStatus, user.Id) }} inline />
+        </div>
+      </Stack>
+    </motion.div>
+  );
+}
+
 export default function QueuePage({ mode }: { mode: PageMode }) {
   const { t } = useTranslation();
   const API = import.meta.env.VITE_API_BASE_URL;
   const params = useParams<{ id?: string }>();
-  const currentQueueId: number = Number(params.id ?? 0);
+  const currentQueueId: string = params.id ?? "";
   const navigate = useNavigate();
 
   const [users, setUsers] = useState<User[]>([]);
   const [queueName, setQueueName] = useState<string>("");
+  const [ownerMessage, setOwnerMessage] = useState<string | null>(null);
   const [notFound, setNotFound] = useState<boolean>(false);
-  const { signedIn } = useOwnerSession(currentQueueId!, `${API}/api/owners/check-owner/${Number(currentQueueId)}`);
+  const { signedIn } = useOwnerSession(currentQueueId!, `${API}/api/owners/check-owner/${currentQueueId}`);
   const [currentMaxCustomers, setCurrentMaxCustomers] = useState<number | null>(null);
   const [draftMax, setDraftMax] = useState<number>((currentMaxCustomers ?? 10));
+  const [avgServiceTime, setAvgServiceTime] = useState<number>(15);
+  const [closingTime, setClosingTime] = useState("");
   const [anyChange, setAnyChange] = useState(false);
   const [saveLoading, setSaveLoading] = useState<boolean>(false);
   const queueNameRef = useRef<HTMLInputElement>(null);
+  const messageRef = useRef<HTMLInputElement>(null);
   const [editingQueueName, setEditingQueueName] = useState<string | null>(null);
   const [isNameEditing, setIsNameEditing] = useState<boolean>(false);
+  const [isMessageEditing, setIsMessageEditing] = useState<boolean>(false);
 
   useOwnerGuard(currentQueueId, mode);
 
@@ -73,6 +106,68 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
     waiting: 1,
     served: 3
   };
+
+  const sortUsers = (list: User[]) =>
+    [...list].sort(
+      (a, b) =>
+        RANK[a.State as Status] - RANK[b.State as Status] ||
+        new Date(a.CreatedAt ?? 0).getTime() - new Date(b.CreatedAt ?? 0).getTime()
+    );
+
+  useQueueSignalR({
+    queueId: currentQueueId,
+    onCustomerJoined: (customer) => {
+      const cId = customer.Id ?? customer.id;
+      if (cId === undefined) return;
+      const newUser: User = { 
+        ...customer, 
+        Id: cId, 
+        Name: customer.Name ?? customer.name, 
+        PhoneNumber: customer.PhoneNumber ?? customer.phone ?? customer.phoneNumber, 
+        State: customer.State ?? customer.state 
+      };
+      setUsers((prev) => {
+        if (prev.some((u) => u.Id === cId)) return prev;
+        return sortUsers([...prev, newUser]);
+      });
+    },
+    onCustomerVerified: (customer) => {
+      const cId = customer.Id ?? customer.id;
+      if (cId === undefined) return;
+      const newUser: User = { 
+        ...customer, 
+        Id: cId, 
+        Name: customer.Name ?? customer.name, 
+        PhoneNumber: customer.PhoneNumber ?? customer.phone ?? customer.phoneNumber, 
+        State: customer.State ?? customer.state 
+      };
+      setUsers((prev) => {
+        const updated = prev.some((u) => u.Id === cId)
+          ? prev.map((u) => (u.Id === cId ? newUser : u))
+          : [...prev, newUser];
+        return sortUsers(updated);
+      });
+    },
+    onCustomerLeft: (customerId) => {
+      setUsers((prev) => prev.filter((u) => u.Id !== customerId));
+    },
+    onCustomerStatusChanged: (resDto) => {
+      const rId = resDto.Id ?? resDto.id;
+      const rState = resDto.State ?? resDto.state;
+      setUsers((prev) => {
+        const updated = prev.map((u) =>
+          u.Id === rId ? { ...u, State: rState } : u
+        );
+        return sortUsers(updated);
+      });
+    },
+    onCustomerServed: (customerId) => {
+      setUsers((prev) => prev.filter((u) => u.Id !== customerId));
+    },
+    onMessageUpdated: (message) => {
+      setOwnerMessage(message);
+    }
+  });
 
   useEffect(() => {
     setDraftMax(currentMaxCustomers ?? 10);
@@ -100,6 +195,8 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
         const payload: GetData = { QueueId: currentQueueId };
         const data = await handleGetCustomers(payload);
         setQueueName(data.Name);
+        setOwnerMessage(data.OwnerMessage || null);
+        setAvgServiceTime(data.AvgServiceTime ?? 15);
         setUsers(data.Waiters);
         toast.dismiss(LOADING_ID);
       } catch (err) {
@@ -134,6 +231,8 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
         const data = await handleGetOwnerCustomers(payload);
         toast.dismiss(LOADING_ID);
         setQueueName(data.Name);
+        setOwnerMessage(data.OwnerMessage || null);
+        setAvgServiceTime(data.AvgServiceTime ?? 15);
         setUsers(data.Waiters);
         setCurrentMaxCustomers(data.MaxCustomers ?? null);
         setEditingQueueName(data.Name);
@@ -156,7 +255,32 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
     }
   }, [isNameEditing]);
 
+  useEffect(() => {
+    if (isMessageEditing) {
+      messageRef.current?.focus();
+      if (!ownerMessage) {
+        messageRef.current?.select();
+      }
+    }
+  }, [isMessageEditing]);
+
   const owner = mode === "owner";
+
+  const updateOwnerMessage = async () => {
+    if (!owner) return;
+    const msg = messageRef.current?.value || null;
+    const token = localStorage.getItem(`queue${currentQueueId} token`);
+    if (!token) return;
+
+    try {
+      await apiUpdateOwnerMessage({ QueueId: currentQueueId, Message: msg, token });
+      setOwnerMessage(msg);
+      setIsMessageEditing(false);
+      toast.success(t('common.success'), { className: CLASS });
+    } catch (err) {
+      toast.error(getErrorMessage(err), { className: CLASS });
+    }
+  };
 
   const [open, setOpen] = useState(false);
   const [popupMode, setPopupMode] = useState<Mode>("join");
@@ -286,12 +410,20 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
     }
   };
 
-  const sortUsers = (list: User[]) =>
-    [...list].sort(
-      (a, b) =>
-        RANK[a.State as Status] - RANK[b.State as Status] ||
-        new Date(a.CreatedAt ?? 0).getTime() - new Date(b.CreatedAt ?? 0).getTime()
-    );
+  const snoozeRegister = async (customerID: number) => {
+    const toastId = toast.loading("Snoozing spot...", { className: CLASS, duration: Infinity });
+    try {
+      const token = localStorage.getItem(`queueCancelToken${customerID}`);
+      if (token) {
+        await apiSnoozeRegistration({ queueId: currentQueueId!, customerId: customerID, token });
+        toast.success("Spot pushed back!", { id: toastId, className: CLASS, duration: 2500 });
+      } else {
+        toast.dismiss(toastId);
+      }
+    } catch {
+      toast.error("Failed to snooze registration.", { id: toastId, className: CLASS, duration: 2500 });
+    }
+  };
 
   const updateStatus = async (nextStatus: string, CustomerId: number) => {
     const id = toast.loading(t('queue.updating'), { className: CLASS, duration: Infinity });
@@ -320,40 +452,18 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
           setUsers(prev => prev.filter(u => u.Id !== CustomerId));
           break;
         }
+        case "waiting":
+        case "pending_verification": {
+          throw new Error("Cannot rollback a customer to a previous waiting state.");
+        }
         default:
+          toast.dismiss(id);
           break;
       }
     } catch (err: unknown) {
       toast.error(getErrorMessage(err), { className: CLASS, duration: 5000, id });
     }
   };
-
-  function UserRow({
-    user,
-    onChange,
-  }: {
-    user: User;
-    onChange: (nextStatus: string, CustomerId: number) => void | Promise<void>;
-  }) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        transition={{ duration: 0.2 }}
-      >
-        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
-          <div className="waiter-row">
-            <div className="waiter-meta">
-              <span className="waiter-name">{user.Name}</span>
-              <span className="waiter-phone">{user.PhoneNumber}</span>
-            </div>
-            <StatusEditor value={user.State} onSave={(nextStatus) => { onChange(nextStatus, user.Id) }} inline />
-          </div>
-        </Stack>
-      </motion.div>
-    );
-  }
 
   const onMaxChange: React.ChangeEventHandler<HTMLSelectElement> = (e) => {
     const val = Number(e.target.value);
@@ -365,23 +475,30 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
     setEditingQueueName(queueNameRef.current?.value ?? "");
   };
 
-  const updateMaxCustomers = async () => {
-    const id = toast.loading(t('queue.updating'), { className: CLASS, duration: Infinity });
+  const updateDashboardSettings = async () => {
+    const LOADING_ID = toast.loading(t('queue.updating'), { className: CLASS, duration: Infinity });
+    const token = localStorage.getItem(`queue${currentQueueId} token`) || "";
     try {
-      const payload: UpdateMaxCustomersData = {
-        QueueId: currentQueueId,
-        Max: draftMax,
-        token: localStorage.getItem(`queue${currentQueueId} token`) || ""
-      };
       setSaveLoading(true);
-      await handleUpdateMaxCustomers(payload);
-      toast.success(t('common.success'), { id, className: CLASS, duration: 2500 });
-      setCurrentMaxCustomers(currentMaxCustomers);
+      
+      // 1) Capacity
+      if (draftMax !== effectiveCurrent) {
+        await handleUpdateMaxCustomers({ QueueId: currentQueueId, Max: draftMax, token });
+        setCurrentMaxCustomers(draftMax);
+      }
+
+      // 2) Average Service Time
+      await apiUpdateAvgServiceTime({ QueueId: currentQueueId, Minutes: avgServiceTime, token });
+
+      // 3) Closing Time
+      await apiUpdateClosingTime({ QueueId: currentQueueId, timeString: closingTime, token });
+
       setAnyChange(false);
-      setSaveLoading(false);
+      toast.success(t('common.success'), { id: LOADING_ID, className: CLASS, duration: 2500 });
     } catch (err: unknown) {
+      toast.error(getErrorMessage(err), { id: LOADING_ID, className: CLASS, duration: 5000 });
+    } finally {
       setSaveLoading(false);
-      toast.error(getErrorMessage(err), { className: CLASS, duration: 5000, id });
     }
   };
 
@@ -498,8 +615,66 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
                   )}
                 </div>
 
+                {/* Owner Message Bar */}
+                {(ownerMessage || owner) && (
+                  <div className="flex flex-col items-center justify-center mb-6">
+                    {!isMessageEditing ? (
+                      <div 
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl w-full max-w-md cursor-pointer transition-colors relative`}
+                        style={{
+                           background: ownerMessage ? 'rgba(234, 179, 8, 0.15)' : 'var(--dm-surface)',
+                           border: `1px solid ${ownerMessage ? 'rgba(234, 179, 8, 0.4)' : 'var(--dm-surface-border)'}`,
+                           minHeight: '52px'
+                        }}
+                        onClick={() => {
+                          if (owner) setIsMessageEditing(true);
+                        }}
+                      >
+                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill={ownerMessage ? "#eab308" : "var(--dm-text-muted)"} viewBox="0 0 256 256"><path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM216,192H40V64H216V192Zm-32-80a8,8,0,0,1-8,8H80a8,8,0,0,1,0-16h96A8,8,0,0,1,184,112Zm0,32a8,8,0,0,1-8,8H80a8,8,0,0,1,0-16h96A8,8,0,0,1,184,144Z"></path></svg>
+                         <div className="flex-1 text-sm text-center">
+                            {ownerMessage ? (
+                               <span style={{ color: 'var(--dm-text-primary)' }}>{ownerMessage}</span>
+                            ) : (
+                               <span style={{ color: 'var(--dm-text-muted)', fontStyle: 'italic' }}>
+                                  Add a notice for your customers...
+                               </span>
+                            )}
+                         </div>
+                         {owner && (
+                            <ModeEditIcon fontSize="small" style={{ color: 'var(--dm-text-muted)' }} />
+                         )}
+                      </div>
+                    ) : (
+                      <div className="flex w-full items-center gap-2 max-w-md">
+                        <input
+                          ref={messageRef}
+                          defaultValue={ownerMessage || ""}
+                          placeholder="e.g., On break for 15 mins"
+                          className="flex-1 rounded-xl px-4 py-2 border bg-transparent outline-none transition-all"
+                          style={{
+                            color: 'var(--dm-text-primary)',
+                            borderColor: 'var(--dm-accent)'
+                          }}
+                        />
+                        <motion.button
+                          onClick={updateOwnerMessage}
+                          className="btn-primary px-3 py-2 text-sm rounded-lg"
+                        >
+                          {t('common.save')}
+                        </motion.button>
+                        <motion.button
+                          onClick={() => setIsMessageEditing(false)}
+                          className="btn-outline px-3 py-2 text-sm rounded-lg"
+                        >
+                          {t('common.cancel')}
+                        </motion.button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* QR Card */}
-                {currentQueueId > 0 && <QueueQrCard queueId={currentQueueId} />}
+                {currentQueueId !== "" && <QueueQrCard queueId={currentQueueId} />}
 
                 {/* Action Buttons */}
                 <div className="flex flex-wrap items-center justify-center gap-3">
@@ -573,9 +748,64 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
                           </svg>
                         </div>
 
+                        {/* Avg Service Time config */}
+                        <div className="relative">
+                          <select
+                            value={String(avgServiceTime)}
+                            onChange={(e) => {
+                              setAvgServiceTime(Number(e.target.value));
+                              setAnyChange(true);
+                            }}
+                            className="appearance-none rounded-lg px-3 pr-10 py-2 text-sm transition-colors cursor-pointer"
+                            style={{
+                              background: 'var(--dm-surface)',
+                              color: 'var(--dm-text-primary)',
+                              border: '1px solid var(--dm-surface-border)',
+                            }}
+                          >
+                            <option disabled>Avg Service Time</option>
+                            <option value="5">⏱ 5 min/person</option>
+                            <option value="10">⏱ 10 min/person</option>
+                            <option value="15">⏱ 15 min/person</option>
+                            <option value="20">⏱ 20 min/person</option>
+                            <option value="30">⏱ 30 min/person</option>
+                          </select>
+                          <svg
+                            className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4"
+                            style={{ color: 'var(--dm-text-muted)' }}
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            aria-hidden="true"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06L10.53 12.6a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </div>
+
+                        <div className="flex-1 relative">
+                          <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--dm-text-muted)' }}>
+                            Closing / Reset Time
+                          </label>
+                          <input
+                            type="time"
+                            value={closingTime}
+                            onChange={(e) => {
+                              setClosingTime(e.target.value);
+                              setAnyChange(true);
+                            }}
+                            className="w-[125px] bg-transparent text-sm font-medium border border-white/10 rounded-lg px-3 py-2 outline-none appearance-none"
+                            style={{ 
+                              color: 'var(--dm-text-primary)'
+                            }}
+                          />
+                        </div>
+
                         {anyChange && (
                           <motion.button
-                            onClick={updateMaxCustomers}
+                            onClick={updateDashboardSettings}
                             className="btn-primary px-4 py-2 text-sm rounded-lg"
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
@@ -628,7 +858,17 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
                             name={u.Name}
                             phone={owner ? u.PhoneNumber : ""}
                             status={u.State}
+                            estimatedWait={
+                              u.State === "waiting"
+                                ? (() => {
+                                    const waitingOnly = users.filter(x => x.State === "waiting");
+                                    const pos = waitingOnly.findIndex(x => x.Id === u.Id);
+                                    return pos >= 0 ? (pos + 1) * avgServiceTime : null;
+                                  })()
+                                : null
+                            }
                             onCancel={(id) => cancelRegister(id)}
+                            onSnooze={(id) => snoozeRegister(id)}
                           />
                         </motion.div>
                       ))

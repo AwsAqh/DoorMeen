@@ -1,0 +1,82 @@
+﻿
+[xUnit.net 00:00:00.27]     Api.Te
+sts.Integration.QueuesApiTests.Get
+_QueueById_Returns_200_With_Dto 
+[FAIL]
+[xUnit.net 00:00:00.27]       
+System.InvalidOperationException 
+: Missing Jwt:Issuer (ENV 
+Jwt__Issuer).
+[xUnit.net 00:00:00.27]       
+Stack Trace:
+[xUnit.net 00:00:00.27]         
+--- End of stack trace from 
+previous location ---
+[xUnit.net 00:00:00.27]     Api.Te
+sts.Integration.QueuesApiTests.Pos
+t_CreateQueue_Returns_Created_With
+_Id [FAIL]
+[xUnit.net 00:00:00.27]       
+System.InvalidOperationException 
+: Missing Jwt:Issuer (ENV 
+Jwt__Issuer).
+[xUnit.net 00:00:00.27]       
+Stack Trace:
+[xUnit.net 00:00:00.27]         
+--- End of stack trace from 
+previous location ---
+     The component "Fluent 
+Assertions" is governed by the 
+rules defined in the Xceed 
+License Agreement and
+     the Xceed Fluent Assertions 
+Community License. You may use 
+Fluent Assertions free of charge 
+for
+     non-commercial use only. An 
+active subscription is required 
+to use Fluent Assertions for 
+commercial use.
+     Fluent Assertions users 
+under both commercial and 
+community licenses. Help us
+     keep Fluent Assertions at 
+the forefront of unit testing.
+     For more information, visit h
+ttps://xceed.com/products/unit-tes
+ting/fluent-assertions/
+  Failed Api.Tests.Integration.Que
+uesApiTests.Get_QueueById_Returns_
+200_With_Dto [1 ms]
+  Error Message:
+   
+System.InvalidOperationException 
+: Missing Jwt:Issuer (ENV 
+Jwt__Issuer).
+  Stack Trace:
+--- End of stack trace from 
+previous location ---
+  Failed Api.Tests.Integration.Que
+uesApiTests.Post_CreateQueue_Retur
+ns_Created_With_Id [1 ms]
+  Error Message:
+   
+System.InvalidOperationException 
+: Missing Jwt:Issuer (ENV 
+Jwt__Issuer).
+  Stack Trace:
+--- End of stack trace from 
+previous location ---
+Test Run Failed.
+     Failed: 2
+         MSB4181: The 
+"VSTestTask" task returned false 
+but did not log an error.
+     1>Done Building Project "C:\U
+sers\awsaq\Desktop\DoorMeen\apps\a
+pi\Api.Tests\Api.Tests.csproj" 
+(VSTest target(s)) -- FAILED.
+Build FAILED.
+    0 Error(s)
+
+

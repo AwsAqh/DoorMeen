@@ -34,10 +34,8 @@ public sealed class SameQueueHandler : AuthorizationHandler<SameQueueRequirement
             string.IsNullOrWhiteSpace(routeIdStr))
             return Task.CompletedTask;
 
-        // Prefer numeric comparison if your IDs are ints
-        var sameId = int.TryParse(claimQueueId, out var claimId) &&
-                     int.TryParse(routeIdStr, out var routeId) &&
-                     claimId == routeId;
+        // Compare string IDs since we use ULID
+        var sameId = string.Equals(claimQueueId, routeIdStr, StringComparison.Ordinal);
 
         var isOwner = string.Equals(role, "owner", StringComparison.OrdinalIgnoreCase);
 

@@ -2,7 +2,7 @@
 {
     public class UpdateCustomerStateDTO
     {
-        public int QueueId { get; set; }
+        public string QueueId { get; set; }
         public int CustomerId { get; set; }
     }
 }

@@ -66,4 +66,55 @@ If you didn't request this, ignore this email.";
         return false;
     }
     }
+
+    public async Task<bool> SendYourTurnNotification(string email, string queueName)
+    {
+        if (string.IsNullOrWhiteSpace(email)) return false;
+
+        var host = _config["SMTP_HOST"];
+        var portStr = _config["SMTP_PORT"];
+        var user = _config["SMTP_USER"];
+        var pass = _config["SMTP_PASS"];
+        var from = _config["SMTP_FROM"] ?? user;
+
+        if (string.IsNullOrWhiteSpace(host) ||
+            string.IsNullOrWhiteSpace(portStr) ||
+            string.IsNullOrWhiteSpace(user) ||
+            string.IsNullOrWhiteSpace(pass) ||
+            string.IsNullOrWhiteSpace(from))
+            return false;
+
+        if (!int.TryParse(portStr, out var port)) return false;
+
+        var subject = $"DoorMeen - You're Next at {queueName}!";
+        var bodyText = $@"Heads up!
+
+You are now at the front of the line for {queueName}. 
+Please head inside or get ready for your turn. 
+
+Thanks for using DoorMeen!";
+
+        using var message = new MailMessage();
+        message.From = new MailAddress(from);
+        message.To.Add(email);
+        message.Subject = subject;
+        message.Body = bodyText;
+        message.IsBodyHtml = false;
+
+        using var client = new SmtpClient(host, port)
+        {
+            EnableSsl = true,
+            Credentials = new NetworkCredential(user, pass)
+        };
+
+        try
+        {
+            await client.SendMailAsync(message);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }

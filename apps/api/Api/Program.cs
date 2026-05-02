@@ -12,6 +12,8 @@ using Api.Application.Interfaces;
 using Api.Application.Services;
 using Microsoft.AspNetCore.Routing;
 using DotNetEnv;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 var builder = WebApplication.CreateBuilder(args);
 
 
@@ -33,14 +35,37 @@ builder.Services.AddCors(options =>
         })
         .AllowAnyHeader()
         .AllowAnyMethod()
+        .AllowCredentials()
     );
 });var config = builder.Configuration;
 
 DotNetEnv.Env.Load();
 builder.Configuration.AddEnvironmentVariables();
 var cs = builder.Configuration.GetConnectionString("Default")??throw new InvalidOperationException("Connection string Default not found");
-    builder.Services.AddDbContext<DoorMeenDbContext>(opt => opt.UseNpgsql(cs));
+    builder.Services.AddDbContext<DoorMeenDbContext>(opt => opt.UseNpgsql(cs).ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 builder.Services.AddScoped<IJoinVerification, EmailJoinVerification>();
+
+builder.Services.AddSignalR();
+builder.Services.AddHostedService<QueueCleanupService>();
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("JoinQueuePolicy", opt =>
+    {
+        opt.PermitLimit = 3;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 0;
+    });
+    
+    options.AddFixedWindowLimiter("ResendEmailPolicy", opt =>
+    {
+        opt.PermitLimit = 2;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 0;
+    });
+});
 
 builder.Services.AddControllers().AddJsonOptions(o =>
 {
@@ -119,14 +144,18 @@ app.UseExceptionHandler(errorApp =>
 });
 app.UseRouting();
 app.UseCors("app");
+app.UseRateLimiter();
+
 app.MapGet("/health", () => Results.Ok(new { ok = true, time = DateTime.UtcNow }));
 
 
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<Api.Hubs.QueueHub>("/hubs/queue");
 
 
 
+using (var scope = app.Services.CreateScope()) { var db = scope.ServiceProvider.GetRequiredService<DoorMeenDbContext>(); db.Database.Migrate(); }
 app.Run();
 public partial class Program { }

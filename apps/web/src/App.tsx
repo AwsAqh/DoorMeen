@@ -6,6 +6,7 @@ import './App.css'
 import QueuePage from './pages/QueuePage'
 import { RequireOwner } from './Guards/RequireOwner'
 import ScanPage from './pages/ScanPage'
+import OwnerDashboard from './pages/OwnerDashboard'
 import { Analytics } from "@vercel/analytics/react"
 
 
@@ -42,6 +43,7 @@ function App() {
           <Route path="/owner/q/:id" element={<QueuePage mode="owner" />} />
         </Route>
         <Route path="/scan" element={<ScanPage />} />
+        <Route path="/owner/dashboard" element={<OwnerDashboard />} />
 
       </Routes>
     </BrowserRouter>

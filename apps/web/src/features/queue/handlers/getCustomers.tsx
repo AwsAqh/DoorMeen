@@ -1,5 +1,5 @@
 import {  apiGetCustomers } from "../services/api";
-export type GetData={QueueId:number}
+export type GetData={QueueId:string}
 
 export async function handleGetCustomers(data:GetData){
 

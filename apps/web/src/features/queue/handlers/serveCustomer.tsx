@@ -1,6 +1,6 @@
 import { apiServeCustomer } from "../services/api"
 
-export type ServeCustomerData={QueueId:number,CustomerId:number,token:string}
+export type ServeCustomerData={QueueId:string,CustomerId:number,token:string}
 
 export async function handleServeCustomer(data:ServeCustomerData){
 

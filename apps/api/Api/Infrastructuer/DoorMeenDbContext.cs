@@ -15,7 +15,7 @@ namespace Api.Infrastructuer
             {
                 e.ToTable("Queues");
                 e.HasKey(x => x.Id);
-                e.Property(x => x.Id).HasMaxLength(26);
+                e.Property(x => x.Id).HasMaxLength(26).ValueGeneratedNever();
                 e.Property(x => x.Name).HasMaxLength(120);
                 e.Property(x => x.HashedPassword).HasMaxLength(200);
                 e.HasIndex(x => x.CreatedAt);

@@ -34,7 +34,7 @@ export async function apiCreateQueue(input: { name: string; password: string }) 
   return body ?? true;
 }
 
-export async function apiJoinQueue(input: { QueueId: number, Name: string; PhoneNumber: string, Email: string }) {
+export async function apiJoinQueue(input: { QueueId: string, Name: string; PhoneNumber: string, Email: string }) {
 
   const res = await fetch(`${API}/api/queuecustomers/joinQueue`, { method: "POST", headers: { "Content-type": "application/json" }, body: JSON.stringify(input) })
   const body = await readBody(res);
@@ -74,7 +74,7 @@ export async function apiResendVerificationEmail(input: { CustomerId: number }) 
   return body ?? true;
 }
 
-export async function apiManageQueue(input: { QueueId: number, password: string }) {
+export async function apiManageQueue(input: { QueueId: string, password: string }) {
   const res = await fetch(`${API}/api/owners/verify-password`, { method: "POST", headers: { "Content-type": "application/json" }, body: JSON.stringify(input) })
   const body = await readBody(res);
 
@@ -91,7 +91,7 @@ export async function apiManageQueue(input: { QueueId: number, password: string 
   return body ?? true;
 }
 
-export async function apiCancelRegister(input: { queueId: number, customerId: number, token: string }) {
+export async function apiCancelRegister(input: { queueId: string, customerId: number, token: string }) {
   const res = await fetch(`${API}/api/queuecustomers/cancel/${input.queueId}/${input.customerId}`, { method: "DELETE", headers: { "Content-type": "application/json", "X-Cancel-Token": input.token } })
 
 
@@ -100,7 +100,7 @@ export async function apiCancelRegister(input: { queueId: number, customerId: nu
 
 }
 
-export async function apiGetCustomers(input: { QueueId: number }) {
+export async function apiGetCustomers(input: { QueueId: string }) {
   const res = await fetch(`${API}/api/queues/q/${input.QueueId}`, { method: "GET", headers: { "Content-type": "application/json" } })
   const body = await readBody(res);
 
@@ -117,7 +117,7 @@ export async function apiGetCustomers(input: { QueueId: number }) {
   return body ?? true;
 }
 
-export async function apiGetOwnerCustomers(input: { QueueId: number, token: string }) {
+export async function apiGetOwnerCustomers(input: { QueueId: string, token: string }) {
   const res = await fetch(`${API}/api/owners/q/${input.QueueId}`, { method: "GET", headers: { "Content-type": "application/json", "Authorization": `Bearer ${input.token}` } })
 
   const data = await res.json()
@@ -128,7 +128,7 @@ export async function apiGetOwnerCustomers(input: { QueueId: number, token: stri
 
 
 
-export async function apiUpdateUserStatus(input: { QueueId: number, CustomerId: number, token: string }) {
+export async function apiUpdateUserStatus(input: { QueueId: string, CustomerId: number, token: string }) {
   const res = await fetch(`${API}/api/owners/set-in-progress/${input.QueueId}/${input.CustomerId}`, { method: "PUT", headers: { "Content-type": "application/json", "Authorization": `Bearer ${input.token}` } })
   const body = await readBody(res);
   if (!res.ok) {
@@ -146,7 +146,7 @@ export async function apiUpdateUserStatus(input: { QueueId: number, CustomerId: 
 
 
 
-export async function apiServeCustomer(input: { QueueId: number, CustomerId: number, token: string }) {
+export async function apiServeCustomer(input: { QueueId: string, CustomerId: number, token: string }) {
   const res = await fetch(`${API}/api/owners/serve/${input.QueueId}/${input.CustomerId}`, { method: "DELETE", headers: { "Content-type": "application/json", "Authorization": `Bearer ${input.token}` } })
   const body = await readBody(res);
 
@@ -161,10 +161,29 @@ export async function apiServeCustomer(input: { QueueId: number, CustomerId: num
 
   // success: return parsed body or true for 204
   return body ?? true;
-
 }
 
-export async function apiUpdateMaxCustomers(input: { QueueId: number, Max: number, token: string }) {
+export async function apiUpdateOwnerMessage(input: { QueueId: string, Message: string | null, token: string }) {
+  const res = await fetch(`${API}/api/owners/update-message/${input.QueueId}`, {
+    method: "PUT",
+    headers: { "Content-type": "application/json", "Authorization": `Bearer ${input.token}` },
+    body: JSON.stringify({ Message: input.Message })
+  });
+
+  const body = await readBody(res);
+
+  if (!res.ok) {
+    const msg =
+      typeof body === "string"
+        ? body
+        : body?.message || body?.detail || body?.title || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+
+  return body ?? true;
+}
+
+export async function apiUpdateMaxCustomers(input: { QueueId: string, Max: number, token: string }) {
   const res = await fetch(`${API}/api/owners/set-max-customers/${input.QueueId}/${input.Max}`, { method: "PUT", headers: { "Content-type": "application/json", "Authorization": `Bearer ${input.token}` } })
   const body = await readBody(res);
   if (!res.ok) {
@@ -181,7 +200,7 @@ export async function apiUpdateMaxCustomers(input: { QueueId: number, Max: numbe
 }
 
 
-export async function apiUpdateQueueName(input: { QueueId: number, name: string, token: string }) {
+export async function apiUpdateQueueName(input: { QueueId: string, name: string, token: string }) {
   const res = await fetch(`${API}/api/owners/update-name/${input.QueueId}`, { method: "PUT", headers: { "Content-type": "application/json", "Authorization": `Bearer ${input.token}` }, body: JSON.stringify(input.name) })
   const body = await readBody(res);
   if (!res.ok) {
@@ -197,3 +216,52 @@ export async function apiUpdateQueueName(input: { QueueId: number, name: string,
   return body ?? true;
 }
 
+
+export async function apiUpdateAvgServiceTime(input: { QueueId: string, Minutes: number, token: string }) {
+  const res = await fetch(`${API}/api/owners/update-avg-time/${input.QueueId}/${input.Minutes}`, {
+    method: "PUT",
+    headers: { "Content-type": "application/json", "Authorization": `Bearer ${input.token}` },
+  });
+
+  const body = await readBody(res);
+  if (!res.ok) {
+    const msg =
+      typeof body === "string"
+        ? body
+        : body?.message || body?.detail || body?.title || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+
+  return body ?? true;
+}
+
+export async function apiSnoozeRegistration(input: { queueId: string, customerId: number, token: string }) {
+  const res = await fetch(`${API}/api/queueCustomers/snooze/${input.queueId}/${input.customerId}`, {
+    method: "PUT",
+    headers: { "X-Cancel-Token": input.token }
+  });
+
+  const body = await readBody(res);
+  if (!res.ok) {
+    const msg = typeof body === "string" ? body : body?.message || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+
+  return body ?? true;
+}
+
+export async function apiUpdateClosingTime(input: { QueueId: string, timeString: string, token: string }) {
+  const res = await fetch(`${API}/api/owners/update-closing-time/${input.QueueId}`, {
+    method: "PUT",
+    headers: { "Content-type": "application/json", "Authorization": `Bearer ${input.token}` },
+    body: JSON.stringify(input.timeString)
+  });
+
+  const body = await readBody(res);
+  if (!res.ok) {
+    const msg = typeof body === "string" ? body : body?.message || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+
+  return body ?? true;
+}

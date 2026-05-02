@@ -2,7 +2,7 @@
 {
     public class ChangePasswordDTO
     {
-        public int QueueId { get; set; }
+        public string QueueId { get; set; }
         public string Password { get; set; }    
     }
 }

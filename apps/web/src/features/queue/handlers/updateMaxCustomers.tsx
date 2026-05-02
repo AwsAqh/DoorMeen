@@ -1,7 +1,7 @@
 import { apiUpdateMaxCustomers } from "../services/api";
 
 
-export type UpdateMaxCustomersData={QueueId:number,Max:number,token:string}
+export type UpdateMaxCustomersData={QueueId:string,Max:number,token:string}
 
 export async function handleUpdateMaxCustomers(data:UpdateMaxCustomersData){
 

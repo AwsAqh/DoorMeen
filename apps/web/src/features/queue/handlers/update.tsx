@@ -1,6 +1,6 @@
 import { apiUpdateUserStatus } from "../services/api";
 
-export type UpdateData={QueueId:number,CustomerId:number,token:string}
+export type UpdateData={QueueId:string,CustomerId:number,token:string}
 
 export async function handleupdateStatus(data:UpdateData){
     console.log(data)

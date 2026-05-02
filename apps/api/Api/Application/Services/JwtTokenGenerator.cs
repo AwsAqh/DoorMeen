@@ -13,7 +13,7 @@ namespace Api.Application.Services
         public JwtTokenGenerator(IConfiguration cfg) => _cfg = cfg;
 
 
-        public string GenerateToken(int queueId)
+        public string GenerateToken(string queueId)
         {
             var jwt = _cfg.GetSection("Jwt");
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]!));
@@ -23,7 +23,7 @@ namespace Api.Application.Services
             {
                 new Claim(JwtRegisteredClaimNames.Sub, "owner"),
                 new Claim("role", "owner"),
-                new Claim("queueId", queueId.ToString())
+                new Claim("queueId", queueId)
             };
 
             var token = new JwtSecurityToken(

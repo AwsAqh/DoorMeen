@@ -7,7 +7,7 @@ public static class FakeData
     public static QueueItem NewQueue(string name = "TestQueue") => new QueueItem
     {
         Name = name,
-        HashedPassword = null,
+        HashedPassword = null!,
         CreatedAt = DateTime.UtcNow
     };
 }

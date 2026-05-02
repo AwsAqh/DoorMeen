@@ -1,6 +1,6 @@
 
 import { apiCancelRegister } from "../services/api";
-export type CancelData={queueId:number ,customerId:number,token:string }
+export type CancelData={queueId:string ,customerId:number,token:string }
 
 export async function handleCancel(data:CancelData){
 

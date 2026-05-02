@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import "../customstyle.css"
 import HomeFilledIcon from '@mui/icons-material/HomeFilled';
 import QrCode2Icon from '@mui/icons-material/QrCode2';
+import DashboardIcon from '@mui/icons-material/Dashboard';
 import LanguageSwitcher from './LanguageSwitcher';
 import ThemeToggle from './ThemeToggle';
 
@@ -55,6 +56,19 @@ const Header = () => {
             aria-label={t('nav.scan')}
           >
             <QrCode2Icon fontSize="small" />
+          </button>
+
+          <button
+            onClick={() => navigate("/owner/dashboard")}
+            className="flex items-center justify-center w-10 h-10 rounded-full transition-colors"
+            style={{
+              background: 'var(--dm-surface)',
+              color: 'var(--dm-text-primary)',
+            }}
+            aria-label="Owner Dashboard"
+            title="Owner Dashboard"
+          >
+            <DashboardIcon fontSize="small" />
           </button>
 
           <ThemeToggle />

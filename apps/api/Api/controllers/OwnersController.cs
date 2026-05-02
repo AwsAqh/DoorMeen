@@ -8,8 +8,6 @@ using Api.Infrastructuer.DTO;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
@@ -35,7 +33,7 @@ namespace Api.Controllers
 
 
        
-        public record VerifyPasswordDto(int QueueId, string Password);
+        public record VerifyPasswordDto(string QueueId, string Password);
 
 
         [HttpPost("verify-password")]
@@ -48,8 +46,8 @@ namespace Api.Controllers
 
 
         [Authorize(Policy = "OwnerOfQueue")]
-        [HttpGet("check-owner/{queueId:int}")]
-        public async Task<ActionResult> CheckOwnerness(int queueId) {
+        [HttpGet("check-owner/{queueId}")]
+        public async Task<ActionResult> CheckOwnerness(string queueId) {
 
             return Ok();
 
@@ -57,8 +55,8 @@ namespace Api.Controllers
 
 
         [Authorize(Policy = "OwnerOfQueue")]
-        [HttpGet("q/{queueId:int}")]
-        public async Task<ActionResult> GetQueueById(int queueId )
+        [HttpGet("q/{queueId}")]
+        public async Task<ActionResult> GetQueueById(string queueId )
         {
             
            var queue=await _service.GetQueueById(queueId);
@@ -68,8 +66,8 @@ namespace Api.Controllers
 
 
         [Authorize(Policy = "OwnerOfQueue")]
-        [HttpPut("set-in-progress/{queueId:int}/{customerId:int}")]
-        public async Task<ActionResult> UpdateCustomerState(int queueId,int customerId)
+        [HttpPut("set-in-progress/{queueId}/{customerId:int}")]
+        public async Task<ActionResult> UpdateCustomerState(string queueId,int customerId)
         {
             await _service.UpdateCustomerState(queueId, customerId);
             return NoContent();
@@ -77,8 +75,8 @@ namespace Api.Controllers
 
 
         [Authorize(Policy = "OwnerOfQueue")]
-        [HttpDelete("serve/{queueId:int}/{customerId:int}")]
-        public async Task<ActionResult> ServeCustomer(int queueId, int customerId)
+        [HttpDelete("serve/{queueId}/{customerId:int}")]
+        public async Task<ActionResult> ServeCustomer(string queueId, int customerId)
         {
            await _service.ServeCustomer(queueId, customerId);
             return NoContent();
@@ -94,8 +92,8 @@ namespace Api.Controllers
         }
 
         [Authorize(Policy="OwnerOfQueue")]
-        [HttpPut("set-max-customers/{queueId:int}/{max:int}")]
-        public async Task<ActionResult> UpdateMaxCustomersPerQueue(int queueId,int max)
+        [HttpPut("set-max-customers/{queueId}/{max:int}")]
+        public async Task<ActionResult> UpdateMaxCustomersPerQueue(string queueId,int max)
         {
             await _service.UpdateMaxCustomers(queueId, max);
             return NoContent();
@@ -104,11 +102,29 @@ namespace Api.Controllers
         }
 
         [Authorize (Policy ="OwnerOfQueue")]
-        [HttpPut("update-name/{queueId:int}")]
-        public async Task<ActionResult> UpdateQueueName(int queueId,[FromBody] string name ) {
+        [HttpPut("update-name/{queueId}")]
+        public async Task<ActionResult> UpdateQueueName(string queueId,[FromBody] string name ) {
             await _service.UpdateQueueName(queueId, name);
             return NoContent(); 
 
+        }
+
+        public record UpdateMessageDto(string? Message);
+
+        [Authorize(Policy = "OwnerOfQueue")]
+        [HttpPut("update-message/{queueId}")]
+        public async Task<ActionResult> UpdateOwnerMessage(string queueId, [FromBody] UpdateMessageDto req)
+        {
+            await _service.UpdateOwnerMessage(queueId, req.Message);
+            return NoContent();
+        }
+
+        [Authorize(Policy = "OwnerOfQueue")]
+        [HttpPut("update-avg-time/{queueId}/{minutes:int}")]
+        public async Task<ActionResult> UpdateAvgServiceTime(string queueId, int minutes)
+        {
+            await _service.UpdateAvgServiceTime(queueId, minutes);
+            return NoContent();
         }
     }
 }

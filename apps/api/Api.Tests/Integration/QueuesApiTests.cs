@@ -24,10 +24,10 @@ public class QueuesApiTests : IClassFixture<CustomWebApplicationFactory>
         var res = await _client.PostAsJsonAsync("/api/queues", req);
         res.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        var body = await res.Content.ReadFromJsonAsync<Dictionary<string, int>>();
+        var body = await res.Content.ReadFromJsonAsync<Dictionary<string, string>>();
         body.Should().NotBeNull();
         body!.Should().ContainKey("id");
-        body!["id"].Should().BeGreaterThan(0);
+        body!["id"].Should().NotBeNullOrWhiteSpace();
     }
 
     [Fact]
@@ -36,7 +36,7 @@ public class QueuesApiTests : IClassFixture<CustomWebApplicationFactory>
         // First create
         var req = new AddQueueDTO { Name = "MyQ2", Password = "1234" };
         var created = await _client.PostAsJsonAsync("/api/queues", req);
-        var body = await created.Content.ReadFromJsonAsync<Dictionary<string, int>>();
+        var body = await created.Content.ReadFromJsonAsync<Dictionary<string, string>>();
         var id = body!["id"];
 
         // Then fetch

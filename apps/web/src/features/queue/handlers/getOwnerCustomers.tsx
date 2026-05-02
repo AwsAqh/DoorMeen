@@ -1,6 +1,6 @@
 import { apiGetOwnerCustomers } from "../services/api";
 
-export type GetOwnerCustomersData={QueueId:number,token:string}
+export type GetOwnerCustomersData={QueueId:string,token:string}
 
 export async function handleGetOwnerCustomers(data:GetOwnerCustomersData){
 

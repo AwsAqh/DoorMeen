@@ -53,6 +53,9 @@ namespace Api.Migrations
                     b.Property<bool>("IsEmailVerified")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsNextNotificationSent")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -63,8 +66,9 @@ namespace Api.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
-                    b.Property<int>("QueueId")
-                        .HasColumnType("integer");
+                    b.Property<string>("QueueId")
+                        .IsRequired()
+                        .HasColumnType("character varying(26)");
 
                     b.Property<string>("State")
                         .IsRequired()
@@ -80,15 +84,18 @@ namespace Api.Migrations
 
             modelBuilder.Entity("QueueItem", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<string>("Id")
                         .HasMaxLength(26)
-                        .HasColumnType("integer");
+                        .HasColumnType("character varying(26)");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                    b.Property<int?>("AvgServiceTime")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<TimeSpan?>("DailyResetTime")
+                        .HasColumnType("interval");
 
                     b.Property<string>("HashedPassword")
                         .IsRequired()
@@ -102,6 +109,9 @@ namespace Api.Migrations
                         .IsRequired()
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
+
+                    b.Property<string>("OwnerMessage")
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 

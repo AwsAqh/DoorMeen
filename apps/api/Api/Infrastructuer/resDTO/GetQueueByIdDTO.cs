@@ -2,11 +2,13 @@
 {
     public record QueueCustomerDTO(int Id, string Name, DateTime CreatedAt, string State);
     public record QueueDetailsResDTO(
-    int Id, string Name,
+    string Id, string Name,
 
     List<QueueCustomerDTO> Waiters,
 
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    string? OwnerMessage,
+    int? AvgServiceTime
 
         );
 }

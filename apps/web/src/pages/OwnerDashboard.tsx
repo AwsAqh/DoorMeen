@@ -9,8 +9,6 @@ import MorphingBlobs from "@/components/background/MorphingBlobs";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import AddIcon from "@mui/icons-material/Add";
 import PeopleIcon from "@mui/icons-material/People";
-import { Status } from "@/components/Helpers/status";
-
 type QueueSummary = {
   id: string;
   name: string;
@@ -47,7 +45,7 @@ export default function OwnerDashboard() {
             verifiedQueues.push({
               id: data.Id,
               name: data.Name,
-              waitersCount: data.Waiters.filter((w: any) => w.State !== "pending_verification").length,
+              waitersCount: data.Waiters.filter((w: { State: string }) => w.State !== "pending_verification").length,
               maxCustomers: data.MaxCustomers,
               createdAt: data.CreatedAt,
             });

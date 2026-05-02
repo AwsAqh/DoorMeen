@@ -3,10 +3,10 @@ import * as signalR from '@microsoft/signalr';
 
 export interface UseQueueSignalRProps {
   queueId: string;
-  onCustomerJoined?: (customer: any) => void;
-  onCustomerVerified?: (customer: any) => void;
+  onCustomerJoined?: (customer: unknown) => void;
+  onCustomerVerified?: (customer: unknown) => void;
   onCustomerLeft?: (customerId: number) => void;
-  onCustomerStatusChanged?: (resDto: any) => void;
+  onCustomerStatusChanged?: (resDto: unknown) => void;
   onCustomerServed?: (customerId: number) => void;
   onMessageUpdated?: (message: string | null) => void;
 }

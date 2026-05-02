@@ -11,7 +11,6 @@ export default function Waiter({
   status,
   estimatedWait,
   onCancel,
-  onChange,
   onSnooze,
 }: {
   id: number;

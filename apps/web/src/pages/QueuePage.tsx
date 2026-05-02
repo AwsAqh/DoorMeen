@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast, Toaster } from "sonner";
 
 import Header from "../components/Header";
@@ -30,7 +30,7 @@ import { UpdateData, handleupdateStatus } from "@/features/queue/handlers/update
 import { GetOwnerCustomersData, handleGetOwnerCustomers } from "@/features/queue/handlers/getOwnerCustomers";
 import { apiVerifyEmail, apiResendVerificationEmail, apiUpdateOwnerMessage, apiUpdateAvgServiceTime, apiSnoozeRegistration, apiUpdateClosingTime } from "@/features/queue/services/api";
 import { handleServeCustomer } from "@/features/queue/handlers/serveCustomer";
-import { handleUpdateMaxCustomers, UpdateMaxCustomersData } from "@/features/queue/handlers/updateMaxCustomers";
+import { handleUpdateMaxCustomers } from "@/features/queue/handlers/updateMaxCustomers";
 import { handleUpdateQueueName, UpdateQueueNameData } from "@/features/queue/handlers/updateQueueName";
 import { useOwnerGuard } from "@/hooks/useOwnerGuard";
 import { useOwnerSession } from "@/hooks/useOwnerSession";
@@ -246,6 +246,7 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
     if (mode === "owner") {
       void getOwnerCustomers();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, currentQueueId]);
 
   useEffect(() => {
@@ -262,6 +263,7 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
         messageRef.current?.select();
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMessageEditing]);
 
   const owner = mode === "owner";
@@ -305,7 +307,7 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
 
     try {
       const payload: JoinData = { QueueId: currentQueueId, Name: a, PhoneNumber: b, Email: c };
-      const { Id, Token } = await handleJoin(payload);
+      const { Id } = await handleJoin(payload);
       toast.success(t('queue.pinSent'), { id, className: CLASS, duration: 2500 });
 
       // Store pending data and switch to verify mode
@@ -365,7 +367,7 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
     try {
       await apiResendVerificationEmail({ CustomerId: pendingJoinData.Id });
       toast.success(t('popupForm.verify.resendSuccess'), { id, className: CLASS });
-    } catch (err) {
+    } catch {
       toast.error(t('popupForm.verify.resendError'), { id, className: CLASS });
     }
   };

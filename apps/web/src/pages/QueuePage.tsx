@@ -367,8 +367,8 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
     try {
       await apiResendVerificationEmail({ CustomerId: pendingJoinData.Id });
       toast.success(t('popupForm.verify.resendSuccess'), { id, className: CLASS });
-    } catch {
-      toast.error(t('popupForm.verify.resendError'), { id, className: CLASS });
+    } catch (err) {
+      toast.error(getErrorMessage(err), { id, className: CLASS, duration: 5000 });
     }
   };
 

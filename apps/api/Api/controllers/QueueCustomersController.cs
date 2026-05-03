@@ -41,9 +41,13 @@ namespace Api.Controllers
         [EnableRateLimiting("ResendEmailPolicy")]
         public async Task<IActionResult> SendVerificationEmail([FromBody] SendVerificationEmailDTO req)
         {
-            var ok=await _service.SendVerificationEmail(req.CustomerId);
-            if(!ok) return BadRequest("Failed to send verification email");
-            return Ok();
+            try {
+                var ok = await _service.SendVerificationEmail(req.CustomerId);
+                if(!ok) return BadRequest("False was returned securely");
+                return Ok();
+            } catch (Exception ex) {
+                return BadRequest(ex.Message);
+            }
         }
  
 

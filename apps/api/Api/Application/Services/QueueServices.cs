@@ -159,17 +159,29 @@ namespace Api.Application.Services
 
         public async Task<bool> SendVerificationEmail(int customerId)
         {
-            var customer = await _db.QueueCustomers.FindAsync(customerId);
-            if (customer is null) return false;
-            if (customer.State != "pending_verification") return false;
-            var rawToken = CreateHashToken.NewCancelTokenDigits(); // reuse your generator
-            var tokenHash = CreateHashToken.Hash(rawToken);
-            customer.EmailVerificationTokenHash = tokenHash;
-            customer.EmailVerificationTokenExpiry = DateTime.UtcNow.AddHours(1);
-            await _db.SaveChangesAsync();
-            var ok=await _joinVerification.Send(customer.Email,rawToken);
-            if(!ok) return false;
-            return true;
+            try
+            {
+                var customer = await _db.QueueCustomers.FindAsync(customerId);
+                if (customer is null) throw new Exception("Customer is null (ID mismatch)");
+                if (customer.State != "pending_verification") throw new Exception($"Customer state is {customer.State}");
+                
+                var rawToken = CreateHashToken.NewCancelTokenDigits();
+                var tokenHash = CreateHashToken.Hash(rawToken);
+                customer.EmailVerificationTokenHash = tokenHash;
+                customer.EmailVerificationTokenExpiry = DateTime.UtcNow.AddHours(1);
+                
+                await _db.SaveChangesAsync();
+                
+                var ok = await _joinVerification.Send(customer.Email, rawToken);
+                if (!ok) throw new Exception("JoinVerification.Send returned false (SMTP failure)");
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[FATAL RESEND] {ex.Message} {ex.StackTrace}");
+                throw;
+            }
         }   
 
         public async Task<VerifyEmailResDTO?> VerifyEmail ( int customerId, string email , int digits=0){

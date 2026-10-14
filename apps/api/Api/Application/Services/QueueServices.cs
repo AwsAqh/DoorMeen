@@ -1,4 +1,4 @@
-﻿using Api.Application.Interfaces;
+using Api.Application.Interfaces;
 using Api.Infrastructuer;
 using Microsoft.AspNetCore.Mvc;
 using Api.Infrastructuer.resDTO;
@@ -50,7 +50,7 @@ namespace Api.Application.Services
             var queue = await _db.Queues.SingleOrDefaultAsync(q => q.Id == queueId);
             if (queue is null) return null;
 
-            var Waiters = await _db.QueueCustomers.AsNoTracking().Where(c => c.QueueId == queueId && c.State !="pending_verification").OrderByDescending(c => c.State=="in_progress").ThenBy(c=>c.Id).Select(c => new QueueCustomerDTO(c.Id, c.Name, c.CreatedAt, c.State)).ToListAsync();
+            var Waiters = await _db.QueueCustomers.AsNoTracking().Where(c => c.QueueId == queueId && c.State !="pending_verification").OrderByDescending(c => c.State=="in_progress").ThenBy(c=>c.CreatedAt).Select(c => new QueueCustomerDTO(c.Id, c.Name, c.CreatedAt, c.State)).ToListAsync();
 
             var res = new QueueDetailsResDTO(
                  Id: queue.Id,
@@ -125,7 +125,7 @@ namespace Api.Application.Services
 
         State = "pending_verification",
         EmailVerificationTokenHash = tokenHash,
-        EmailVerificationTokenExpiry = DateTime.UtcNow.AddHours(1),
+        EmailVerificationTokenExpiry = DateTime.UtcNow.AddMinutes(10),
        
 
         CancelTokenHash = null
@@ -144,7 +144,14 @@ namespace Api.Application.Services
     throw new ValidationException("Failed to send verification email");
     await tx.CommitAsync();
     
-    await _hub.Clients.Group(queueId).SendAsync("CustomerJoined", customer);
+    await _hub.Clients.Group(queueId).SendAsync("CustomerJoined", new
+    {
+        Id = customer.Id,
+        QueueId = customer.QueueId,
+        Name = customer.Name,
+        State = customer.State,
+        CreatedAt = customer.CreatedAt
+    });
 
     // 3) Tell client verification is required
     return new JoinQueueResDTO
@@ -168,7 +175,7 @@ namespace Api.Application.Services
                 var rawToken = CreateHashToken.NewCancelTokenDigits();
                 var tokenHash = CreateHashToken.Hash(rawToken);
                 customer.EmailVerificationTokenHash = tokenHash;
-                customer.EmailVerificationTokenExpiry = DateTime.UtcNow.AddHours(1);
+                customer.EmailVerificationTokenExpiry = DateTime.UtcNow.AddMinutes(10);
                 
                 await _db.SaveChangesAsync();
                 
@@ -184,16 +191,16 @@ namespace Api.Application.Services
             }
         }   
 
-        public async Task<VerifyEmailResDTO?> VerifyEmail ( int customerId, string email , int digits=0){
+        public async Task<VerifyEmailResDTO?> VerifyEmail ( int customerId, string email , string digits){
             if(string.IsNullOrWhiteSpace(email) )
                 throw new ValidationException("Email is required");
-            if(digits==0) throw new ValidationException("Digits are required");
+            if(string.IsNullOrWhiteSpace(digits)) throw new ValidationException("Digits are required");
 
             var customer=await _db.QueueCustomers.FindAsync(customerId);
             if(customer is null) throw new KeyNotFoundException("No such a customer");
             if(customer.Email != email) throw new ValidationException("Email does not match");
             if(customer.EmailVerificationTokenExpiry < DateTime.UtcNow) throw new ValidationException("Verification token expired");
-            if(!CreateHashToken.Verify(digits.ToString(), customer.EmailVerificationTokenHash)) throw new ValidationException("Invalid digits");
+            if(!CreateHashToken.Verify(digits.Trim(), customer.EmailVerificationTokenHash)) throw new ValidationException("Invalid digits");
 
             var rawCancelToken = CreateHashToken.NewCancelTokenDigits();
             customer.CancelTokenHash = CreateHashToken.Hash(rawCancelToken);
@@ -203,7 +210,14 @@ namespace Api.Application.Services
             customer.IsEmailVerified = true;
             await _db.SaveChangesAsync();
             
-            await _hub.Clients.Group(customer.QueueId).SendAsync("CustomerVerified", customer);
+            await _hub.Clients.Group(customer.QueueId).SendAsync("CustomerVerified", new
+            {
+                Id = customer.Id,
+                QueueId = customer.QueueId,
+                Name = customer.Name,
+                State = customer.State,
+                CreatedAt = customer.CreatedAt
+            });
             return new VerifyEmailResDTO { Token = rawCancelToken };
 
         }
@@ -293,7 +307,13 @@ namespace Api.Application.Services
                     await _db.SaveChangesAsync();
                     
                     // Broadcast a generalized event ensuring all clients sync the new ordered status
-                    await _hub.Clients.Group(queueId).SendAsync("CustomerStatusChanged", new OwnerQueueByIdCustomerResDTO(customer.Id, customer.Name, queueId, customer.Phone, customer.State));
+                    await _hub.Clients.Group(queueId).SendAsync("CustomerStatusChanged", new
+                    {
+                        Id = customer.Id,
+                        QueueId = queueId,
+                        Name = customer.Name,
+                        State = customer.State
+                    });
                 }
             }
             catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException)

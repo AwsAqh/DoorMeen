@@ -40,7 +40,7 @@ public class EmailJoinVerification : IJoinVerification
     var bodyText =
 $@"Your DoorMeen verification code is: {token}
 
-This code expires in 60 minutes.
+This code expires in 10 minutes.
 If you didn't request this, ignore this email.";
 
     using var message = new MailMessage();

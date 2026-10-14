@@ -52,7 +52,7 @@ export async function apiJoinQueue(input: { QueueId: string, Name: string; Phone
   return body ?? true;
 }
 
-export async function apiVerifyEmail(input: { CustomerId: number, Email: string, Digits: number }) {
+export async function apiVerifyEmail(input: { CustomerId: number, Email: string, Digits: string }) {
   const res = await fetch(`${API}/api/queuecustomers/verifyEmail`, { method: "POST", headers: { "Content-type": "application/json" }, body: JSON.stringify(input) });
   const body = await readBody(res);
 

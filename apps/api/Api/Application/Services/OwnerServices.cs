@@ -1,4 +1,4 @@
-﻿using Api.Application.Interfaces;
+using Api.Application.Interfaces;
 using Api.Infrastructuer;
 using Api.Infrastructuer.resDTO;
 using Api.Security;
@@ -50,7 +50,7 @@ namespace Api.Application.Services
             var queue = await _db.Queues.SingleOrDefaultAsync(q=>q.Id == id); 
             var waitings= await _db.QueueCustomers.Where(c=>c.QueueId == id)
                 .OrderByDescending(c => c.State == "in_progress")
-                .ThenBy(c=>c.Id)
+                .ThenBy(c=>c.CreatedAt)
                 .Select(c=>new OwnerQueueByIdCustomerResDTO( c.Id, c.Name, c.QueueId, c.Phone, c.State ))
                
                 
@@ -96,7 +96,13 @@ namespace Api.Application.Services
             customer.State = "in_progress";
             await _db.SaveChangesAsync();
             
-            var resDto = new OwnerQueueByIdCustomerResDTO(customer.Id, customer.Name, customer.QueueId, customer.Phone, customer.State);
+            var resDto = new
+            {
+                Id = customer.Id,
+                QueueId = customer.QueueId,
+                Name = customer.Name,
+                State = customer.State
+            };
             await _hub.Clients.Group(queueId).SendAsync("CustomerStatusChanged", resDto);
             
             return;
@@ -164,8 +170,7 @@ namespace Api.Application.Services
             var queue = await _db.Queues.FindAsync([queueId]);
             if (queue is null) throw new KeyNotFoundException($"Queue {queueId} not found.");
 
-            // إن لم تتغيّر القيمة لا نعمل أي تحديث
-            var newValue = (maxCustomers == 10) ? (int?)null : maxCustomers;
+            var newValue = (maxCustomers <= 0) ? (int?)null : maxCustomers;
             if (queue.MaxCustomers == newValue) return;
 
             queue.MaxCustomers = newValue;
@@ -208,10 +213,31 @@ namespace Api.Application.Services
             var queue = await _db.Queues.FindAsync([queueId]);
             if (queue is null) throw new KeyNotFoundException($"Queue {queueId} not found.");
 
-            var newValue = (minutes <= 0 || minutes == 10) ? (int?)null : minutes;
+            var newValue = (minutes <= 0) ? (int?)null : minutes;
             if (queue.AvgServiceTime == newValue) return;
 
             queue.AvgServiceTime = newValue;
+            await _db.SaveChangesAsync();
+        }
+
+        public async Task UpdateClosingTime(string queueId, string? timeString)
+        {
+            var queue = await _db.Queues.FindAsync([queueId]);
+            if (queue is null) throw new KeyNotFoundException($"Queue {queueId} not found.");
+
+            if (string.IsNullOrWhiteSpace(timeString))
+            {
+                queue.DailyResetTime = null;
+            }
+            else if (TimeSpan.TryParse(timeString, out var ts))
+            {
+                queue.DailyResetTime = ts;
+            }
+            else
+            {
+                throw new ValidationException("Invalid closing time format. Expected HH:mm.");
+            }
+
             await _db.SaveChangesAsync();
         }
 

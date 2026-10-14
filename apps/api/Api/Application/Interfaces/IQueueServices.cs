@@ -1,4 +1,4 @@
-﻿using Api.Application.Services;
+using Api.Application.Services;
 using Api.Infrastructuer.resDTO;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,7 +14,7 @@ namespace Api.Application.Interfaces
     {
        public Task <JoinQueueResDTO> JoinQueue(string queueId,string name, string phoneNumber, string email);
        public Task<bool> SendVerificationEmail(int customerId);
-       public Task<VerifyEmailResDTO?> VerifyEmail(int customerId, string email, int digits);
+       public Task<VerifyEmailResDTO?> VerifyEmail(int customerId, string email, string digits);
        public Task CancelRegistration(string queueId, int customerId, string cancelToken);
        public Task SnoozeRegistration(string queueId, int customerId, string cancelToken);
     }

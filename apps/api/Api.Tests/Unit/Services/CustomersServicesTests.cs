@@ -59,7 +59,7 @@ public class CustomersServicesTests
     }
 
     [Fact]
-    public async Task VerifyEmail_Sets_Customer_To_Waiting()
+    public async Task VerifyEmail_Sets_Customer_To_Waiting_With_Leading_Zero_Digits()
     {
         using var db = DbContextFactory.CreateInMemory();
         var queue = new QueueItem { Name = "Q1", HashedPassword = string.Empty, CreatedAt = System.DateTime.UtcNow };
@@ -67,10 +67,23 @@ public class CustomersServicesTests
         await db.SaveChangesAsync();
 
         var sut = CreateSut(db);
-        // Just verify JoinQueue doesn't throw and creates a pending customer
         var res = await sut.JoinQueue(queue.Id, "Alice", "0599123456", "alice@test.com");
         res.Should().NotBeNull();
-        db.QueueCustomers.Single().State.Should().Be("pending_verification");
+
+        var customer = db.QueueCustomers.Single();
+        customer.State.Should().Be("pending_verification");
+
+        // Test with leading zero PIN: "042918"
+        customer.EmailVerificationTokenHash = Api.security.CreateHashToken.Hash("042918");
+        customer.EmailVerificationTokenExpiry = System.DateTime.UtcNow.AddMinutes(10);
+        await db.SaveChangesAsync();
+
+        var verifyRes = await sut.VerifyEmail(customer.Id, "alice@test.com", "042918");
+        verifyRes.Should().NotBeNull();
+        verifyRes!.Token.Should().NotBeNullOrWhiteSpace();
+
+        customer.State.Should().Be("waiting");
+        customer.IsEmailVerified.Should().BeTrue();
     }
 
     [Fact]

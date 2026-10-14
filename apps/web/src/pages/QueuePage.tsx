@@ -87,7 +87,7 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
   const [notFound, setNotFound] = useState<boolean>(false);
   const { signedIn } = useOwnerSession(currentQueueId!, `${API}/api/owners/check-owner/${currentQueueId}`);
   const [currentMaxCustomers, setCurrentMaxCustomers] = useState<number | null>(null);
-  const [draftMax, setDraftMax] = useState<number>((currentMaxCustomers ?? 10));
+  const [draftMax, setDraftMax] = useState<number>((currentMaxCustomers ?? 0));
   const [avgServiceTime, setAvgServiceTime] = useState<number>(15);
   const [closingTime, setClosingTime] = useState("");
   const [anyChange, setAnyChange] = useState(false);
@@ -170,10 +170,10 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
   });
 
   useEffect(() => {
-    setDraftMax(currentMaxCustomers ?? 10);
+    setDraftMax(currentMaxCustomers ?? 0);
   }, [currentMaxCustomers]);
 
-  const effectiveCurrent = currentMaxCustomers ?? 10;
+  const effectiveCurrent = currentMaxCustomers ?? 0;
   const CLASS = "bg-card text-card-foreground border-border";
 
   const getErrorMessage = (e: unknown): string =>
@@ -337,7 +337,7 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
       const res = await apiVerifyEmail({
         CustomerId: pendingJoinData.Id,
         Email: pendingJoinData.Email,
-        Digits: Number(pin)
+        Digits: pin
       });
 
       toast.success(t('common.success'), { id, className: CLASS, duration: 2500 });
@@ -386,11 +386,15 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
 
     try {
       const payload: ManageData = { QueueId: currentQueueId, password: a };
-      const { queueId, token } = await handleManage(payload);
+      const res = await handleManage(payload);
+      const qId = res?.queueId ?? res?.QueueId ?? currentQueueId;
+      const token = res?.token ?? res?.Token ?? (typeof res === "string" ? res : null);
       toast.success(t('common.success'), { id, className: CLASS, duration: 2500 });
-      localStorage.setItem(`queue${queueId} token`, token);
+      if (token) {
+        localStorage.setItem(`queue${qId} token`, token);
+      }
       setOpen(false);
-      navigate(`/owner/q/${queueId}`, { replace: true });
+      navigate(`/owner/q/${qId}`, { replace: true });
     } catch (err: unknown) {
       toast.error(getErrorMessage(err), { className: CLASS, duration: 5000, id });
     }
@@ -730,10 +734,13 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
                             }}
                           >
                             <option disabled>{t('queue.maxCustomers')}</option>
+                            <option value="0">{t('queue.unlimited')}</option>
                             <option value="2">2 {t('queue.customers')}</option>
                             <option value="5">5 {t('queue.customers')}</option>
                             <option value="8">8 {t('queue.customers')}</option>
-                            <option value="10">+10 {t('queue.customers')}</option>
+                            <option value="10">10 {t('queue.customers')}</option>
+                            <option value="15">15 {t('queue.customers')}</option>
+                            <option value="20">20 {t('queue.customers')}</option>
                           </select>
                           <svg
                             className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4"
@@ -888,7 +895,7 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
                   >
                     <motion.button
                       onClick={() => { setPopupMode("join"); setOpen(true); }}
-                      aria-label={t('queue.joinQueue')}
+                      aria-label={owner ? t('queue.addToQueue') : t('queue.joinQueue')}
                       className="flex items-center gap-2 px-6 py-3 rounded-xl"
                       style={{
                         background: 'var(--dm-surface)',
@@ -899,7 +906,7 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
                       whileTap={{ scale: 0.98 }}
                     >
                       <AddIcon fontSize="small" />
-                      <span>{t('queue.addToQueue')}</span>
+                      <span>{owner ? t('queue.addToQueue') : t('queue.joinQueue')}</span>
                     </motion.button>
                   </motion.div>
                 )}

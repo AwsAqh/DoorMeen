@@ -1,4 +1,4 @@
-﻿using Api.Infrastructuer.resDTO;
+using Api.Infrastructuer.resDTO;
 
 namespace Api.Application.Interfaces
 {
@@ -20,5 +20,6 @@ namespace Api.Application.Interfaces
         Task UpdateOwnerMessage (string queueId, string? message);
 
         Task UpdateAvgServiceTime (string queueId, int minutes);
+        Task UpdateClosingTime (string queueId, string? timeString);
     }
 }

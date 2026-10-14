@@ -1,4 +1,4 @@
-﻿using Api.Infrastructuer;
+using Api.Infrastructuer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -83,11 +83,11 @@ namespace Api.Controllers
         }
 
 
-        [Authorize(Policy = "Owner")]
-        [HttpPut("change-password")]
-        public async Task<ActionResult> ChangeQueuePassword([FromBody] ChangePasswordDTO req)
+        [Authorize(Policy = "OwnerOfQueue")]
+        [HttpPut("change-password/{queueId}")]
+        public async Task<ActionResult> ChangeQueuePassword(string queueId, [FromBody] ChangePasswordDTO req)
         {
-            await _service.ChangeQueuePassword(req.QueueId, req.Password);
+            await _service.ChangeQueuePassword(queueId, req.Password);
             return NoContent();
         }
 
@@ -124,6 +124,14 @@ namespace Api.Controllers
         public async Task<ActionResult> UpdateAvgServiceTime(string queueId, int minutes)
         {
             await _service.UpdateAvgServiceTime(queueId, minutes);
+            return NoContent();
+        }
+
+        [Authorize(Policy = "OwnerOfQueue")]
+        [HttpPut("update-closing-time/{queueId}")]
+        public async Task<ActionResult> UpdateClosingTime(string queueId, [FromBody] string? timeString)
+        {
+            await _service.UpdateClosingTime(queueId, timeString);
             return NoContent();
         }
     }

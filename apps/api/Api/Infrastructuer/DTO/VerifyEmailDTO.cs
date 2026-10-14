@@ -5,7 +5,7 @@ namespace Api.Infrastructuer.DTO
     {
         public int CustomerId { get; set; }
         public string Email { get; set; }
-        public int Digits { get; set; }
+        public string Digits { get; set; } = "";
     }
 
     public class SendVerificationEmailDTO

@@ -145,11 +145,11 @@ describe("API layer (Vitest)", () => {
 
   test("apiVerifyEmail: success", async () => {
     asFetchMock().mockResolvedValueOnce(makeResponse({ status: 200 }));
-    const res = await apiVerifyEmail({ CustomerId: 1, Email: "a@a.com", Digits: 1234 });
+    const res = await apiVerifyEmail({ CustomerId: 1, Email: "a@a.com", Digits: "1234" });
     expect(res).toBe(null);
     expectLastFetchMatch(/^\/api\/queuecustomers\/verifyEmail$/, {
       method: "POST",
-      body: JSON.stringify({ CustomerId: 1, Email: "a@a.com", Digits: 1234 }),
+      body: JSON.stringify({ CustomerId: 1, Email: "a@a.com", Digits: "1234" }),
     });
   });
 

@@ -43,7 +43,7 @@ DotNetEnv.Env.Load();
 builder.Configuration.AddEnvironmentVariables();
 var cs = builder.Configuration.GetConnectionString("Default")??throw new InvalidOperationException("Connection string Default not found");
     builder.Services.AddDbContext<DoorMeenDbContext>(opt => opt.UseNpgsql(cs).ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
-builder.Services.AddScoped<IJoinVerification, EmailJoinVerification>();
+builder.Services.AddHttpClient<IJoinVerification, EmailJoinVerification>();
 
 builder.Services.AddSignalR();
 builder.Services.AddHostedService<QueueCleanupService>();

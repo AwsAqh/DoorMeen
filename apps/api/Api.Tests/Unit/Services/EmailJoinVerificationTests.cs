@@ -10,7 +10,7 @@ namespace Api.Tests.Unit.Services;
 public class EmailJoinVerificationTests
 {
     [Fact]
-    public async Task Send_Refreshes_Google_Token_And_Sends_Gmail_Message_Over_Https()
+    public async Task SendYourTurnNotification_Refreshes_Google_Token_And_Sends_Gmail_Message_Over_Https()
     {
         var handler = new GmailApiHandler();
         using var client = new HttpClient(handler);
@@ -23,7 +23,7 @@ public class EmailJoinVerificationTests
         }).Build();
         var sut = new EmailJoinVerification(config, client, NullLogger<EmailJoinVerification>.Instance);
 
-        var sent = await sut.Send("customer@example.com", "042918");
+        var sent = await sut.SendYourTurnNotification("customer@example.com", "Test Queue");
 
         sent.Should().BeTrue();
         handler.TokenRequest!.RequestUri!.AbsoluteUri.Should().Be("https://oauth2.googleapis.com/token");
@@ -41,7 +41,7 @@ public class EmailJoinVerificationTests
         message.Should().Contain("sender@gmail.com");
         var encodedBody = message.Split("\r\n\r\n", 2)[1].Replace("\r\n", string.Empty);
         var body = Encoding.UTF8.GetString(Convert.FromBase64String(encodedBody));
-        body.Should().Contain("Your DoorMeen verification code is: 042918");
+        body.Should().Contain("You are now at the front of the line for Test Queue.");
     }
 
     private sealed class GmailApiHandler : HttpMessageHandler

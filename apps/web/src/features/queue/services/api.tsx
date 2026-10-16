@@ -52,28 +52,6 @@ export async function apiJoinQueue(input: { QueueId: string, Name: string; Phone
   return body ?? true;
 }
 
-export async function apiVerifyEmail(input: { CustomerId: number, Email: string, Digits: string }) {
-  const res = await fetch(`${API}/api/queuecustomers/verifyEmail`, { method: "POST", headers: { "Content-type": "application/json" }, body: JSON.stringify(input) });
-  const body = await readBody(res);
-
-  if (!res.ok) {
-    const msg = typeof body === "string" ? body : body?.message || body?.detail || `HTTP ${res.status}`;
-    throw new Error(msg);
-  }
-  return body;
-}
-
-export async function apiResendVerificationEmail(input: { CustomerId: number }) {
-  const res = await fetch(`${API}/api/queuecustomers/sendVerificationEmail`, { method: "POST", headers: { "Content-type": "application/json" }, body: JSON.stringify(input) });
-  const body = await readBody(res);
-
-  if (!res.ok) {
-    const msg = typeof body === "string" ? body : body?.message || body?.detail || `HTTP ${res.status}`;
-    throw new Error(msg);
-  }
-  return body ?? true;
-}
-
 export async function apiManageQueue(input: { QueueId: string, password: string }) {
   const res = await fetch(`${API}/api/owners/verify-password`, { method: "POST", headers: { "Content-type": "application/json" }, body: JSON.stringify(input) })
   const body = await readBody(res);

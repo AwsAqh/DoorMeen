@@ -37,30 +37,6 @@ namespace Api.Controllers
         }
 
 
-        [HttpPost("sendVerificationEmail")]
-        [EnableRateLimiting("ResendEmailPolicy")]
-        public async Task<IActionResult> SendVerificationEmail([FromBody] SendVerificationEmailDTO req)
-        {
-            try {
-                var ok = await _service.SendVerificationEmail(req.CustomerId);
-                if(!ok) return BadRequest("False was returned securely");
-                return Ok();
-            } catch (Exception ex) {
-                return BadRequest(ex.Message);
-            }
-        }
- 
-
-
-        
-        [HttpPost("verifyEmail")]
-        public async Task<ActionResult> VerifyEmail([FromBody] VerifyEmailDTO req)
-        {
-            var res = await _service.VerifyEmail(req.CustomerId, req.Email, req.Digits);
-            if(res == null) return Unauthorized("Invalid digits");
-            return Ok(res);
-        }
-
         [HttpDelete("cancel/{queueId}/{customerId:int}")]
         public async Task<ActionResult> CancelRegisteration(string queueId, int customerId, [FromHeader (Name ="X-Cancel-Token")] string token)
         {

@@ -48,7 +48,7 @@
     },
     "join": {
       "title": "Join a queue",
-      "subTitle": "Join this queue with your name and phone number",
+      "subTitle": "Join this queue with your name, phone number, and email",
       "label1": "Name",
       "placeholder1": "Enter your name…",
       "label2": "Phone number",
@@ -56,19 +56,8 @@
       "note": "Enter your 10 digits phone number",
       "label3": "Email",
       "placeholder3": "example@domain.com",
-      "note3": "We'll send a verification link",
+      "note3": "Email is used for queue notifications",
       "action": "Join"
-    },
-    "verify": {
-      "title": "Verify Email",
-      "subTitle": "Enter the PIN sent to your email",
-      "label1": "PIN Code",
-      "placeholder1": "Enter PIN",
-      "note": "Check your spam folder if not found",
-      "action": "Verify",
-      "resend": "Resend PIN",
-      "resendSuccess": "PIN sent successfully",
-      "resendError": "Failed to resend PIN"
     },
     "manage": {
       "title": "Manage this queue",
@@ -115,7 +104,7 @@
     "signedIn": "Signed in",
     "dashboard": "Dashboard",
     "saving": "Saving...",
-    "pinSent": "PIN code sent to your email",
+    "joined": "You joined the queue",
     "copyLink": "Copy link",
     "downloadPng": "Download PNG",
     "share": "Share",

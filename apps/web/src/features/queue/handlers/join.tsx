@@ -6,8 +6,7 @@ export type JoinData = { QueueId: string, Name: string, PhoneNumber: string, Ema
 export async function handleJoin(input: JoinData) {
   const parsed = JoinSchema.safeParse(input);
   if (!parsed.success) {
-    // bubble a readable message
-    throw new Error("Invalid input ya aws");
+    throw new Error(parsed.error.issues[0]?.message ?? "Invalid join details");
   }
   const server = await apiJoinQueue(parsed.data);
   return server;

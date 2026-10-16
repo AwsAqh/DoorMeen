@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React from "react"
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Mode } from "../components/Helpers/popupFormTypes";
@@ -12,9 +12,8 @@ type PopupFormProps = {
   firstInputRef: React.Ref<HTMLInputElement>
   secondInputRef: React.Ref<HTMLInputElement>
   thirdInputRef?: React.Ref<HTMLInputElement>
-  onResend?: () => void;
 };
-const PopupForm: React.FC<PopupFormProps> = ({ open, onClose, onSubmit, type, firstInputRef, secondInputRef, thirdInputRef, onResend }) => {
+const PopupForm: React.FC<PopupFormProps> = ({ open, onClose, onSubmit, type, firstInputRef, secondInputRef, thirdInputRef }) => {
   const { t } = useTranslation();
 
   const copy = {
@@ -36,22 +35,6 @@ const PopupForm: React.FC<PopupFormProps> = ({ open, onClose, onSubmit, type, fi
     placeholder3: type === 'join' ? t(`popupForm.${type}.placeholder3`) : undefined,
     input3type: type === 'join' ? COPIES[type].input3type : undefined,
     note3: type === 'join' ? t(`popupForm.${type}.note3`) : undefined,
-    // Verify specific
-    resend: type === 'verify' ? t(`popupForm.verify.resend`) : undefined,
-  };
-
-  const [cooldown, setCooldown] = useState(0);
-
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    const interval = setInterval(() => setCooldown((c) => c - 1), 1000);
-    return () => clearInterval(interval);
-  }, [cooldown]);
-
-  const handleResendClick = () => {
-    if (cooldown > 0 || !onResend) return;
-    onResend();
-    setCooldown(60);
   };
 
   return (
@@ -88,11 +71,6 @@ const PopupForm: React.FC<PopupFormProps> = ({ open, onClose, onSubmit, type, fi
                 >
                   {copy.subTitle}
                 </p>
-                {type === 'verify' && (
-                  <p className="mt-3 text-xs p-2.5 rounded-lg border" style={{ background: 'rgba(234, 179, 8, 0.1)', color: '#eab308', borderColor: 'rgba(234, 179, 8, 0.2)' }}>
-                    {t('popupForm.verify.timeoutWarning', '⏳ Please verify your PIN within 10 minutes. Unverified requests are automatically deleted.')}
-                  </p>
-                )}
               </div>
 
               <form
@@ -123,7 +101,7 @@ const PopupForm: React.FC<PopupFormProps> = ({ open, onClose, onSubmit, type, fi
                   />
                 </div>
 
-                {type !== "manage" && type !== "verify" && (
+                {type !== "manage" && (
                   <div>
                     <label
                       htmlFor="Password"
@@ -197,23 +175,6 @@ const PopupForm: React.FC<PopupFormProps> = ({ open, onClose, onSubmit, type, fi
 
 
 
-                {copy.resend && onResend && (
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      onClick={handleResendClick}
-                      disabled={cooldown > 0}
-                      className="text-xs transition-colors"
-                      style={{ 
-                        color: cooldown > 0 ? 'var(--dm-text-muted)' : 'var(--dm-accent)',
-                        textDecoration: cooldown > 0 ? 'none' : 'underline',
-                        cursor: cooldown > 0 ? 'not-allowed' : 'pointer'
-                      }}
-                    >
-                      {cooldown > 0 ? `Wait ${cooldown}s` : copy.resend}
-                    </button>
-                  </div>
-                )}
 
                 <div className="flex items-center justify-end gap-3 pt-2">
                   <motion.button

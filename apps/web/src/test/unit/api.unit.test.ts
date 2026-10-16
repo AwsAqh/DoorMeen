@@ -20,8 +20,6 @@ import {
   apiServeCustomer,
   apiUpdateMaxCustomers,
   apiUpdateQueueName,
-  apiVerifyEmail,
-  apiResendVerificationEmail,
 } from "../../features/queue/services/api";
 
 /* ---------- helpers ---------- */
@@ -140,26 +138,6 @@ describe("API layer (Vitest)", () => {
     expectLastFetchMatch(/^\/api\/queuecustomers\/joinQueue$/, {
       method: "POST",
       headers: expect.objectContaining({ "Content-type": "application/json" }),
-    });
-  });
-
-  test("apiVerifyEmail: success", async () => {
-    asFetchMock().mockResolvedValueOnce(makeResponse({ status: 200 }));
-    const res = await apiVerifyEmail({ CustomerId: 1, Email: "a@a.com", Digits: "1234" });
-    expect(res).toBe(null);
-    expectLastFetchMatch(/^\/api\/queuecustomers\/verifyEmail$/, {
-      method: "POST",
-      body: JSON.stringify({ CustomerId: 1, Email: "a@a.com", Digits: "1234" }),
-    });
-  });
-
-  test("apiResendVerificationEmail: success", async () => {
-    asFetchMock().mockResolvedValueOnce(makeResponse({ status: 200 }));
-    const res = await apiResendVerificationEmail({ CustomerId: 1 });
-    expect(res).toBe(true);
-    expectLastFetchMatch(/^\/api\/queuecustomers\/sendVerificationEmail$/, {
-      method: "POST",
-      body: JSON.stringify({ CustomerId: 1 }),
     });
   });
 

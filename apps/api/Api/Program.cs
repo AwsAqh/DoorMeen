@@ -58,13 +58,6 @@ builder.Services.AddRateLimiter(options =>
         opt.QueueLimit = 0;
     });
     
-    options.AddFixedWindowLimiter("ResendEmailPolicy", opt =>
-    {
-        opt.PermitLimit = 2;
-        opt.Window = TimeSpan.FromMinutes(1);
-        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        opt.QueueLimit = 0;
-    });
 });
 
 builder.Services.AddControllers().AddJsonOptions(o =>

@@ -80,8 +80,6 @@ export function StatusEditor({
         return { bg: 'var(--dm-status-progress-bg)', text: 'var(--dm-status-progress)', border: 'var(--dm-status-progress)' };
       case 'served':
         return { bg: 'rgba(34, 197, 94, 0.15)', text: '#22c55e', border: '#22c55e' };
-      case 'pending_verification':
-        return { bg: 'rgba(234, 179, 8, 0.15)', text: '#eab308', border: '#eab308' };
       default:
         return { bg: 'var(--dm-status-waiting-bg)', text: 'var(--dm-text-secondary)', border: 'var(--dm-surface-border)' };
     }
@@ -125,7 +123,7 @@ export function StatusEditor({
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.15 }}
             >
-              {(["waiting", "in_progress", "served", "pending_verification"] as Status[]).map((s) => {
+              {(["waiting", "in_progress", "served"] as Status[]).map((s) => {
                 const itemColors = getStatusColor(s);
                 return (
                   <motion.button

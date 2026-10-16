@@ -13,8 +13,6 @@ namespace Api.Application.Interfaces
     public interface ICustomersServices
     {
        public Task <JoinQueueResDTO> JoinQueue(string queueId,string name, string phoneNumber, string email);
-       public Task<bool> SendVerificationEmail(int customerId);
-       public Task<VerifyEmailResDTO?> VerifyEmail(int customerId, string email, string digits);
        public Task CancelRegistration(string queueId, int customerId, string cancelToken);
        public Task SnoozeRegistration(string queueId, int customerId, string cancelToken);
     }

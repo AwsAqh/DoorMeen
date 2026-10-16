@@ -79,138 +79,56 @@ namespace Api.Application.Services
          }
 
         public async Task<JoinQueueResDTO> JoinQueue(string queueId, string name, string phone, string email)
-{
-    if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(phone) || string.IsNullOrWhiteSpace(queueId))
-        throw new ValidationException("All info must be not null");
-
-    var queue = await _db.Queues.SingleOrDefaultAsync(q => q.Id == queueId)
-                ?? throw new KeyNotFoundException("No queue with that id");
-
-    var isInMemory = _db.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory";
-    await using var tx = isInMemory 
-        ? await _db.Database.BeginTransactionAsync() 
-        : await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-
-    var waitingCount = await _db.QueueCustomers
-        .CountAsync(c => c.QueueId == queueId && c.State == "waiting");
-
-    if (queue.MaxCustomers.HasValue && waitingCount >= queue.MaxCustomers.Value)
-        throw new InvalidOperationException("Queue is full");
-
-    var existing = await _db.QueueCustomers.SingleOrDefaultAsync(c => c.QueueId == queueId && c.Email == email);
-    if (existing != null) 
-    {
-        // If they are just pending, remove old one and let them start over
-        if (existing.State == "pending_verification") {
-             _db.QueueCustomers.Remove(existing);
-             await _db.SaveChangesAsync();
-        } else {
-             throw new ValidationException("This email is already in the queue");
-        }
-    }
-
-    
-
-    // 1) Create customer as pending verification (NOT waiting)
-    
-     var rawToken = CreateHashToken.NewCancelTokenDigits(); // reuse your generator
-    var tokenHash = CreateHashToken.Hash(rawToken);
-
-    var customer = new QueueCustomer
-    {
-        QueueId = queueId,
-        Name = name,
-        Phone = phone,
-        Email = email,
-
-        State = "pending_verification",
-        EmailVerificationTokenHash = tokenHash,
-        EmailVerificationTokenExpiry = DateTime.UtcNow.AddMinutes(10),
-       
-
-        CancelTokenHash = null
-    };
-
-
-
-
-  
-    _db.QueueCustomers.Add(customer);
-    await _db.SaveChangesAsync();
-
-    // 2) Send verification email (customer must click link later)
-    var sent = await _joinVerification.Send(email, rawToken);
-    if (!sent)
-    throw new ValidationException("Failed to send verification email");
-    await tx.CommitAsync();
-    
-    await _hub.Clients.Group(queueId).SendAsync("CustomerJoined", new
-    {
-        Id = customer.Id,
-        QueueId = customer.QueueId,
-        Name = customer.Name,
-        State = customer.State,
-        CreatedAt = customer.CreatedAt
-    });
-
-    // 3) Tell client verification is required
-    return new JoinQueueResDTO
-    {
-        Id = customer.Id,
-        Name = customer.Name,
-        Token = null, // not issued until verified
-        VerificationRequired = true
-    };
-}
-
-
-        public async Task<bool> SendVerificationEmail(int customerId)
         {
-            try
-            {
-                var customer = await _db.QueueCustomers.FindAsync(customerId);
-                if (customer is null) throw new Exception("Customer is null (ID mismatch)");
-                if (customer.State != "pending_verification") throw new Exception($"Customer state is {customer.State}");
-                
-                var rawToken = CreateHashToken.NewCancelTokenDigits();
-                var tokenHash = CreateHashToken.Hash(rawToken);
-                customer.EmailVerificationTokenHash = tokenHash;
-                customer.EmailVerificationTokenExpiry = DateTime.UtcNow.AddMinutes(10);
-                
-                await _db.SaveChangesAsync();
-                
-                var ok = await _joinVerification.Send(customer.Email, rawToken);
-                if (!ok) throw new Exception("JoinVerification.Send returned false (SMTP failure)");
-                
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[FATAL RESEND] {ex.Message} {ex.StackTrace}");
-                throw;
-            }
-        }   
+            name = name?.Trim() ?? "";
+            phone = phone?.Trim() ?? "";
+            email = email?.Trim() ?? "";
 
-        public async Task<VerifyEmailResDTO?> VerifyEmail ( int customerId, string email , string digits){
-            if(string.IsNullOrWhiteSpace(email) )
-                throw new ValidationException("Email is required");
-            if(string.IsNullOrWhiteSpace(digits)) throw new ValidationException("Digits are required");
+            if (string.IsNullOrWhiteSpace(queueId) || string.IsNullOrWhiteSpace(name) || name.Length > 60)
+                throw new ValidationException("Enter a queue and a name up to 60 characters");
+            if (!System.Text.RegularExpressions.Regex.IsMatch(phone, @"^\d{10}$"))
+                throw new ValidationException("Phone must be 10 digits");
+            if (!new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(email))
+                throw new ValidationException("Enter a valid email address");
 
-            var customer=await _db.QueueCustomers.FindAsync(customerId);
-            if(customer is null) throw new KeyNotFoundException("No such a customer");
-            if(customer.Email != email) throw new ValidationException("Email does not match");
-            if(customer.EmailVerificationTokenExpiry < DateTime.UtcNow) throw new ValidationException("Verification token expired");
-            if(!CreateHashToken.Verify(digits.Trim(), customer.EmailVerificationTokenHash)) throw new ValidationException("Invalid digits");
+            var queue = await _db.Queues.SingleOrDefaultAsync(q => q.Id == queueId)
+                        ?? throw new KeyNotFoundException("No queue with that id");
+
+            await using var tx = _db.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory"
+                ? await _db.Database.BeginTransactionAsync()
+                : await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+            var waitingCount = await _db.QueueCustomers
+                .CountAsync(c => c.QueueId == queueId && c.State == "waiting");
+            if (queue.MaxCustomers.HasValue && waitingCount >= queue.MaxCustomers.Value)
+                throw new InvalidOperationException("Queue is full");
+
+            var normalizedEmail = email.ToLowerInvariant();
+            var existing = await _db.QueueCustomers.FirstOrDefaultAsync(c =>
+                c.QueueId == queueId && c.State != "served" &&
+                (c.Phone == phone || (c.Email != null && c.Email.ToLower() == normalizedEmail)));
+            if (existing != null)
+                throw new ValidationException("This phone number or email is already in the queue");
 
             var rawCancelToken = CreateHashToken.NewCancelTokenDigits();
-            customer.CancelTokenHash = CreateHashToken.Hash(rawCancelToken);
-            customer.State = "waiting";
-            customer.EmailVerificationTokenHash = null;
-            customer.EmailVerificationTokenExpiry = null;
-            customer.IsEmailVerified = true;
+            var customer = new QueueCustomer
+            {
+                QueueId = queueId,
+                Name = name,
+                Phone = phone,
+                Email = normalizedEmail,
+                State = "waiting",
+                CancelTokenHash = CreateHashToken.Hash(rawCancelToken),
+                EmailVerificationTokenHash = null,
+                EmailVerificationTokenExpiry = null,
+                IsEmailVerified = false
+            };
+
+            _db.QueueCustomers.Add(customer);
             await _db.SaveChangesAsync();
-            
-            await _hub.Clients.Group(customer.QueueId).SendAsync("CustomerVerified", new
+            await tx.CommitAsync();
+
+            await _hub.Clients.Group(queueId).SendAsync("CustomerJoined", new
             {
                 Id = customer.Id,
                 QueueId = customer.QueueId,
@@ -218,8 +136,13 @@ namespace Api.Application.Services
                 State = customer.State,
                 CreatedAt = customer.CreatedAt
             });
-            return new VerifyEmailResDTO { Token = rawCancelToken };
 
+            return new JoinQueueResDTO
+            {
+                Id = customer.Id,
+                Name = customer.Name,
+                Token = rawCancelToken
+            };
         }
 
         public async Task CancelRegistration(string queueId, int customerId, string cancelToken)

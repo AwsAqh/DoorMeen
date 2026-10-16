@@ -28,7 +28,7 @@ import { CancelData, handleCancel } from "@/features/queue/handlers/cancel";
 import { GetData, handleGetCustomers } from "@/features/queue/handlers/getCustomers";
 import { UpdateData, handleupdateStatus } from "@/features/queue/handlers/update";
 import { GetOwnerCustomersData, handleGetOwnerCustomers } from "@/features/queue/handlers/getOwnerCustomers";
-import { apiVerifyEmail, apiResendVerificationEmail, apiUpdateOwnerMessage, apiUpdateAvgServiceTime, apiSnoozeRegistration, apiUpdateClosingTime } from "@/features/queue/services/api";
+import { apiUpdateOwnerMessage, apiUpdateAvgServiceTime, apiSnoozeRegistration, apiUpdateClosingTime } from "@/features/queue/services/api";
 import { handleServeCustomer } from "@/features/queue/handlers/serveCustomer";
 import { handleUpdateMaxCustomers } from "@/features/queue/handlers/updateMaxCustomers";
 import { handleUpdateQueueName, UpdateQueueNameData } from "@/features/queue/handlers/updateQueueName";
@@ -102,7 +102,6 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
 
   const RANK: Record<Status, number> = {
     in_progress: 0,
-    pending_verification: 0.5,
     waiting: 1,
     served: 3
   };
@@ -286,7 +285,6 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
 
   const [open, setOpen] = useState(false);
   const [popupMode, setPopupMode] = useState<Mode>("join");
-  const [pendingJoinData, setPendingJoinData] = useState<(JoinData & { Id: number }) | null>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
   const secondInputRef = useRef<HTMLInputElement>(null);
   const thirdInputRef = useRef<HTMLInputElement>(null);
@@ -307,68 +305,27 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
 
     try {
       const payload: JoinData = { QueueId: currentQueueId, Name: a, PhoneNumber: b, Email: c };
-      const { Id } = await handleJoin(payload);
-      toast.success(t('queue.pinSent'), { id, className: CLASS, duration: 2500 });
-
-      // Store pending data and switch to verify mode
-      setPendingJoinData({ ...payload, Id });
-
-      if (firstInputRef.current) firstInputRef.current.value = "";
-      setPopupMode("verify");
-    } catch (err: unknown) {
-      toast.error(getErrorMessage(err), { className: CLASS, duration: 5000, id });
-    }
-  };
-
-  const submitVerifyForm = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!pendingJoinData) return;
-
-    // In verify mode, firstInputRef is the PIN
-    const pin = firstInputRef.current?.value?.trim() ?? "";
-    if (!pin) {
-      toast.error(t('common.error'), { className: CLASS });
-      return;
-    }
-
-    const id = toast.loading("Verifying...", { className: CLASS, duration: Infinity });
-
-    try {
-      const res = await apiVerifyEmail({
-        CustomerId: pendingJoinData.Id,
-        Email: pendingJoinData.Email,
-        Digits: pin
-      });
-
-      toast.success(t('common.success'), { id, className: CLASS, duration: 2500 });
-
-      if (res?.Token) {
-        localStorage.setItem(`queueCancelToken${pendingJoinData.Id}`, res.Token);
+      const result = await handleJoin(payload);
+      const customerId = result?.Id ?? result?.id;
+      const cancelToken = result?.Token ?? result?.token;
+      if (typeof customerId !== "number" || typeof cancelToken !== "string") {
+        throw new Error("The queue response was incomplete. Please try again.");
       }
-
-      // Verification successful, add user to list
-      const newUser: User = {
-        ...pendingJoinData,
+      localStorage.setItem(`queueCancelToken${customerId}`, cancelToken);
+      toast.success(t('queue.joined', 'You joined the queue'), { id, className: CLASS, duration: 2500 });
+      setUsers(prev => prev.some(user => user.Id === customerId) ? prev : [...prev, {
+        Id: customerId,
+        QueueId: currentQueueId,
+        Name: a,
+        PhoneNumber: b,
         State: "waiting"
-      };
-      setUsers(prev => [...prev, newUser]);
-
+      }]);
+      if (firstInputRef.current) firstInputRef.current.value = "";
+      if (secondInputRef.current) secondInputRef.current.value = "";
+      if (thirdInputRef.current) thirdInputRef.current.value = "";
       setOpen(false);
-      setPopupMode("join");
-      setPendingJoinData(null);
     } catch (err: unknown) {
       toast.error(getErrorMessage(err), { className: CLASS, duration: 5000, id });
-    }
-  };
-
-  const handleResendPin = async () => {
-    if (!pendingJoinData) return;
-    const id = toast.loading("Sending...", { className: CLASS });
-    try {
-      await apiResendVerificationEmail({ CustomerId: pendingJoinData.Id });
-      toast.success(t('popupForm.verify.resendSuccess'), { id, className: CLASS });
-    } catch (err) {
-      toast.error(getErrorMessage(err), { id, className: CLASS, duration: 5000 });
     }
   };
 
@@ -458,8 +415,7 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
           setUsers(prev => prev.filter(u => u.Id !== CustomerId));
           break;
         }
-        case "waiting":
-        case "pending_verification": {
+        case "waiting": {
           throw new Error("Cannot rollback a customer to a previous waiting state.");
         }
         default:
@@ -917,10 +873,8 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
                 onClose={() => setOpen(false)}
                 onSubmit={
                   popupMode === "join" ? submitJoinForm :
-                    popupMode === "verify" ? submitVerifyForm :
                       submitManageForm
                 }
-                onResend={popupMode === "verify" ? handleResendPin : undefined}
                 firstInputRef={firstInputRef}
                 secondInputRef={secondInputRef}
                 thirdInputRef={thirdInputRef}

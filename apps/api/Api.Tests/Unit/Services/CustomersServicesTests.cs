@@ -15,11 +15,6 @@ namespace Api.Tests.Unit.Services;
 
 public class FakeJoinVerification : IJoinVerification
 {
-    public Task<bool> Send(string identifier, string token)
-    {
-        return Task.FromResult(true);
-    }
-
     public Task<bool> SendYourTurnNotification(string email, string queueName)
     {
         return Task.FromResult(true);
@@ -32,6 +27,9 @@ public class CustomersServicesTests
     {
         var mockClients = new Mock<IHubClients>();
         var mockClientProxy = new Mock<IClientProxy>();
+        mockClientProxy
+            .Setup(p => p.SendCoreAsync(It.IsAny<string>(), It.IsAny<object?[]>(), It.IsAny<System.Threading.CancellationToken>()))
+            .Returns(Task.CompletedTask);
         mockClients.Setup(c => c.Group(It.IsAny<string>())).Returns(mockClientProxy.Object);
         var mockHub = new Mock<IHubContext<QueueHub>>();
         mockHub.Setup(h => h.Clients).Returns(mockClients.Object);
@@ -39,7 +37,7 @@ public class CustomersServicesTests
     }
 
     [Fact]
-    public async Task JoinQueue_Adds_Pending_Verification_Customer()
+    public async Task JoinQueue_Adds_Waiting_Customer_And_Returns_Cancel_Token()
     {
         using var db = DbContextFactory.CreateInMemory();
         var queue = new QueueItem { Name = "Q1", HashedPassword = string.Empty, CreatedAt = System.DateTime.UtcNow, MaxCustomers = 5 };
@@ -51,15 +49,16 @@ public class CustomersServicesTests
 
         res.Id.Should().BeGreaterThan(0);
         res.Name.Should().Be("Alice");
-        res.Token.Should().BeNull();
-        res.VerificationRequired.Should().BeTrue();
+        res.Token.Should().NotBeNullOrWhiteSpace();
 
         db.QueueCustomers.Count().Should().Be(1);
-        db.QueueCustomers.Single().State.Should().Be("pending_verification");
+        var customer = db.QueueCustomers.Single();
+        customer.State.Should().Be("waiting");
+        Api.security.CreateHashToken.Verify(res.Token, customer.CancelTokenHash!).Should().BeTrue();
     }
 
     [Fact]
-    public async Task VerifyEmail_Sets_Customer_To_Waiting_With_Leading_Zero_Digits()
+    public async Task JoinQueue_Rejects_Duplicate_Phone_Or_Email_In_Queue()
     {
         using var db = DbContextFactory.CreateInMemory();
         var queue = new QueueItem { Name = "Q1", HashedPassword = string.Empty, CreatedAt = System.DateTime.UtcNow };
@@ -67,23 +66,13 @@ public class CustomersServicesTests
         await db.SaveChangesAsync();
 
         var sut = CreateSut(db);
-        var res = await sut.JoinQueue(queue.Id, "Alice", "0599123456", "alice@test.com");
-        res.Should().NotBeNull();
+        await sut.JoinQueue(queue.Id, "Alice", "0599123456", "alice@test.com");
 
-        var customer = db.QueueCustomers.Single();
-        customer.State.Should().Be("pending_verification");
-
-        // Test with leading zero PIN: "042918"
-        customer.EmailVerificationTokenHash = Api.security.CreateHashToken.Hash("042918");
-        customer.EmailVerificationTokenExpiry = System.DateTime.UtcNow.AddMinutes(10);
-        await db.SaveChangesAsync();
-
-        var verifyRes = await sut.VerifyEmail(customer.Id, "alice@test.com", "042918");
-        verifyRes.Should().NotBeNull();
-        verifyRes!.Token.Should().NotBeNullOrWhiteSpace();
-
-        customer.State.Should().Be("waiting");
-        customer.IsEmailVerified.Should().BeTrue();
+        var duplicatePhone = () => sut.JoinQueue(queue.Id, "Bob", "0599123456", "bob@test.com");
+        var duplicateEmail = () => sut.JoinQueue(queue.Id, "Bob", "0599123457", "ALICE@test.com");
+        await duplicatePhone.Should().ThrowAsync<System.ComponentModel.DataAnnotations.ValidationException>();
+        await duplicateEmail.Should().ThrowAsync<System.ComponentModel.DataAnnotations.ValidationException>();
+        db.QueueCustomers.Count().Should().Be(1);
     }
 
     [Fact]
@@ -96,7 +85,7 @@ public class CustomersServicesTests
 
         var sut = CreateSut(db);
 
-        // Manually add a verified/waiting customer since JoinQueue only adds pending
+        // Manually add a waiting customer with a known cancel token.
         var customer = new QueueCustomer
         {
             QueueId = queue.Id,

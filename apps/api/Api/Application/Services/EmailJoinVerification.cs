@@ -22,17 +22,6 @@ public class EmailJoinVerification : IJoinVerification
         _logger = logger;
     }
 
-    public Task<bool> Send(string email, string token)
-    {
-        if (string.IsNullOrWhiteSpace(token)) return Task.FromResult(false);
-
-        var body = $"Your DoorMeen verification code is: {token}\n\n" +
-                   "This code expires in 10 minutes.\n" +
-                   "If you didn't request this, ignore this email.";
-
-        return SendEmail(email, "DoorMeen - Email verification code", body);
-    }
-
     public Task<bool> SendYourTurnNotification(string email, string queueName)
     {
         if (string.IsNullOrWhiteSpace(queueName)) return Task.FromResult(false);

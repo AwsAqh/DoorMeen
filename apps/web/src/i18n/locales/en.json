@@ -23,6 +23,8 @@
   },
   "home": {
     "title": "Door Meen",
+    "testingWelcomeTitle": "Welcome to DoorMeen — we’re still in testing!",
+    "testingWelcomeMessage": "Try DoorMeen during testing and get one month of free ad space for your business.",
     "subtitle1": "Instant QR for customers",
     "subtitle1Desc": "Share and start taking names in seconds.",
     "subtitle2": "Owner-only actions via PIN",

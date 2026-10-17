@@ -86,6 +86,13 @@ const Home = () => {
       <Header />
       <Toaster position="top-center" offset={16} />
 
+      <section className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 pt-6" aria-label={t('home.testingWelcomeTitle')}>
+        <div className="flex flex-col gap-1 rounded-2xl border border-teal-400/30 bg-teal-400/10 px-5 py-4 text-center shadow-lg sm:px-7 sm:py-5">
+          <p className="text-base font-bold text-teal-300 sm:text-lg">{t('home.testingWelcomeTitle')}</p>
+          <p className="text-sm leading-relaxed text-slate-200 sm:text-base">{t('home.testingWelcomeMessage')}</p>
+        </div>
+      </section>
+
       {/* Hero Section */}
       <main className="flex-1 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 md:py-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 items-center gap-8 lg:gap-16">

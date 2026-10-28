@@ -1,9 +1,16 @@
 @import "tailwindcss";
+@import './styles/rtl.css';
 
 @plugin "tailwindcss-animate";
-@import url("https://fonts.googleapis.com/css2?family=poppins:wght@300;400;500;600;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap");
-@import './styles/rtl.css';
+
+@font-face { font-family: Manrope; src: url('/fonts/Manrope-Regular.ttf') format('truetype'); font-style: normal; font-weight: 400; font-display: swap; }
+@font-face { font-family: Manrope; src: url('/fonts/Manrope-Medium.ttf') format('truetype'); font-style: normal; font-weight: 500; font-display: swap; }
+@font-face { font-family: Manrope; src: url('/fonts/Manrope-SemiBold.ttf') format('truetype'); font-style: normal; font-weight: 600; font-display: swap; }
+@font-face { font-family: Manrope; src: url('/fonts/Manrope-Bold.ttf') format('truetype'); font-style: normal; font-weight: 700 900; font-display: swap; }
+@font-face { font-family: Cairo; src: url('/fonts/Cairo-Regular.ttf') format('truetype'); font-style: normal; font-weight: 400; font-display: swap; }
+@font-face { font-family: Cairo; src: url('/fonts/Cairo-Medium.ttf') format('truetype'); font-style: normal; font-weight: 500; font-display: swap; }
+@font-face { font-family: Cairo; src: url('/fonts/Cairo-SemiBold.ttf') format('truetype'); font-style: normal; font-weight: 600; font-display: swap; }
+@font-face { font-family: Cairo; src: url('/fonts/Cairo-Bold.ttf') format('truetype'); font-style: normal; font-weight: 700 900; font-display: swap; }
 
 @custom-variant dark (&:is(.dark *));
 @tailwind base;
@@ -12,42 +19,42 @@
 
 /* ============================================
    DOOR MEEN DESIGN SYSTEM
-   Dark theme by default with light theme support
+   Cream theme by default with dark theme support
    ============================================ */
 
-/* Dark Theme (Default) */
+/* Cream Theme (Default) */
 :root {
   /* Base Colors */
-  --dm-bg-primary: #0c1222;
-  --dm-bg-secondary: #111827;
-  --dm-bg-tertiary: #1a1f2e;
+  --dm-bg-primary: #f5f0e6;
+  --dm-bg-secondary: #eee5d7;
+  --dm-bg-tertiary: #e3d8c8;
 
   /* Accent Colors - Teal/Cyan */
-  --dm-accent: #14b8a6;
-  --dm-accent-light: #22d3d3;
-  --dm-accent-dark: #0d9488;
-  --dm-accent-glow: rgba(20, 184, 166, 0.3);
+  --dm-accent: #e98a12;
+  --dm-accent-light: #ffad32;
+  --dm-accent-dark: #b96008;
+  --dm-accent-glow: rgba(233, 138, 18, 0.2);
 
   /* Text Colors */
-  --dm-text-primary: #f1f5f9;
-  --dm-text-secondary: #94a3b8;
-  --dm-text-muted: #64748b;
+  --dm-text-primary: #172033;
+  --dm-text-secondary: #515b6b;
+  --dm-text-muted: #737b86;
 
   /* Surface Colors */
-  --dm-surface: rgba(30, 41, 59, 0.8);
-  --dm-surface-hover: rgba(51, 65, 85, 0.8);
-  --dm-surface-border: rgba(255, 255, 255, 0.1);
+  --dm-surface: rgba(255, 252, 246, 0.94);
+  --dm-surface-hover: rgba(255, 245, 228, 0.98);
+  --dm-surface-border: rgba(23, 32, 51, 0.12);
 
   /* Status Colors */
-  --dm-status-progress: #14b8a6;
-  --dm-status-progress-bg: rgba(20, 184, 166, 0.15);
-  --dm-status-waiting: #64748b;
-  --dm-status-waiting-bg: rgba(100, 116, 139, 0.2);
+  --dm-status-progress: #e98a12;
+  --dm-status-progress-bg: rgba(233, 138, 18, 0.14);
+  --dm-status-waiting: #737b86;
+  --dm-status-waiting-bg: rgba(115, 123, 134, 0.12);
 
   /* Shadows */
-  --dm-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --dm-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
-  --dm-shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.5);
+  --dm-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --dm-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --dm-shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.15);
   --dm-shadow-glow: 0 0 20px var(--dm-accent-glow);
 
   /* Legacy Variables (kept for compatibility) */
@@ -62,28 +69,28 @@
   /* Theme Variables */
   --background: var(--dm-bg-primary);
   --foreground: var(--dm-text-primary);
-  --card: var(--dm-bg-tertiary);
+  --card: #fffdf8;
   --card-foreground: var(--dm-text-primary);
-  --popover: var(--dm-bg-secondary);
+  --popover: #fffdf8;
   --popover-foreground: var(--dm-text-primary);
   --primary: var(--dm-accent);
-  --primary-foreground: #ffffff;
+  --primary-foreground: #111a2c;
   --secondary: var(--dm-bg-tertiary);
   --secondary-foreground: var(--dm-text-primary);
   --muted: var(--dm-bg-tertiary);
   --muted-foreground: var(--dm-text-muted);
   --accent: var(--dm-accent);
-  --accent-foreground: #ffffff;
+  --accent-foreground: #111a2c;
   --destructive: #ef4444;
   --border: var(--dm-surface-border);
   --input: var(--dm-surface-border);
   --ring: var(--dm-accent);
 
   /* Sidebar */
-  --sidebar: var(--dm-bg-secondary);
+  --sidebar: #eee5d7;
   --sidebar-foreground: var(--dm-text-primary);
   --sidebar-primary: var(--dm-accent);
-  --sidebar-primary-foreground: #ffffff;
+  --sidebar-primary-foreground: #111a2c;
   --sidebar-accent: var(--dm-bg-tertiary);
   --sidebar-accent-foreground: var(--dm-text-primary);
   --sidebar-border: var(--dm-surface-border);
@@ -92,27 +99,27 @@
 
 /* Light Theme */
 .light {
-  --dm-bg-primary: #f8fafc;
-  --dm-bg-secondary: #f1f5f9;
-  --dm-bg-tertiary: #e2e8f0;
+  --dm-bg-primary: #f5f0e6;
+  --dm-bg-secondary: #eee5d7;
+  --dm-bg-tertiary: #e3d8c8;
 
-  --dm-accent: #0d9488;
-  --dm-accent-light: #14b8a6;
-  --dm-accent-dark: #0f766e;
-  --dm-accent-glow: rgba(13, 148, 136, 0.2);
+  --dm-accent: #e98a12;
+  --dm-accent-light: #ffad32;
+  --dm-accent-dark: #b96008;
+  --dm-accent-glow: rgba(233, 138, 18, 0.2);
 
-  --dm-text-primary: #0f172a;
-  --dm-text-secondary: #475569;
-  --dm-text-muted: #64748b;
+  --dm-text-primary: #172033;
+  --dm-text-secondary: #515b6b;
+  --dm-text-muted: #737b86;
 
-  --dm-surface: rgba(255, 255, 255, 0.9);
-  --dm-surface-hover: rgba(241, 245, 249, 0.9);
-  --dm-surface-border: rgba(0, 0, 0, 0.1);
+  --dm-surface: rgba(255, 252, 246, 0.94);
+  --dm-surface-hover: rgba(255, 245, 228, 0.98);
+  --dm-surface-border: rgba(23, 32, 51, 0.12);
 
-  --dm-status-progress: #0d9488;
-  --dm-status-progress-bg: rgba(13, 148, 136, 0.15);
-  --dm-status-waiting: #64748b;
-  --dm-status-waiting-bg: rgba(100, 116, 139, 0.15);
+  --dm-status-progress: #e98a12;
+  --dm-status-progress-bg: rgba(233, 138, 18, 0.14);
+  --dm-status-waiting: #737b86;
+  --dm-status-waiting-bg: rgba(115, 123, 134, 0.12);
 
   --dm-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --dm-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -121,18 +128,18 @@
 
   --background: var(--dm-bg-primary);
   --foreground: var(--dm-text-primary);
-  --card: #ffffff;
+  --card: #fffdf8;
   --card-foreground: var(--dm-text-primary);
-  --popover: #ffffff;
+  --popover: #fffdf8;
   --popover-foreground: var(--dm-text-primary);
   --primary: var(--dm-accent);
-  --primary-foreground: #ffffff;
+  --primary-foreground: #111a2c;
   --secondary: var(--dm-bg-secondary);
   --secondary-foreground: var(--dm-text-primary);
   --muted: var(--dm-bg-tertiary);
   --muted-foreground: var(--dm-text-muted);
   --accent: var(--dm-accent);
-  --accent-foreground: #ffffff;
+  --accent-foreground: #111a2c;
   --destructive: #ef4444;
   --border: var(--dm-surface-border);
   --input: var(--dm-surface-border);
@@ -141,22 +148,22 @@
 
 /* Dark class (explicit) */
 .dark {
-  --dm-bg-primary: #0c1222;
-  --dm-bg-secondary: #111827;
-  --dm-bg-tertiary: #1a1f2e;
+  --dm-bg-primary: #101827;
+  --dm-bg-secondary: #151f30;
+  --dm-bg-tertiary: #202c3e;
 
-  --dm-accent: #14b8a6;
-  --dm-accent-light: #22d3d3;
-  --dm-accent-dark: #0d9488;
-  --dm-accent-glow: rgba(20, 184, 166, 0.3);
+  --dm-accent: #ffa51f;
+  --dm-accent-light: #ffc15a;
+  --dm-accent-dark: #e98508;
+  --dm-accent-glow: rgba(255, 165, 31, 0.28);
 
-  --dm-text-primary: #f1f5f9;
-  --dm-text-secondary: #94a3b8;
-  --dm-text-muted: #64748b;
+  --dm-text-primary: #f7f2e8;
+  --dm-text-secondary: #c8c4bc;
+  --dm-text-muted: #9299a4;
 
-  --dm-surface: rgba(30, 41, 59, 0.8);
-  --dm-surface-hover: rgba(51, 65, 85, 0.8);
-  --dm-surface-border: rgba(255, 255, 255, 0.1);
+  --dm-surface: rgba(31, 43, 61, 0.9);
+  --dm-surface-hover: rgba(43, 58, 78, 0.94);
+  --dm-surface-border: rgba(255, 245, 225, 0.12);
 
   --background: var(--dm-bg-primary);
   --foreground: var(--dm-text-primary);
@@ -215,7 +222,7 @@
 
 .btn-primary {
   background: var(--dm-accent);
-  color: white;
+  color: #111a2c;
   padding: 0.75rem 1.5rem;
   border-radius: 0.5rem;
   font-weight: 500;
@@ -377,7 +384,7 @@
    ============================================ */
 
 @theme inline {
-  --font-poppins: "Poppins", sans-serif;
+  --font-poppins: "Manrope", sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);

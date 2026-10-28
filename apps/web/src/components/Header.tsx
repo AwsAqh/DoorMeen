@@ -25,11 +25,12 @@ const Header = () => {
       <div className="mx-auto max-w-7xl flex items-center justify-between">
         {/* Logo */}
         <h1
-          className="text-xl sm:text-2xl font-bold cursor-pointer transition-colors hover:opacity-80"
-          style={{ color: 'var(--dm-accent)' }}
+          className="flex items-center gap-2.5 text-xl sm:text-2xl font-extrabold cursor-pointer transition-opacity hover:opacity-80"
+          style={{ color: 'var(--dm-text-primary)', letterSpacing: '-0.035em' }}
           onClick={() => navigate("/")}
         >
-          {t('header.title')}
+          <img src="/door-meen-icon.svg" alt="" aria-hidden="true" className="h-10 w-10 rounded-xl shadow-sm" />
+          <span>{t('header.title')}</span>
         </h1>
 
         {/* Navigation */}

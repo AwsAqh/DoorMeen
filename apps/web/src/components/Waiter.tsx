@@ -56,7 +56,7 @@ export default function Waiter({
             className="text-xs px-2 py-0.5 rounded-full font-medium"
             style={{
               background: 'rgba(99, 102, 241, 0.15)',
-              color: '#818cf8',
+              color: 'var(--dm-accent)',
               border: '1px solid rgba(99, 102, 241, 0.3)',
             }}
           >

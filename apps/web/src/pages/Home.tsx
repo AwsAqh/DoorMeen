@@ -87,9 +87,9 @@ const Home = () => {
       <Toaster position="top-center" offset={16} />
 
       <section className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 pt-6" aria-label={t('home.testingWelcomeTitle')}>
-        <div className="flex flex-col gap-1 rounded-2xl border border-teal-400/30 bg-teal-400/10 px-5 py-4 text-center shadow-lg sm:px-7 sm:py-5">
-          <p className="text-base font-bold text-teal-300 sm:text-lg">{t('home.testingWelcomeTitle')}</p>
-          <p className="text-sm leading-relaxed text-slate-200 sm:text-base">{t('home.testingWelcomeMessage')}</p>
+        <div className="flex flex-col gap-1 rounded-2xl border px-5 py-4 text-center shadow-lg sm:px-7 sm:py-5" style={{ borderColor: 'var(--dm-accent)', background: 'var(--dm-accent-glow)' }}>
+          <p className="text-base font-bold sm:text-lg" style={{ color: 'var(--dm-accent)' }}>{t('home.testingWelcomeTitle')}</p>
+          <p className="text-sm leading-relaxed sm:text-base" style={{ color: 'var(--dm-text-secondary)' }}>{t('home.testingWelcomeMessage')}</p>
         </div>
       </section>
 

@@ -8,7 +8,7 @@
 .btn {
   @apply inline-flex items-center justify-center rounded-lg px-4 py-2 font-medium transition-all duration-200 cursor-pointer;
   background: var(--dm-accent);
-  color: white;
+  color: #111a2c;
 }
 
 .btn:hover {
@@ -135,7 +135,7 @@
 
 .fab:hover {
   background: var(--dm-accent);
-  color: white;
+  color: #111a2c;
   box-shadow: var(--dm-shadow-glow);
 }
 

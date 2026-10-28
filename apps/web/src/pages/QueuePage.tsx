@@ -584,8 +584,8 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
                       <div 
                         className={`flex items-center gap-3 px-4 py-3 rounded-xl w-full max-w-md cursor-pointer transition-colors relative`}
                         style={{
-                           background: ownerMessage ? 'rgba(234, 179, 8, 0.15)' : 'var(--dm-surface)',
-                           border: `1px solid ${ownerMessage ? 'rgba(234, 179, 8, 0.4)' : 'var(--dm-surface-border)'}`,
+                           background: ownerMessage ? 'var(--dm-accent-glow)' : 'var(--dm-surface)',
+                           border: `1px solid ${ownerMessage ? 'var(--dm-accent)' : 'var(--dm-surface-border)'}`,
                            minHeight: '52px'
                         }}
                         onClick={() => {

@@ -114,6 +114,6 @@
 /* Arabic font support */
 [dir="rtl"],
 [lang="ar"] {
-  font-family: 'Cairo', 'Inter', system-ui, 'Arial', 'Noto Sans Arabic', sans-serif;
+  font-family: 'Cairo', 'Manrope', system-ui, 'Arial', 'Noto Sans Arabic', sans-serif;
 }
 

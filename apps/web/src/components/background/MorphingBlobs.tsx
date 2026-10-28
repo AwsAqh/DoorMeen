@@ -14,21 +14,21 @@ export default function MorphingBlobs({ children }: { children: React.ReactNode 
         <div
           className="blob absolute -top-24 -left-24 h-96 w-96 rounded-full blur-3xl"
           style={{
-            background: 'rgba(20, 184, 166, 0.08)',
+            background: 'color-mix(in srgb, var(--dm-accent) 10%, transparent)',
             animationDelay: '0s',
           }}
         />
         <div
           className="blob absolute top-1/3 -right-24 h-[30rem] w-[30rem] rounded-full blur-3xl"
           style={{
-            background: 'rgba(56, 189, 248, 0.06)',
+            background: 'color-mix(in srgb, var(--dm-accent) 7%, transparent)',
             animationDelay: '2s',
           }}
         />
         <div
           className="blob absolute bottom-0 left-1/3 h-96 w-96 rounded-full blur-3xl"
           style={{
-            background: 'rgba(139, 92, 246, 0.06)',
+            background: 'color-mix(in srgb, var(--dm-accent) 5%, transparent)',
             animationDelay: '4s',
           }}
         />

@@ -14,8 +14,8 @@ export default defineConfig({
         name: 'DoorMeen',
         short_name: 'DoorMeen',
         description: 'Smart queue management designed for fast-paced walk-in barbershops and salons.',
-        theme_color: '#1a1f2c',
-        background_color: '#1a1f2c',
+        theme_color: '#f5f0e6',
+        background_color: '#f5f0e6',
         display: 'standalone',
         orientation: 'portrait',
         icons: [

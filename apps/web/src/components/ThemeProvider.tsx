@@ -11,18 +11,19 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'doormeen-theme';
+// Reset users from the previous color scheme to the new cream/orange default once.
+const STORAGE_KEY = 'doormeen-theme-v2';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const [theme, setThemeState] = useState<Theme>(() => {
-        // Check localStorage first, default to 'dark'
+        // Check localStorage first, default to the brand's cream/orange theme.
         if (typeof window !== 'undefined') {
             const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
             if (stored === 'dark' || stored === 'light') {
                 return stored;
             }
         }
-        return 'dark'; // Default to dark theme
+        return 'light';
     });
 
     useEffect(() => {

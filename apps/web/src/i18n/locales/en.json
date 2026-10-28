@@ -35,7 +35,14 @@
     "scanQR": "Scan a QR",
     "feature1": "Instant QR codes",
     "feature2": "PIN-protected management",
-    "feature3": "Privacy-first design"
+    "feature3": "Privacy-first design",
+    "queueIdLabel": "Have a queue code?",
+    "queueIdPlaceholder": "Enter queue ID",
+    "openQueue": "Open queue",
+    "recentQueues": "Recent queues",
+    "noRecentQueues": "Queues you visit will show up here.",
+    "lastVisited": "Last visited {{time}}",
+    "removeRecentQueue": "Remove {{name}} from recent queues"
   },
   "popupForm": {
     "create": {

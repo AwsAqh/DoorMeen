@@ -35,7 +35,14 @@
     "scanQR": "مسح رمز QR",
     "feature1": "رموز QR فورية",
     "feature2": "إدارة محمية بكلمة مرور",
-    "feature3": "تصميم يراعي الخصوصية"
+    "feature3": "تصميم يراعي الخصوصية",
+    "queueIdLabel": "معك رمز الطابور؟",
+    "queueIdPlaceholder": "اكتب رمز الطابور",
+    "openQueue": "افتح الطابور",
+    "recentQueues": "الطوابير الأخيرة",
+    "noRecentQueues": "الطوابير اللي بتزورها رح تظهر هون.",
+    "lastVisited": "آخر زيارة {{time}}",
+    "removeRecentQueue": "احذف {{name}} من الطوابير الأخيرة"
   },
   "popupForm": {
     "create": {

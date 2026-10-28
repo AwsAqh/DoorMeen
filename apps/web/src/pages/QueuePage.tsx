@@ -35,6 +35,7 @@ import { handleUpdateQueueName, UpdateQueueNameData } from "@/features/queue/han
 import { useOwnerGuard } from "@/hooks/useOwnerGuard";
 import { useOwnerSession } from "@/hooks/useOwnerSession";
 import { useQueueSignalR } from "@/hooks/useQueueSignalR";
+import { saveRecentQueue } from "@/features/queue/services/recentQueues";
 
 type User = {
   Id: number;
@@ -194,6 +195,7 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
         const payload: GetData = { QueueId: currentQueueId };
         const data = await handleGetCustomers(payload);
         setQueueName(data.Name);
+        saveRecentQueue(currentQueueId, data.Name || currentQueueId);
         setOwnerMessage(data.OwnerMessage || null);
         setAvgServiceTime(data.AvgServiceTime ?? 15);
         setUsers(data.Waiters);
@@ -230,6 +232,7 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
         const data = await handleGetOwnerCustomers(payload);
         toast.dismiss(LOADING_ID);
         setQueueName(data.Name);
+        saveRecentQueue(currentQueueId, data.Name || currentQueueId);
         setOwnerMessage(data.OwnerMessage || null);
         setAvgServiceTime(data.AvgServiceTime ?? 15);
         setUsers(data.Waiters);

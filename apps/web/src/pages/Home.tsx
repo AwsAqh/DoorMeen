@@ -14,6 +14,7 @@ import OwnerPageImage from "@/assets/ownerPage.png";
 import BannerImage from "@/assets/banner.png";
 
 import { CreateData, handleCreate } from "../features/queue/handlers";
+import { formatLastVisited, getRecentQueues, removeRecentQueue } from "../features/queue/services/recentQueues";
 
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import LockIcon from '@mui/icons-material/Lock';
@@ -22,7 +23,7 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import "../customstyle.css";
 
 const Home = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const firstInputRef = useRef<HTMLInputElement>(null);
   const secondInputRef = useRef<HTMLInputElement>(null);
@@ -41,6 +42,20 @@ const Home = () => {
 
   const [open, setOpen] = useState(false);
   const [textIndex, setTextIndex] = useState<number>(0);
+  const [queueId, setQueueId] = useState('');
+  const [recentQueues, setRecentQueues] = useState(getRecentQueues);
+
+  const openQueue = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const id = queueId.trim();
+    if (!id) return;
+    navigate(`/queue/${encodeURIComponent(id)}`);
+  };
+
+  const forgetRecentQueue = (id: string) => {
+    removeRecentQueue(id);
+    setRecentQueues(getRecentQueues());
+  };
 
   useEffect(() => {
     const ping = async () => {
@@ -200,6 +215,52 @@ const Home = () => {
                 </motion.li>
               ))}
             </motion.ul>
+
+            <section className="space-y-4 pt-2 text-start" aria-label={t('home.openQueue')}>
+              <div className="rounded-2xl border p-4 sm:p-5" style={{ background: 'var(--dm-surface)', borderColor: 'var(--dm-surface-border)' }}>
+                <h3 className="mb-3 text-base font-bold" style={{ color: 'var(--dm-text-primary)' }}>{t('home.queueIdLabel')}</h3>
+                <form onSubmit={openQueue} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={queueId}
+                    onChange={(event) => setQueueId(event.target.value)}
+                    placeholder={t('home.queueIdPlaceholder')}
+                    aria-label={t('home.queueIdLabel')}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    dir="ltr"
+                    className="min-w-0 flex-1 rounded-xl border px-4 py-3 text-left outline-none focus:ring-2"
+                    style={{ background: 'var(--dm-bg-primary)', color: 'var(--dm-text-primary)', borderColor: 'var(--dm-surface-border)', '--tw-ring-color': 'var(--dm-accent)' } as React.CSSProperties}
+                  />
+                  <button type="submit" disabled={!queueId.trim()} className="btn-primary rounded-xl px-5 disabled:cursor-not-allowed disabled:opacity-50">
+                    {t('home.openQueue')}
+                  </button>
+                </form>
+              </div>
+
+              <div className="rounded-2xl border p-4 sm:p-5" style={{ background: 'var(--dm-surface)', borderColor: 'var(--dm-surface-border)' }}>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <h3 className="text-base font-bold" style={{ color: 'var(--dm-text-primary)' }}>{t('home.recentQueues')}</h3>
+                  {recentQueues.length > 0 && <span className="rounded-full px-2.5 py-1 text-xs font-bold" style={{ background: 'var(--dm-accent-glow)', color: 'var(--dm-accent-dark)' }}>{recentQueues.length}</span>}
+                </div>
+                {recentQueues.length === 0 ? (
+                  <p className="rounded-xl border border-dashed px-4 py-5 text-center text-sm" style={{ borderColor: 'var(--dm-surface-border)', color: 'var(--dm-text-muted)' }}>{t('home.noRecentQueues')}</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {recentQueues.map((queue) => (
+                      <li key={queue.id} className="flex items-center gap-3 rounded-xl border p-3" style={{ borderColor: 'var(--dm-surface-border)', background: 'var(--dm-bg-primary)' }}>
+                        <button type="button" onClick={() => navigate(`/queue/${encodeURIComponent(queue.id)}`)} className="min-w-0 flex-1 text-start">
+                          <span className="block truncate text-sm font-bold" style={{ color: 'var(--dm-text-primary)' }}>{queue.name}</span>
+                          <span className="mt-0.5 block truncate text-xs" dir="ltr" style={{ color: 'var(--dm-text-muted)' }}>{queue.id}</span>
+                          <span className="mt-1 block text-xs" style={{ color: 'var(--dm-accent-dark)' }}>{t('home.lastVisited', { time: formatLastVisited(queue.visitedAt, i18n.language) })}</span>
+                        </button>
+                        <button type="button" onClick={() => forgetRecentQueue(queue.id)} className="shrink-0 rounded-lg px-2 py-1 text-xs" style={{ color: 'var(--dm-text-muted)' }} aria-label={t('home.removeRecentQueue', { name: queue.name })} title={t('home.removeRecentQueue', { name: queue.name })}>×</button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </section>
           </motion.div>
         </div>
       </main>

@@ -120,14 +120,14 @@ describe("API layer (Vitest)", () => {
   test("apiCreateQueue: success 200", async () => {
     const mockBody = { id: 1, name: "Dermn", maxCustomers: 10 };
     asFetchMock().mockResolvedValueOnce(makeResponse({ status: 200, body: mockBody }));
-    const data = await apiCreateQueue({ name: "Dermn", password: "1234" });
+    const data = await apiCreateQueue({ name: "Dermn", password: "1234", email: "owner@example.com" });
     expect(data).toEqual(mockBody);
     expectLastFetchMatch(/^\/api\/queues$/, { method: "POST" });
   });
 
   test("apiCreateQueue: throws on non-OK", async () => {
     asFetchMock().mockResolvedValueOnce(makeResponse({ status: 400, ok: false, body: "Bad Request" }));
-    await expect(apiCreateQueue({ name: "x", password: "y" })).rejects.toThrow("failed to create a queue");
+    await expect(apiCreateQueue({ name: "x", password: "y", email: "owner@example.com" })).rejects.toThrow("failed to create a queue");
   });
 
   test("apiJoinQueue: success", async () => {

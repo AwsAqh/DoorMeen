@@ -8,6 +8,7 @@ namespace Api.Application.Interfaces
         Task <OwnerQueueByIdResDTO> GetQueueById(string id);
 
         Task UpdateCustomerState(string queueId, int customerId);
+        Task RevertCustomerToWaiting(string queueId, int customerId);
 
         Task ServeCustomer (string queueId,int customerId);
 

@@ -12,8 +12,9 @@ type PopupFormProps = {
   firstInputRef: React.Ref<HTMLInputElement>
   secondInputRef: React.Ref<HTMLInputElement>
   thirdInputRef?: React.Ref<HTMLInputElement>
+  emailInputRef?: React.Ref<HTMLInputElement>
 };
-const PopupForm: React.FC<PopupFormProps> = ({ open, onClose, onSubmit, type, firstInputRef, secondInputRef, thirdInputRef }) => {
+const PopupForm: React.FC<PopupFormProps> = ({ open, onClose, onSubmit, type, firstInputRef, secondInputRef, thirdInputRef, emailInputRef }) => {
   const { t } = useTranslation();
 
   const copy = {
@@ -29,6 +30,8 @@ const PopupForm: React.FC<PopupFormProps> = ({ open, onClose, onSubmit, type, fi
     input2MaxLength: COPIES[type].input2MaxLength,
     pattern: COPIES[type].pattern,
     note: t(`popupForm.${type}.note`),
+    labelEmail: type === 'create' ? t(`popupForm.${type}.labelEmail`) : undefined,
+    placeholderEmail: type === 'create' ? t(`popupForm.${type}.placeholderEmail`) : undefined,
     action: t(`popupForm.${type}.action`),
     // Optional 3rd input (Email)
     label3: type === 'join' ? t(`popupForm.${type}.label3`) : undefined,
@@ -134,6 +137,13 @@ const PopupForm: React.FC<PopupFormProps> = ({ open, onClose, onSubmit, type, fi
                     >
                       {copy.note}
                     </p>
+                  </div>
+                )}
+
+                {type === 'create' && emailInputRef && (
+                  <div>
+                    <label htmlFor="OwnerEmail" className="mb-1 block text-sm font-medium" style={{ color: 'var(--dm-text-secondary)' }}>{copy.labelEmail}</label>
+                    <input ref={emailInputRef} id="OwnerEmail" name="OwnerEmail" type="email" autoComplete="email" placeholder={copy.placeholderEmail} required maxLength={120} className="block w-full rounded-xl px-4 py-3 shadow-sm outline-none transition-all" style={{ background: 'var(--dm-bg-primary)', color: 'var(--dm-text-primary)', border: '1px solid var(--dm-surface-border)' }} />
                   </div>
                 )}
 

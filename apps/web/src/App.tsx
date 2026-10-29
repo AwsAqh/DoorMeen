@@ -8,6 +8,7 @@ import { RequireOwner } from './Guards/RequireOwner'
 import ScanPage from './pages/ScanPage'
 import OwnerDashboard from './pages/OwnerDashboard'
 import { Analytics } from "@vercel/analytics/react"
+import TestingWelcomeDialog from './components/TestingWelcomeDialog'
 
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
   return (
     <BrowserRouter>
       <Analytics />
+      <TestingWelcomeDialog />
       <Routes>
 
         <Route path="/" element={<Home />} />

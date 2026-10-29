@@ -21,7 +21,7 @@ async function readBody(res: Response) {
 
 
 
-export async function apiCreateQueue(input: { name: string; password: string }) {
+export async function apiCreateQueue(input: { name: string; password: string; email: string }) {
 
   const res = await fetch(`${API}/api/queues`, { method: "POST", headers: { "Content-type": "application/json" }, body: JSON.stringify(input) })
   const body = await readBody(res);

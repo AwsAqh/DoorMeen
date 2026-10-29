@@ -73,6 +73,14 @@ namespace Api.Controllers
             return NoContent();
         }
 
+        [Authorize(Policy = "OwnerOfQueue")]
+        [HttpPut("set-waiting/{queueId}/{customerId:int}")]
+        public async Task<ActionResult> RevertCustomerToWaiting(string queueId, int customerId)
+        {
+            await _service.RevertCustomerToWaiting(queueId, customerId);
+            return NoContent();
+        }
+
 
         [Authorize(Policy = "OwnerOfQueue")]
         [HttpDelete("serve/{queueId}/{customerId:int}")]

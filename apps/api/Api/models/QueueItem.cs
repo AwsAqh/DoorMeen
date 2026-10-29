@@ -10,6 +10,7 @@ public class QueueItem() {
     public string Name { get; set; }
 
     public string HashedPassword { get; set; }
+    public string OwnerEmail { get; set; } = string.Empty;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow; 
     public int? MaxCustomers { get; set; }

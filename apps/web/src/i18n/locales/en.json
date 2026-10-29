@@ -24,7 +24,7 @@
   "home": {
     "title": "Door Meen",
     "testingWelcomeTitle": "Welcome to DoorMeen — we’re still in testing!",
-    "testingWelcomeMessage": "Try DoorMeen while it’s in testing and enter the draw to win one month of free ad space for your business.",
+    "testingWelcomeMessage": "Try DoorMeen while it’s in testing. Early businesses may be entered into a draw for a chance to win one month of free ad space.",
     "subtitle1": "Instant QR for customers",
     "subtitle1Desc": "Share and start taking names in seconds.",
     "subtitle2": "Owner-only actions via PIN",
@@ -44,6 +44,16 @@
     "lastVisited": "Last visited {{time}}",
     "removeRecentQueue": "Remove {{name}} from recent queues"
   },
+  "testingNotice": {
+    "badge": "EARLY ACCESS · TESTING",
+    "title": "A quick note before you start",
+    "intro": "DoorMeen is still being tested. Thanks for helping us try it out before launch.",
+    "passwordReset": "Password reset will be available when the full account features launch.",
+    "sms": "We plan to verify customers by SMS when phone verification launches.",
+    "earlyAccess": "Early businesses may be entered into a draw to win one month of free ad space; it is not guaranteed.",
+    "ownerEmail": "Add an email when creating a queue. We’ll use it for future verification and queue management when the live service launches.",
+    "continue": "Got it, let’s try it"
+  },
   "popupForm": {
     "create": {
       "title": "Create a Queue",
@@ -52,6 +62,8 @@
       "placeholder1": "Enter queue name…",
       "label2": "PIN",
       "placeholder2": "4–6 digits",
+      "labelEmail": "Owner email",
+      "placeholderEmail": "you@example.com",
       "note": "Only digits, 4–6 length.",
       "action": "Create"
     },

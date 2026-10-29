@@ -26,16 +26,20 @@ namespace Api.Application.Services
          
 
         public QueueServices(DoorMeenDbContext db) : base(db) { }
-        public async Task<QueueItem> CreateQueue(string queueName,string password) {
+        public async Task<QueueItem> CreateQueue(string queueName,string password,string email) {
 
           
             if (queueName is null || password is null) throw new ArgumentNullException();
+            email = email?.Trim() ?? "";
+            if (!new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(email) || email.Length > 120)
+                throw new ValidationException("Enter a valid owner email address");
           
             var queue = new QueueItem
             {
 
                 Name = queueName,
                 HashedPassword = Password.HashOrNull(password),
+                OwnerEmail = email,
 
 
             };

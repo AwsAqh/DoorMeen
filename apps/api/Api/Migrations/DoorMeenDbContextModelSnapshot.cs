@@ -113,6 +113,11 @@ namespace Api.Migrations
                     b.Property<string>("OwnerMessage")
                         .HasColumnType("text");
 
+                    b.Property<string>("OwnerEmail")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedAt");

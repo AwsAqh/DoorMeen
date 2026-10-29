@@ -6,7 +6,7 @@ namespace Api.Application.Interfaces
 {
     public interface IQueueServices
     {
-        Task<QueueItem> CreateQueue(string queueName , string password);
+        Task<QueueItem> CreateQueue(string queueName , string password, string email);
         Task <QueueDetailsResDTO > GetQueueById(string id);
     }
 

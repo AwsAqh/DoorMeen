@@ -16,13 +16,14 @@ public class QueueServicesTests
         using var db = DbContextFactory.CreateInMemory();
         var sut = new QueueServices(db);
 
-        var result = await sut.CreateQueue("MyQueue", "1234");
+        var result = await sut.CreateQueue("MyQueue", "1234", "owner@example.com");
 
         result.Should().NotBeNull();
         db.Queues.Count().Should().Be(1);
         var saved = db.Queues.Single();
         saved.Name.Should().Be("MyQueue");
         saved.HashedPassword.Should().NotBeNullOrWhiteSpace();
+        saved.OwnerEmail.Should().Be("owner@example.com");
     }
 
     [Fact]

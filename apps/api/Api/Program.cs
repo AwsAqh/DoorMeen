@@ -26,6 +26,7 @@ builder.Services.AddCors(options =>
 
             // local dev
             if (origin == "http://localhost:5173") return true;
+            if (origin == "http://127.0.0.1:5173") return true;
             if (origin == "http://localhost:3000") return true;
 
            

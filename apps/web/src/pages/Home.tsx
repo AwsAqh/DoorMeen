@@ -27,6 +27,7 @@ const Home = () => {
   const navigate = useNavigate();
   const firstInputRef = useRef<HTMLInputElement>(null);
   const secondInputRef = useRef<HTMLInputElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
 
   const texts = [
     { h: t('home.subtitle1'), p: t('home.subtitle1Desc') },
@@ -80,7 +81,7 @@ const Home = () => {
       const b = secondInputRef.current?.value?.trim() ?? "";
 
       try {
-        const payload: CreateData = { name: a, password: b };
+        const payload: CreateData = { name: a, password: b, email: emailInputRef.current?.value?.trim() ?? '' };
         const res = await handleCreate(payload);
         toast.success(t('common.success'), { id, className: CLASS, duration: 2500 });
         setOpen(false);
@@ -272,6 +273,7 @@ const Home = () => {
         type="create"
         firstInputRef={firstInputRef}
         secondInputRef={secondInputRef}
+        emailInputRef={emailInputRef}
       />
 
       <Footer />

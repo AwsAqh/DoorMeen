@@ -18,6 +18,7 @@ namespace Api.Infrastructuer
                 e.Property(x => x.Id).HasMaxLength(26).ValueGeneratedNever();
                 e.Property(x => x.Name).HasMaxLength(120);
                 e.Property(x => x.HashedPassword).HasMaxLength(200);
+                e.Property(x => x.OwnerEmail).HasMaxLength(120).IsRequired();
                 e.HasIndex(x => x.CreatedAt);
 
 

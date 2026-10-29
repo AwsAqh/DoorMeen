@@ -108,6 +108,28 @@ namespace Api.Application.Services
             return;
         }
 
+    public async Task RevertCustomerToWaiting(string queueId, int customerId)
+    {
+        var customer = await _db.QueueCustomers.FindAsync(new object[] { customerId });
+        if (customer is null)
+            throw new KeyNotFoundException($"Customer {customerId} not found.");
+        if (customer.QueueId != queueId)
+            throw new ValidationException("Customer does not belong to this queue.");
+        if (customer.State != "in_progress")
+            throw new ValidationException("Only a customer in progress can be moved back to waiting.");
+
+        customer.State = "waiting";
+        await _db.SaveChangesAsync();
+
+        await _hub.Clients.Group(queueId).SendAsync("CustomerStatusChanged", new
+        {
+            Id = customer.Id,
+            QueueId = customer.QueueId,
+            Name = customer.Name,
+            State = customer.State
+        });
+    }
+
         public async Task ServeCustomer(string queueId, int customerId)
         {
             var customer = await _db.QueueCustomers.FindAsync([customerId]);

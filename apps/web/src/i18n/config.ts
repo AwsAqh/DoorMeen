@@ -16,13 +16,14 @@ i18n
         translation: arTranslations,
       },
     },
-    fallbackLng: 'en',
+    fallbackLng: 'ar',
     debug: false,
     interpolation: {
       escapeValue: false,
     },
     detection: {
-      order: ['localStorage', 'navigator'],
+      // Start in Arabic unless the user has already chosen a language in the app.
+      order: ['localStorage'],
       caches: ['localStorage'],
     },
   });

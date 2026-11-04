@@ -198,6 +198,12 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
         saveRecentQueue(currentQueueId, data.Name || currentQueueId);
         setOwnerMessage(data.OwnerMessage || null);
         setAvgServiceTime(data.AvgServiceTime ?? 15);
+        // Set closing time if available
+        setClosingTime(data.DailyResetTime !== undefined
+          ? typeof data.DailyResetTime === 'object' && data.DailyResetTime !== null
+            ? t('queue.closesAt', 'Closes at') + ' ' + new Date(0, 0, 0, data.DailyResetTime.hours ?? 0, data.DailyResetTime.minutes ?? 0).toLocaleTimeString()
+            : t('queue.closesAt', 'Closes at')
+          : "");
         setUsers(data.Waiters);
         toast.dismiss(LOADING_ID);
       } catch (err) {
@@ -235,6 +241,12 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
         saveRecentQueue(currentQueueId, data.Name || currentQueueId);
         setOwnerMessage(data.OwnerMessage || null);
         setAvgServiceTime(data.AvgServiceTime ?? 15);
+        // Set closing time if available
+        setClosingTime(data.DailyResetTime !== undefined
+          ? typeof data.DailyResetTime === 'object' && data.DailyResetTime !== null
+            ? t('queue.closesAt', 'Closes at') + ' ' + new Date(0, 0, 0, data.DailyResetTime.hours ?? 0, data.DailyResetTime.minutes ?? 0).toLocaleTimeString()
+            : t('queue.closesAt', 'Closes at')
+          : "");
         setUsers(data.Waiters);
         setCurrentMaxCustomers(data.MaxCustomers ?? null);
         setEditingQueueName(data.Name);

@@ -136,7 +136,10 @@
       "invalidPassword": "Invalid Password",
       "cancelFailed": "Failed to cancel registration",
       "updateFailed": "Failed to update",
-      "serveFailed": "Failed to serve customer"
+      "serveFailed": "Failed to serve customer",
+      "updateBarberPhoneNumberFailed": "Failed to update barber phone",
+      "updateLocationFailed": "Failed to update location",
+      "updateMetadataFailed": "Failed to update metadata"
     }
   },
   "scan": {

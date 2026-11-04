@@ -213,6 +213,63 @@ export async function apiUpdateAvgServiceTime(input: { QueueId: string, Minutes:
   return body ?? true;
 }
 
+export async function apiUpdateBarberPhoneNumber(input: { QueueId: string, phone: string, token: string }) {
+  const res = await fetch(`${API}/api/owners/update-barber-phone/${input.QueueId}`, {
+    method: "PUT",
+    headers: { "Content-type": "application/json", "Authorization": `Bearer ${input.token}` },
+    body: JSON.stringify({ phone: input.phone })
+  });
+
+  const body = await readBody(res);
+  if (!res.ok) {
+    const msg =
+      typeof body === "string"
+        ? body
+        : body?.message || body?.detail || body?.title || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+
+  return body ?? true;
+}
+
+export async function apiUpdateLocation(input: { QueueId: string, location: string, token: string }) {
+  const res = await fetch(`${API}/api/owners/update-location/${input.QueueId}`, {
+    method: "PUT",
+    headers: { "Content-type": "application/json", "Authorization": `Bearer ${input.token}` },
+    body: JSON.stringify({ location: input.location })
+  });
+
+  const body = await readBody(res);
+  if (!res.ok) {
+    const msg =
+      typeof body === "string"
+        ? body
+        : body?.message || body?.detail || body?.title || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+
+  return body ?? true;
+}
+
+export async function apiUpdateMetadata(input: { QueueId: string, metadata: string, token: string }) {
+  const res = await fetch(`${API}/api/owners/update-metadata/${input.QueueId}`, {
+    method: "PUT",
+    headers: { "Content-type": "application/json", "Authorization": `Bearer ${input.token}` },
+    body: JSON.stringify({ metadata: input.metadata })
+  });
+
+  const body = await readBody(res);
+  if (!res.ok) {
+    const msg =
+      typeof body === "string"
+        ? body
+        : body?.message || body?.detail || body?.title || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+
+  return body ?? true;
+}
+
 export async function apiSnoozeRegistration(input: { queueId: string, customerId: number, token: string }) {
   const res = await fetch(`${API}/api/queueCustomers/snooze/${input.queueId}/${input.customerId}`, {
     method: "PUT",

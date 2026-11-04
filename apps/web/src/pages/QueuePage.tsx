@@ -28,7 +28,7 @@ import { CancelData, handleCancel } from "@/features/queue/handlers/cancel";
 import { GetData, handleGetCustomers } from "@/features/queue/handlers/getCustomers";
 import { UpdateData, handleupdateStatus } from "@/features/queue/handlers/update";
 import { GetOwnerCustomersData, handleGetOwnerCustomers } from "@/features/queue/handlers/getOwnerCustomers";
-import { apiUpdateOwnerMessage, apiUpdateAvgServiceTime, apiSnoozeRegistration, apiUpdateClosingTime } from "@/features/queue/services/api";
+import { apiUpdateOwnerMessage, apiUpdateAvgServiceTime, apiUpdateBarberPhoneNumber, apiUpdateLocation, apiUpdateMetadata, apiSnoozeRegistration, apiUpdateClosingTime } from "@/features/queue/services/api";
 import { handleServeCustomer } from "@/features/queue/handlers/serveCustomer";
 import { handleUpdateMaxCustomers } from "@/features/queue/handlers/updateMaxCustomers";
 import { handleUpdateQueueName, UpdateQueueNameData } from "@/features/queue/handlers/updateQueueName";
@@ -92,6 +92,9 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
   const [avgServiceTime, setAvgServiceTime] = useState<number>(15);
   const [closingTime, setClosingTime] = useState("");
   const [rawClosingTime, setRawClosingTime] = useState("");
+  const [barberPhoneNumber, setBarberPhoneNumber] = useState("");
+  const [location, setLocation] = useState("");
+  const [metadata, setMetadata] = useState("");
   const [anyChange, setAnyChange] = useState(false);
   const [saveLoading, setSaveLoading] = useState<boolean>(false);
   const queueNameRef = useRef<HTMLInputElement>(null);
@@ -177,8 +180,24 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
   const effectiveCurrent = currentMaxCustomers ?? 0;
   const CLASS = "bg-card text-card-foreground border-border";
 
-  const getErrorMessage = (e: unknown): string =>
-    e instanceof Error ? e.message : typeof e === "string" ? e : t('common.error');
+  const getErrorMessage = (e: unknown): string => {
+    if (e instanceof Error) {
+      const error = e as any;
+      const messages = {
+        '400': t('queue.errors.updateBarberPhoneNumberFailed'),
+        '401': t('common.error'),
+        '403': t('common.error'),
+        '404': t('queue.notFound'),
+        '409': t('common.error'),
+        '500': t('common.error'),
+      };
+      if (error.response?.status !== undefined) {
+        return messages[error.response.status] || e.message;
+      }
+      return error.response?.message || e.message;
+    }
+    return typeof e === "string" ? e : t('common.error');
+  };
 
   // Get customers for public
   useEffect(() => {
@@ -262,6 +281,9 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
           : "");
         setUsers(data.Waiters);
         setCurrentMaxCustomers(data.MaxCustomers ?? null);
+        setBarberPhoneNumber(data.BarberPhoneNumber || "");
+        setLocation(data.Location || "");
+        setMetadata(data.Metadata || "");
         setEditingQueueName(data.Name);
       } catch (err) {
         setNotFound(true);
@@ -481,7 +503,10 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
       await apiUpdateAvgServiceTime({ QueueId: currentQueueId, Minutes: avgServiceTime, token });
 
       // 3) Closing Time
-      await apiUpdateClosingTime({ QueueId: currentQueueId, timeString: closingTime, token });
+      await apiUpdateClosingTime({ QueueId: currentQueueId, timeString: rawClosingTime, token });
+      await apiUpdateBarberPhoneNumber({ QueueId: currentQueueId, phone: barberPhoneNumber, token });
+      await apiUpdateLocation({ QueueId: currentQueueId, location: location, token });
+      await apiUpdateMetadata({ QueueId: currentQueueId, metadata: metadata, token });
 
       setAnyChange(false);
       toast.success(t('common.success'), { id: LOADING_ID, className: CLASS, duration: 2500 });
@@ -803,6 +828,45 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
                             style={{ 
                               color: 'var(--dm-text-primary)'
                             }}
+                          />
+                        </div>
+
+                        <div className="relative w-[200px]">
+                          <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--dm-text-muted)' }}>
+                            Barber Phone
+                          </label>
+                          <input
+                            type="text"
+                            value={barberPhoneNumber}
+                            onChange={(e) => { setBarberPhoneNumber(e.target.value); setAnyChange(true); }}
+                            className="w-full bg-transparent text-sm font-medium border border-white/10 rounded-lg px-3 py-2 outline-none appearance-none"
+                            style={{ color: 'var(--dm-text-primary)' }}
+                          />
+                        </div>
+
+                        <div className="relative w-[200px]">
+                          <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--dm-text-muted)' }}>
+                            Location
+                          </label>
+                          <input
+                            type="text"
+                            value={location}
+                            onChange={(e) => { setLocation(e.target.value); setAnyChange(true); }}
+                            className="w-full bg-transparent text-sm font-medium border border-white/10 rounded-lg px-3 py-2 outline-none appearance-none"
+                            style={{ color: 'var(--dm-text-primary)' }}
+                          />
+                        </div>
+
+                        <div className="relative flex-1">
+                          <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--dm-text-muted)' }}>
+                            Metadata
+                          </label>
+                          <textarea
+                            value={metadata}
+                            onChange={(e) => { setMetadata(e.target.value); setAnyChange(true); }}
+                            className="w-full bg-transparent text-sm font-medium border border-white/10 rounded-lg px-3 py-2 outline-none appearance-none resize-none"
+                            style={{ color: 'var(--dm-text-primary)' }}
+                            rows={2}
                           />
                         </div>
 

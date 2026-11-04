@@ -91,6 +91,7 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
   const [draftMax, setDraftMax] = useState<number>((currentMaxCustomers ?? 0));
   const [avgServiceTime, setAvgServiceTime] = useState<number>(15);
   const [closingTime, setClosingTime] = useState("");
+  const [rawClosingTime, setRawClosingTime] = useState("");
   const [anyChange, setAnyChange] = useState(false);
   const [saveLoading, setSaveLoading] = useState<boolean>(false);
   const queueNameRef = useRef<HTMLInputElement>(null);
@@ -199,10 +200,16 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
         setOwnerMessage(data.OwnerMessage || null);
         setAvgServiceTime(data.AvgServiceTime ?? 15);
         // Set closing time if available
-        setClosingTime(data.DailyResetTime !== undefined
-          ? typeof data.DailyResetTime === 'object' && data.DailyResetTime !== null
-            ? t('queue.closesAt', 'Closes at') + ' ' + new Date(0, 0, 0, data.DailyResetTime.hours ?? 0, data.DailyResetTime.minutes ?? 0).toLocaleTimeString()
+        const resetTime = data.DailyResetTime;
+        setClosingTime(resetTime !== undefined
+          ? typeof resetTime === 'object' && resetTime !== null
+            ? t('queue.closesAt', 'Closes at') + ' ' + new Date(0, 0, 0, resetTime.hours ?? 0, resetTime.minutes ?? 0).toLocaleTimeString()
             : t('queue.closesAt', 'Closes at')
+          : "");
+        setRawClosingTime(resetTime !== undefined
+          ? typeof resetTime === 'object' && resetTime !== null
+            ? String(resetTime.hours ?? 0).padStart(2, '0') + ':' + String(resetTime.minutes ?? 0).padStart(2, '0')
+            : ""
           : "");
         setUsers(data.Waiters);
         toast.dismiss(LOADING_ID);
@@ -242,10 +249,16 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
         setOwnerMessage(data.OwnerMessage || null);
         setAvgServiceTime(data.AvgServiceTime ?? 15);
         // Set closing time if available
-        setClosingTime(data.DailyResetTime !== undefined
-          ? typeof data.DailyResetTime === 'object' && data.DailyResetTime !== null
-            ? t('queue.closesAt', 'Closes at') + ' ' + new Date(0, 0, 0, data.DailyResetTime.hours ?? 0, data.DailyResetTime.minutes ?? 0).toLocaleTimeString()
+        const resetTime = data.DailyResetTime;
+        setClosingTime(resetTime !== undefined
+          ? typeof resetTime === 'object' && resetTime !== null
+            ? t('queue.closesAt', 'Closes at') + ' ' + new Date(0, 0, 0, resetTime.hours ?? 0, resetTime.minutes ?? 0).toLocaleTimeString()
             : t('queue.closesAt', 'Closes at')
+          : "");
+        setRawClosingTime(resetTime !== undefined
+          ? typeof resetTime === 'object' && resetTime !== null
+            ? String(resetTime.hours ?? 0).padStart(2, '0') + ':' + String(resetTime.minutes ?? 0).padStart(2, '0')
+            : ""
           : "");
         setUsers(data.Waiters);
         setCurrentMaxCustomers(data.MaxCustomers ?? null);
@@ -650,6 +663,15 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
                   </div>
                 )}
 
+                {/* Closing Time Display */}
+                {closingTime && (
+                  <div className="flex items-center justify-center gap-2 mb-4">
+                    <span className="text-sm font-medium" style={{ color: 'var(--dm-text-muted)' }}>
+                      {closingTime}
+                    </span>
+                  </div>
+                )}
+
                 {/* QR Card */}
                 {currentQueueId !== "" && <QueueQrCard queueId={currentQueueId} />}
 
@@ -771,9 +793,10 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
                           </label>
                           <input
                             type="time"
-                            value={closingTime}
+                            value={rawClosingTime}
                             onChange={(e) => {
-                              setClosingTime(e.target.value);
+                              setRawClosingTime(e.target.value);
+                              setClosingTime(e.target.value ? t('queue.closesAt', 'Closes at') + ' ' + e.target.value : "");
                               setAnyChange(true);
                             }}
                             className="w-[125px] bg-transparent text-sm font-medium border border-white/10 rounded-lg px-3 py-2 outline-none appearance-none"

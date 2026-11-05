@@ -18,12 +18,14 @@ namespace Api.Application.Services
         private readonly DoorMeenDbContext _db;
         private readonly Microsoft.AspNetCore.SignalR.IHubContext<Api.Hubs.QueueHub> _hub;
         private readonly IJoinVerification _joinVerification;
+        private readonly QueuePushNotifications? _pushNotifications;
 
-        public OwnerServices(IJwtTokenGenerator jwtTokenGenerator, DoorMeenDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<Api.Hubs.QueueHub> hub, IJoinVerification joinVerification) {
+        public OwnerServices(IJwtTokenGenerator jwtTokenGenerator, DoorMeenDbContext db, Microsoft.AspNetCore.SignalR.IHubContext<Api.Hubs.QueueHub> hub, IJoinVerification joinVerification, QueuePushNotifications? pushNotifications = null) {
             _db = db;
             _jwtTokenGenerator = jwtTokenGenerator;
             _hub = hub;
             _joinVerification = joinVerification;
+            _pushNotifications = pushNotifications;
         }
 
 
@@ -67,7 +69,11 @@ namespace Api.Application.Services
                 CreatedAt: queue.CreatedAt,
                 queue.MaxCustomers,
                 queue.OwnerMessage,
-                queue.AvgServiceTime
+                queue.AvgServiceTime,
+                queue.DailyResetTime,
+                queue.BarberPhoneNumber,
+                queue.Location,
+                queue.Metadata
                 );
 
 
@@ -104,6 +110,7 @@ namespace Api.Application.Services
                 State = customer.State
             };
             await _hub.Clients.Group(queueId).SendAsync("CustomerStatusChanged", resDto);
+            if (_pushNotifications is not null) await _pushNotifications.EvaluateAsync(queueId);
             
             return;
         }
@@ -143,6 +150,7 @@ namespace Api.Application.Services
                 await _db.SaveChangesAsync();
                 
                 await _hub.Clients.Group(queueId).SendAsync("CustomerServed", customerId);
+                if (_pushNotifications is not null) await _pushNotifications.EvaluateAsync(queueId);
 
                 var queue = await _db.Queues.SingleOrDefaultAsync(q => q.Id == queueId);
                 if (queue != null) 
@@ -251,17 +259,106 @@ namespace Api.Application.Services
             {
                 queue.DailyResetTime = null;
             }
-            else if (TimeSpan.TryParse(timeString, out var ts))
-            {
-                queue.DailyResetTime = ts;
-            }
             else
             {
-                throw new ValidationException("Invalid closing time format. Expected HH:mm.");
+                var trimmed = timeString.Trim().Trim('"').Trim();
+                if (string.IsNullOrWhiteSpace(trimmed))
+                {
+                    queue.DailyResetTime = null;
+                }
+                else if (TryParseClosingTime(trimmed, out var ts))
+                {
+                    queue.DailyResetTime = ts;
+                }
+                else
+                {
+                    throw new ValidationException("Invalid closing time format. Expected HH:mm.");
+                }
             }
 
             await _db.SaveChangesAsync();
         }
 
+        private static bool TryParseClosingTime(string input, out TimeSpan result)
+        {
+            result = default;
+
+            // Try TimeSpan with explicit formats (handles single-digit hours, seconds, etc.)
+            var timeSpanFormats = new[]
+            {
+                "hh:mm", "H:mm", "hh:mm:ss", "H:mm:ss",
+                "hh\\:mm", "H\\:mm", "hh\\:mm\\:ss", "H\\:mm\\:ss",
+                "c", "g", "G", "T"
+            };
+            foreach (var fmt in timeSpanFormats)
+            {
+                if (TimeSpan.TryParseExact(input, fmt, System.Globalization.CultureInfo.InvariantCulture, out var ts))
+                {
+                    result = ts;
+                    return true;
+                }
+            }
+
+            // Fallback: TimeSpan.TryParse with multiple cultures
+            if (TimeSpan.TryParse(input, System.Globalization.CultureInfo.InvariantCulture, out var ts1) ||
+                TimeSpan.TryParse(input, System.Globalization.CultureInfo.CurrentCulture, out ts1))
+            {
+                result = ts1;
+                return true;
+            }
+
+            // Try DateTime with explicit time-only formats
+            var dateTimeFormats = new[]
+            {
+                "HH:mm", "H:mm", "hh:mm", "h:mm",
+                "HH:mm:ss", "H:mm:ss", "hh:mm:ss", "h:mm:ss",
+                "hh:mm tt", "h:mm tt", "HH:mm:ss tt", "h:mm:ss tt"
+            };
+            foreach (var fmt in dateTimeFormats)
+            {
+                if (DateTime.TryParseExact(input, fmt, System.Globalization.CultureInfo.InvariantCulture,
+                        System.Globalization.DateTimeStyles.None, out var dt))
+                {
+                    result = dt.TimeOfDay;
+                    return true;
+                }
+            }
+
+            // Fallback: DateTime.TryParse with multiple cultures
+            if (DateTime.TryParse(input, System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None, out var dt1) ||
+                DateTime.TryParse(input, System.Globalization.CultureInfo.CurrentCulture,
+                    System.Globalization.DateTimeStyles.None, out dt1))
+            {
+                result = dt1.TimeOfDay;
+                return true;
+            }
+
+            return false;
+        }
+
+        public async Task UpdateBarberPhoneNumber(string queueId, string? phone)
+        {
+            var queue = await _db.Queues.FindAsync([queueId]);
+            if (queue is null) throw new KeyNotFoundException($"Queue {queueId} not found.");
+            queue.BarberPhoneNumber = phone;
+            await _db.SaveChangesAsync();
+        }
+
+        public async Task UpdateLocation(string queueId, string? location)
+        {
+            var queue = await _db.Queues.FindAsync([queueId]);
+            if (queue is null) throw new KeyNotFoundException($"Queue {queueId} not found.");
+            queue.Location = location;
+            await _db.SaveChangesAsync();
+        }
+
+        public async Task UpdateMetadata(string queueId, string? metadata)
+        {
+            var queue = await _db.Queues.FindAsync([queueId]);
+            if (queue is null) throw new KeyNotFoundException($"Queue {queueId} not found.");
+            queue.Metadata = metadata;
+            await _db.SaveChangesAsync();
+        }
     }
 }

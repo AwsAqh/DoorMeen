@@ -568,13 +568,16 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
             <QueueNotFound />
           ) : (
             <>
-              {/* Queue Title */}
-              <motion.div
-                className="text-center space-y-6 w-full max-w-2xl"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-              >
+              {/* Main Content Area: Tall Queue & Customers Column + Metadata Sidebar */}
+              <div className="w-full max-w-6xl flex flex-col lg:flex-row items-start justify-center gap-8">
+                {/* Tall Queue Column (Title, QR, Settings, Customers) */}
+                <div className="w-full flex-1 max-w-2xl flex flex-col items-center">
+                  <motion.div
+                    className="text-center space-y-6 w-full"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
                 <div className="flex items-center justify-center gap-4">
                   {mode === "public" && (
                     <h1
@@ -942,11 +945,9 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
                 </div>
               </motion.div>
 
-              {/* Main Content Area: Queue + Metadata Vertical Box */}
-              <div className="w-full max-w-5xl flex flex-col lg:flex-row items-start justify-center gap-6">
-                {/* Customer List (Queue) */}
-                <div className="w-full flex-1 max-w-3xl">
-                  <main className="space-y-3">
+              {/* Customer List (Queue) */}
+              <div className="w-full mt-6">
+                <main className="space-y-3">
                     <AnimatePresence mode="popLayout">
                       {users?.length === 0 ? (
                         <NoCustomersFound
@@ -1027,17 +1028,18 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
                     </motion.div>
                   )}
                 </div>
+              </div>
 
-                {/* Metadata Vertical Box Alongside Queue */}
-                {(metadata || barberPhoneNumber || location || closingTime || mode === "owner") && (
-                  <aside
-                    className="w-full lg:w-80 flex-shrink-0 rounded-2xl p-5 transition-all"
-                    style={{
-                      background: 'var(--dm-surface)',
-                      border: '1px solid var(--dm-surface-border)',
-                      boxShadow: 'var(--dm-shadow-md)',
-                    }}
-                  >
+              {/* Metadata Vertical Box Alongside Queue */}
+              {(metadata || barberPhoneNumber || location || closingTime || mode === "owner") && (
+                <aside
+                  className="w-full lg:w-80 lg:sticky lg:top-8 flex-shrink-0 rounded-2xl p-5 transition-all"
+                  style={{
+                    background: 'var(--dm-surface)',
+                    border: '1px solid var(--dm-surface-border)',
+                    boxShadow: 'var(--dm-shadow-md)',
+                  }}
+                >
                     <div className="flex items-center gap-3 pb-3 mb-4" style={{ borderBottom: '1px solid var(--dm-surface-border)' }}>
                       <div
                         className="p-2 rounded-xl flex items-center justify-center flex-shrink-0"

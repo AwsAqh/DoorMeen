@@ -721,10 +721,166 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
                 )}
               </motion.div>
 
-              {/* Main Content Area: Tall Queue (QR + Customers) Column & Metadata Sidebar */}
-              <div className="w-full max-w-5xl flex flex-col lg:flex-row items-start justify-center gap-6">
-                {/* Queue Column (QR, Actions, Settings, and Customers in the same column) */}
-                <div className="w-full flex-1 max-w-md flex flex-col items-center space-y-6">
+              {/* Main Content Area: Centered Queue (QR + Customers) Column with Metadata Stepped Aside */}
+              <div className="w-full max-w-7xl mx-auto flex flex-col lg:grid lg:grid-cols-[1fr_minmax(0,28rem)_1fr] items-start gap-6">
+                {/* Column 1: Metadata Vertical Box (steps aside on desktop, underneath on mobile) */}
+                <div className="w-full flex justify-center lg:justify-end order-2 lg:order-1">
+                  {(metadata || barberPhoneNumber || location || closingTime || mode === "owner") && (
+                    <aside
+                      className="w-full max-w-sm lg:max-w-xs lg:sticky lg:top-8 rounded-2xl p-5 transition-all"
+                      style={{
+                        background: 'var(--dm-surface)',
+                        border: '1px solid var(--dm-surface-border)',
+                        boxShadow: 'var(--dm-shadow-md)',
+                      }}
+                    >
+                      <div className="flex items-center gap-3 pb-3 mb-4" style={{ borderBottom: '1px solid var(--dm-surface-border)' }}>
+                        <div
+                          className="p-2 rounded-xl flex items-center justify-center flex-shrink-0"
+                          style={{
+                            background: 'var(--dm-accent-glow)',
+                            color: 'var(--dm-accent)',
+                            border: '1px solid var(--dm-accent)',
+                          }}
+                        >
+                          <InfoOutlinedIcon fontSize="small" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-sm font-bold truncate" style={{ color: 'var(--dm-text-primary)' }}>
+                            {t('queue.infoTitle', 'Queue Information')}
+                          </h3>
+                          <p className="text-xs truncate" style={{ color: 'var(--dm-text-muted)' }}>
+                            {queueName || t('queue.infoSubtitle', 'Details & contact info')}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        {/* Description / Metadata text */}
+                        {metadata ? (
+                          <div className="space-y-1.5">
+                            <span className="text-[11px] font-semibold uppercase tracking-wider block" style={{ color: 'var(--dm-text-muted)' }}>
+                              {t('queue.metadataLabel', 'Notice & Services')}
+                            </span>
+                            <div
+                              className="text-sm font-normal leading-relaxed whitespace-pre-wrap break-words rounded-xl p-3"
+                              style={{
+                                color: 'var(--dm-text-primary)',
+                                background: 'rgba(0, 0, 0, 0.03)',
+                                border: '1px solid var(--dm-surface-border)',
+                              }}
+                            >
+                              {metadata}
+                            </div>
+                          </div>
+                        ) : mode === "owner" ? (
+                          <p className="text-xs italic p-3 rounded-xl text-center" style={{ color: 'var(--dm-text-muted)', border: '1px dashed var(--dm-surface-border)' }}>
+                            {t('queue.noMetadata', 'No metadata added yet. Use the settings panel above to add details, location, and contact info.')}
+                          </p>
+                        ) : null}
+
+                        {/* Barber / Contact Phone */}
+                        {barberPhoneNumber && (
+                          <div
+                            className="flex items-start gap-3 p-3 rounded-xl transition-colors"
+                            style={{
+                              background: 'rgba(0, 0, 0, 0.02)',
+                              border: '1px solid var(--dm-surface-border)',
+                            }}
+                          >
+                            <div className="mt-0.5 flex-shrink-0" style={{ color: 'var(--dm-accent)' }}>
+                              <PhoneIcon fontSize="small" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-[11px] font-semibold uppercase tracking-wider block mb-0.5" style={{ color: 'var(--dm-text-muted)' }}>
+                                {t('queue.barberPhone', 'Phone')}
+                              </span>
+                              <a
+                                href={`tel:${barberPhoneNumber}`}
+                                className="text-sm font-semibold hover:underline block truncate"
+                                style={{ color: 'var(--dm-text-primary)' }}
+                              >
+                                {barberPhoneNumber}
+                              </a>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Location */}
+                        {location && (
+                          <div
+                            className="flex items-start gap-3 p-3 rounded-xl transition-colors"
+                            style={{
+                              background: 'rgba(0, 0, 0, 0.02)',
+                              border: '1px solid var(--dm-surface-border)',
+                            }}
+                          >
+                            <div className="mt-0.5 flex-shrink-0" style={{ color: 'var(--dm-accent)' }}>
+                              <LocationOnIcon fontSize="small" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-[11px] font-semibold uppercase tracking-wider block mb-0.5" style={{ color: 'var(--dm-text-muted)' }}>
+                                {t('queue.location', 'Location')}
+                              </span>
+                              <span className="text-sm font-medium block break-words" style={{ color: 'var(--dm-text-primary)' }}>
+                                {location}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Closing Time */}
+                        {closingTime && (
+                          <div
+                            className="flex items-start gap-3 p-3 rounded-xl transition-colors"
+                            style={{
+                              background: 'rgba(0, 0, 0, 0.02)',
+                              border: '1px solid var(--dm-surface-border)',
+                            }}
+                          >
+                            <div className="mt-0.5 flex-shrink-0" style={{ color: 'var(--dm-accent)' }}>
+                              <AccessTimeIcon fontSize="small" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-[11px] font-semibold uppercase tracking-wider block mb-0.5" style={{ color: 'var(--dm-text-muted)' }}>
+                                {t('queue.closingTime', 'Closing Time')}
+                              </span>
+                              <span className="text-sm font-medium block truncate" style={{ color: 'var(--dm-text-primary)' }}>
+                                {closingTime}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Avg Service Time */}
+                        {avgServiceTime > 0 && (
+                          <div
+                            className="flex items-start gap-3 p-3 rounded-xl transition-colors"
+                            style={{
+                              background: 'rgba(0, 0, 0, 0.02)',
+                              border: '1px solid var(--dm-surface-border)',
+                            }}
+                          >
+                            <div className="mt-0.5 flex-shrink-0" style={{ color: 'var(--dm-accent)' }}>
+                              <SpeedIcon fontSize="small" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-[11px] font-semibold uppercase tracking-wider block mb-0.5" style={{ color: 'var(--dm-text-muted)' }}>
+                                {t('queue.avgTime', 'Avg. Service Time')}
+                              </span>
+                              <span className="text-sm font-medium block truncate" style={{ color: 'var(--dm-text-primary)' }}>
+                                ~{avgServiceTime} {t('queue.minPerPerson', 'min / person')}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </aside>
+                  )}
+                </div>
+
+                {/* Column 2: Queue Column (QR, Actions, Settings, Customers) - 100% DEAD CENTER */}
+                <div className="w-full max-w-md mx-auto flex flex-col items-center space-y-6 order-1 lg:order-2">
                   {/* QR Card */}
                   {currentQueueId !== "" && <QueueQrCard queueId={currentQueueId} />}
 
@@ -1031,160 +1187,9 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
                 </div>
               </div>
 
-              {/* Metadata Vertical Box Alongside Queue */}
-              {(metadata || barberPhoneNumber || location || closingTime || mode === "owner") && (
-                <aside
-                  className="w-full lg:w-80 lg:sticky lg:top-8 flex-shrink-0 rounded-2xl p-5 transition-all"
-                  style={{
-                    background: 'var(--dm-surface)',
-                    border: '1px solid var(--dm-surface-border)',
-                    boxShadow: 'var(--dm-shadow-md)',
-                  }}
-                >
-                    <div className="flex items-center gap-3 pb-3 mb-4" style={{ borderBottom: '1px solid var(--dm-surface-border)' }}>
-                      <div
-                        className="p-2 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{
-                          background: 'var(--dm-accent-glow)',
-                          color: 'var(--dm-accent)',
-                          border: '1px solid var(--dm-accent)',
-                        }}
-                      >
-                        <InfoOutlinedIcon fontSize="small" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h3 className="text-sm font-bold truncate" style={{ color: 'var(--dm-text-primary)' }}>
-                          {t('queue.infoTitle', 'Queue Information')}
-                        </h3>
-                        <p className="text-xs truncate" style={{ color: 'var(--dm-text-muted)' }}>
-                          {queueName || t('queue.infoSubtitle', 'Details & contact info')}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      {/* Description / Metadata text */}
-                      {metadata ? (
-                        <div className="space-y-1.5">
-                          <span className="text-[11px] font-semibold uppercase tracking-wider block" style={{ color: 'var(--dm-text-muted)' }}>
-                            {t('queue.metadataLabel', 'Notice & Services')}
-                          </span>
-                          <div
-                            className="text-sm font-normal leading-relaxed whitespace-pre-wrap break-words rounded-xl p-3"
-                            style={{
-                              color: 'var(--dm-text-primary)',
-                              background: 'rgba(0, 0, 0, 0.03)',
-                              border: '1px solid var(--dm-surface-border)',
-                            }}
-                          >
-                            {metadata}
-                          </div>
-                        </div>
-                      ) : mode === "owner" ? (
-                        <p className="text-xs italic p-3 rounded-xl text-center" style={{ color: 'var(--dm-text-muted)', border: '1px dashed var(--dm-surface-border)' }}>
-                          {t('queue.noMetadata', 'No metadata added yet. Use the settings panel above to add details, location, and contact info.')}
-                        </p>
-                      ) : null}
-
-                      {/* Barber / Contact Phone */}
-                      {barberPhoneNumber && (
-                        <div
-                          className="flex items-start gap-3 p-3 rounded-xl transition-colors"
-                          style={{
-                            background: 'rgba(0, 0, 0, 0.02)',
-                            border: '1px solid var(--dm-surface-border)',
-                          }}
-                        >
-                          <div className="mt-0.5 flex-shrink-0" style={{ color: 'var(--dm-accent)' }}>
-                            <PhoneIcon fontSize="small" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <span className="text-[11px] font-semibold uppercase tracking-wider block mb-0.5" style={{ color: 'var(--dm-text-muted)' }}>
-                              {t('queue.barberPhone', 'Phone')}
-                            </span>
-                            <a
-                              href={`tel:${barberPhoneNumber}`}
-                              className="text-sm font-semibold hover:underline block truncate"
-                              style={{ color: 'var(--dm-text-primary)' }}
-                            >
-                              {barberPhoneNumber}
-                            </a>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Location */}
-                      {location && (
-                        <div
-                          className="flex items-start gap-3 p-3 rounded-xl transition-colors"
-                          style={{
-                            background: 'rgba(0, 0, 0, 0.02)',
-                            border: '1px solid var(--dm-surface-border)',
-                          }}
-                        >
-                          <div className="mt-0.5 flex-shrink-0" style={{ color: 'var(--dm-accent)' }}>
-                            <LocationOnIcon fontSize="small" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <span className="text-[11px] font-semibold uppercase tracking-wider block mb-0.5" style={{ color: 'var(--dm-text-muted)' }}>
-                              {t('queue.location', 'Location')}
-                            </span>
-                            <span className="text-sm font-medium block break-words" style={{ color: 'var(--dm-text-primary)' }}>
-                              {location}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Closing Time */}
-                      {closingTime && (
-                        <div
-                          className="flex items-start gap-3 p-3 rounded-xl transition-colors"
-                          style={{
-                            background: 'rgba(0, 0, 0, 0.02)',
-                            border: '1px solid var(--dm-surface-border)',
-                          }}
-                        >
-                          <div className="mt-0.5 flex-shrink-0" style={{ color: 'var(--dm-accent)' }}>
-                            <AccessTimeIcon fontSize="small" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <span className="text-[11px] font-semibold uppercase tracking-wider block mb-0.5" style={{ color: 'var(--dm-text-muted)' }}>
-                              {t('queue.closingTime', 'Closing Time')}
-                            </span>
-                            <span className="text-sm font-medium block truncate" style={{ color: 'var(--dm-text-primary)' }}>
-                              {closingTime}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Avg Service Time */}
-                      {avgServiceTime > 0 && (
-                        <div
-                          className="flex items-start gap-3 p-3 rounded-xl transition-colors"
-                          style={{
-                            background: 'rgba(0, 0, 0, 0.02)',
-                            border: '1px solid var(--dm-surface-border)',
-                          }}
-                        >
-                          <div className="mt-0.5 flex-shrink-0" style={{ color: 'var(--dm-accent)' }}>
-                            <SpeedIcon fontSize="small" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <span className="text-[11px] font-semibold uppercase tracking-wider block mb-0.5" style={{ color: 'var(--dm-text-muted)' }}>
-                              {t('queue.avgTime', 'Avg. Service Time')}
-                            </span>
-                            <span className="text-sm font-medium block truncate" style={{ color: 'var(--dm-text-primary)' }}>
-                              ~{avgServiceTime} {t('queue.minPerPerson', 'min / person')}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </aside>
-                )}
-              </div>
+              {/* Column 3: Symmetrical Balancer keeping Center Column dead center on desktop */}
+              <div className="hidden lg:block order-3 pointer-events-none" aria-hidden="true" />
+            </div>
 
               <PopupForm
                 open={open}

@@ -14,7 +14,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, StyleSheet, TouchableOpacity, ScrollView, Platform,
-  StatusBar, ActivityIndicator, Alert, RefreshControl, Share,
+  StatusBar, ActivityIndicator, Alert, RefreshControl, Share, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText } from '../components/AppText';
@@ -61,6 +61,26 @@ type Customer = {
 /** Same value the web encodes: window.location.origin + /queue/{id}. */
 const WEB_ORIGIN = 'https://door-meen.vercel.app';
 
+function parseClosingTime(resetTime: unknown): string {
+  if (!resetTime) return '';
+  let hours: number | null = null;
+  let minutes: number | null = null;
+  if (typeof resetTime === 'string') {
+    const match = resetTime.match(/^(\d{1,2}):(\d{2})/);
+    if (match) {
+      hours = parseInt(match[1], 10);
+      minutes = parseInt(match[2], 10);
+    }
+  } else if (typeof resetTime === 'object' && resetTime !== null) {
+    const obj = resetTime as { hours?: number; Hours?: number; minutes?: number; Minutes?: number };
+    hours = obj.hours ?? obj.Hours ?? 0;
+    minutes = obj.minutes ?? obj.Minutes ?? 0;
+  }
+  if (hours === null || minutes === null || isNaN(hours) || isNaN(minutes)) return '';
+  const d = new Date(0, 0, 0, hours, minutes);
+  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
 const normalizeCustomer = (raw: unknown): Customer | null => {
   if (!raw || typeof raw !== 'object') return null;
   const r = raw as Record<string, unknown>;
@@ -91,18 +111,21 @@ export default function QueueScreen({ navigation, route }: Props) {
   const { t } = useTranslation();
   const { showSuccess, showError, showUndo } = useToast();
 
-  const [queueName,  setQueueName]  = useState(queueId);
-  const [message,    setMessage]    = useState<string | null>(null);
-  const [avgTime,    setAvgTime]    = useState<number>(15);
-  const [closingTime, setClosingTime] = useState<string>('');
-  const [customers,  setCustomers]  = useState<Customer[]>([]);
-  const [ownerToken, setOwnerToken] = useState<string | null>(null);
-  const [notFound,   setNotFound]   = useState(false);
-  const [loading,    setLoading]    = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [copied,     setCopied]     = useState(false);
+  const [queueName,    setQueueName]    = useState(queueId);
+  const [message,      setMessage]      = useState<string | null>(null);
+  const [avgTime,      setAvgTime]      = useState<number>(15);
+  const [closingTime,  setClosingTime]  = useState<string>('');
+  const [barberPhone,  setBarberPhone]  = useState<string>('');
+  const [location,     setLocation]     = useState<string>('');
+  const [metadata,     setMetadata]     = useState<string>('');
+  const [customers,    setCustomers]    = useState<Customer[]>([]);
+  const [ownerToken,   setOwnerToken]   = useState<string | null>(null);
+  const [notFound,     setNotFound]     = useState(false);
+  const [loading,      setLoading]      = useState(true);
+  const [refreshing,   setRefreshing]   = useState(false);
+  const [copied,       setCopied]       = useState(false);
   const [notifyThreshold, setNotifyThreshold] = useState(1);
-  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushEnabled,  setPushEnabled]  = useState(false);
   const [savingPush, setSavingPush] = useState(false);
   const [updatingCustomerId, setUpdatingCustomerId] = useState<number | null>(null);
   const [pendingServeIds, setPendingServeIds] = useState<Set<number>>(() => new Set());
@@ -177,24 +200,16 @@ export default function QueueScreen({ navigation, route }: Props) {
       setOwnerToken(storedOwnerToken && isTokenValid(storedOwnerToken) ? storedOwnerToken : null);
       setNotFound(false);
       
+      const phone = data.BarberPhoneNumber ?? data.barberPhoneNumber;
+      setBarberPhone(typeof phone === 'string' ? phone : '');
+      const loc = data.Location ?? data.location;
+      setLocation(typeof loc === 'string' ? loc : '');
+      const meta = data.Metadata ?? data.metadata;
+      setMetadata(typeof meta === 'string' ? meta : '');
+
       // Extract closing time (DailyResetTime) from queue data
       const dailyReset = data.DailyResetTime ?? data.dailyResetTime;
-      if (dailyReset != null && typeof dailyReset === 'object' && 'hours' in dailyReset) {
-        // TimeSpan format from .NET
-        const hours = dailyReset.hours || 0;
-        const minutes = dailyReset.minutes || 0;
-        const date = new Date();
-        date.setHours(hours, minutes, 0, 0);
-        setClosingTime(date.toLocaleTimeString());
-      } else if (typeof dailyReset === 'string') {
-        // Try to parse HH:mm or HH:mm:ss format
-        const parts = dailyReset.split(':');
-        if (parts.length >= 2) {
-          const date = new Date();
-          date.setHours(parseInt(parts[0], 10), parseInt(parts[1], 10), 0, 0);
-          setClosingTime(date.toLocaleTimeString());
-        }
-      }
+      setClosingTime(parseClosingTime(dailyReset));
     } catch {
       setNotFound(true);
     } finally {
@@ -273,6 +288,21 @@ export default function QueueScreen({ navigation, route }: Props) {
       await apiSnoozeRegistration({ queueId, customerId: customer.Id, token });
       await loadQueue();
     } catch (e) { showError((e as Error).message); }
+  };
+
+  const confirmSwap = (customer: Customer) => {
+    Alert.alert(
+      t('queue.swapConfirmTitle', 'Swap spot with next person?'),
+      t('queue.swapConfirmMessage', 'Running late? You will switch places with the customer directly behind you.'),
+      [
+        { text: t('common.cancel', 'Cancel'), style: 'cancel' },
+        {
+          text: t('queue.swapAction', 'Swap spot'),
+          style: 'default',
+          onPress: () => handleSnooze(customer),
+        },
+      ],
+    );
   };
 
   const handleOwnerStatusChange = async (customer: Customer) => {
@@ -396,10 +426,12 @@ export default function QueueScreen({ navigation, route }: Props) {
         <View style={styles.topBlock}>
           {/* Queue title: h1 text-3xl font-bold accent, centered */}
           <AppText style={styles.title}>{queueName}</AppText>
-          {closingTime != '' && (
-            <AppText style={{ color: Colors.textMuted }}>
-              {t('queue.closesAt', 'Closes at')}{' '}{closingTime}
-            </AppText>
+          {closingTime !== '' && (
+            <View style={styles.closingBadge}>
+              <AppText style={styles.closingBadgeText}>
+                {t('queue.closesAt', { time: closingTime })}
+              </AppText>
+            </View>
           )}
 
           {/* Owner notice bar (web Owner Message Bar) */}
@@ -436,6 +468,77 @@ export default function QueueScreen({ navigation, route }: Props) {
               {ownerToken ? t('queue.manageQueue', 'Manage queue') : t('queue.actions.manage')}
             </AppText>
           </TouchableOpacity>
+
+          {/* Metadata Card: notice, services, contact phone, location, closing time, avg time */}
+          {(metadata !== '' || barberPhone !== '' || location !== '' || closingTime !== '' || avgTime > 0) && (
+            <View style={styles.infoCard}>
+              <View style={styles.infoHeader}>
+                <View style={styles.infoIconCircle}>
+                  <AppText style={styles.infoIcon}>ⓘ</AppText>
+                </View>
+                <View style={styles.infoTitleWrap}>
+                  <AppText style={styles.infoCardTitle}>{t('queue.infoTitle', 'Queue Information')}</AppText>
+                  <AppText style={styles.infoCardSubtitle} numberOfLines={1}>{queueName}</AppText>
+                </View>
+              </View>
+
+              <View style={styles.infoContent}>
+                {metadata !== '' && (
+                  <View style={styles.infoSection}>
+                    <AppText style={styles.infoLabel}>{t('queue.metadataLabel', 'Notice & Services')}</AppText>
+                    <View style={styles.infoTextBox}>
+                      <AppText style={styles.infoTextValue}>{metadata}</AppText>
+                    </View>
+                  </View>
+                )}
+
+                {barberPhone !== '' && (
+                  <TouchableOpacity
+                    style={styles.infoRow}
+                    onPress={() => Linking.openURL(`tel:${barberPhone}`).catch(() => {})}
+                    activeOpacity={0.7}
+                  >
+                    <AppText style={styles.infoRowIcon}>📞</AppText>
+                    <View style={styles.infoRowTextWrap}>
+                      <AppText style={styles.infoLabel}>{t('queue.phone', 'Phone')}</AppText>
+                      <AppText style={styles.infoPhoneLink} writingDirection="ltr">{barberPhone}</AppText>
+                    </View>
+                  </TouchableOpacity>
+                )}
+
+                {location !== '' && (
+                  <View style={styles.infoRow}>
+                    <AppText style={styles.infoRowIcon}>📍</AppText>
+                    <View style={styles.infoRowTextWrap}>
+                      <AppText style={styles.infoLabel}>{t('queue.location', 'Location')}</AppText>
+                      <AppText style={styles.infoRowValue}>{location}</AppText>
+                    </View>
+                  </View>
+                )}
+
+                {closingTime !== '' && (
+                  <View style={styles.infoRow}>
+                    <AppText style={styles.infoRowIcon}>🕒</AppText>
+                    <View style={styles.infoRowTextWrap}>
+                      <AppText style={styles.infoLabel}>{t('queue.closingTime', 'Closing Time')}</AppText>
+                      <AppText style={styles.infoRowValue}>{t('queue.closesAt', { time: closingTime })}</AppText>
+                    </View>
+                  </View>
+                )}
+
+                {avgTime > 0 && (
+                  <View style={styles.infoRow}>
+                    <AppText style={styles.infoRowIcon}>⚡</AppText>
+                    <View style={styles.infoRowTextWrap}>
+                      <AppText style={styles.infoLabel}>{t('queue.avgTime', 'Avg. Service Time')}</AppText>
+                      <AppText style={styles.infoRowValue}>~{avgTime} {t('queue.minPerPerson', 'min / person')}</AppText>
+                    </View>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
           {myCustomer && !ownerToken && (
             <View style={styles.notifyCard}>
               <AppText style={styles.notifyTitle}>{t('queue.notifyMeWhen', 'Notify me when…')}</AppText>
@@ -483,6 +586,7 @@ export default function QueueScreen({ navigation, route }: Props) {
             <>
               {customers.map((u) => {
                 const hasCancelToken = !!getCancelToken(u.Id);
+                const isMine = hasCancelToken;
                 const waitingOnly = customers.filter(x => x.State === 'waiting');
                 const pos = waitingOnly.findIndex(x => x.Id === u.Id);
                 const estimatedWait =
@@ -490,9 +594,14 @@ export default function QueueScreen({ navigation, route }: Props) {
                 const isServing = u.State === 'in_progress';
                 const isDone = u.State === 'served';
                 return (
-                  <View key={u.Id} style={styles.waiterRow}>
+                  <View key={u.Id} style={[styles.waiterRow, isMine && styles.waiterRowMine]}>
                     <View style={styles.waiterSummary}>
-                      <AppText style={styles.waiterName}>{u.Name}</AppText>
+                      <AppText style={[styles.waiterName, isMine && styles.waiterNameMine]}>{u.Name}</AppText>
+                      {isMine && (
+                        <View style={styles.youBadge}>
+                          <AppText style={styles.youBadgeText}>{t('queue.you', 'You')}</AppText>
+                        </View>
+                      )}
                     </View>
                     <View style={styles.waiterMetaRow}>
                       <View style={[
@@ -513,7 +622,7 @@ export default function QueueScreen({ navigation, route }: Props) {
                           </AppText>
                         </View>
                       )}
-                      </View>
+                    </View>
                     {ownerToken && u.State !== 'served' ? (
                       <View style={styles.ownerActions}>
                         {u.State === 'in_progress' && (
@@ -548,29 +657,32 @@ export default function QueueScreen({ navigation, route }: Props) {
                         </TouchableOpacity>
                       </View>
                     ) : hasCancelToken && u.State === 'waiting' ? (
-                        <View style={styles.rowActions}>
-                          <View style={styles.snoozeWrap}>
-                            <TouchableOpacity
-                              style={styles.circleBtn}
-                              onPress={() => handleSnooze(u)}
-                              activeOpacity={0.7}
-                              accessibilityRole="button"
-                              accessibilityLabel={t('queue.moveBackOne', 'Move my place back one spot')}
-                              accessibilityHint={t('queue.moveBackOneHint', 'Use this if you need more time. Your place moves back by one person.')}
-                            >
-                              <AppText style={styles.circleBtnText}>{'\u21BB'}</AppText>
-                            </TouchableOpacity>
-                            <AppText style={styles.snoozeLabel}>{t('queue.moveBackOneShort', 'Move back one place')}</AppText>
-                          </View>
-                          <TouchableOpacity
-                            style={styles.circleBtn}
-                            onPress={() => handleCancel(u)}
-                            activeOpacity={0.7}
-                            accessibilityLabel='Cancel'
-                          >
-                            <AppText style={styles.circleBtnText}>{'\u2715'}</AppText>
-                          </TouchableOpacity>
-                        </View>
+                      <View style={styles.myRowActions}>
+                        <TouchableOpacity
+                          style={styles.swapActionBtn}
+                          onPress={() => confirmSwap(u)}
+                          activeOpacity={0.8}
+                          accessibilityRole="button"
+                          accessibilityLabel={t('queue.swapSpot', 'Delay spot (swap with next)')}
+                        >
+                          <AppText style={styles.swapActionIcon}>⇄</AppText>
+                          <AppText style={styles.swapActionText}>
+                            {t('queue.swapSpot', 'Delay spot (swap with next)')}
+                          </AppText>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.leaveActionBtn}
+                          onPress={() => handleCancel(u)}
+                          activeOpacity={0.8}
+                          accessibilityRole="button"
+                          accessibilityLabel={t('queue.leaveQueue', 'Leave queue')}
+                        >
+                          <AppText style={styles.leaveActionIcon}>✕</AppText>
+                          <AppText style={styles.leaveActionText}>
+                            {t('queue.leaveQueue', 'Leave queue')}
+                          </AppText>
+                        </TouchableOpacity>
+                      </View>
                     ) : null}
                   </View>
                 );
@@ -616,6 +728,76 @@ const styles = StyleSheet.create({
 
   // h1: text-3xl font-bold, color accent, centered
   title: { fontSize: Typography.xxl, fontWeight: '700', color: Colors.accent, textAlign: 'center', flexShrink: 1, flexWrap: 'wrap' },
+  closingBadge: {
+    alignSelf: 'center',
+    backgroundColor: Colors.surface,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 5,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    ...Shadow.sm,
+  },
+  closingBadgeText: { fontSize: Typography.sm, color: Colors.textSecondary, fontWeight: '600' },
+
+  // Info / Metadata card
+  infoCard: {
+    width: '100%',
+    maxWidth: 448,
+    alignSelf: 'center',
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    borderRadius: Radius.lg,
+    padding: Spacing.lg,
+    gap: Spacing.md,
+    ...Shadow.sm,
+  },
+  infoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingBottom: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.surfaceBorder,
+  },
+  infoIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: Radius.full,
+    backgroundColor: 'rgba(216, 164, 74, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoIcon: { fontSize: 16, color: Colors.accent, fontWeight: '700' },
+  infoTitleWrap: { flex: 1 },
+  infoCardTitle: { fontSize: Typography.base, fontWeight: '700', color: Colors.textPrimary },
+  infoCardSubtitle: { fontSize: Typography.xs, color: Colors.textMuted },
+  infoContent: { gap: Spacing.md },
+  infoSection: { gap: 4 },
+  infoLabel: { fontSize: Typography.xs, color: Colors.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  infoTextBox: {
+    backgroundColor: 'rgba(0, 0, 0, 0.02)',
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+  },
+  infoTextValue: { fontSize: Typography.sm, color: Colors.textPrimary, lineHeight: 20 },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    backgroundColor: 'rgba(0, 0, 0, 0.02)',
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+  },
+  infoRowIcon: { fontSize: 18 },
+  infoRowTextWrap: { flex: 1 },
+  infoPhoneLink: { fontSize: Typography.sm, color: Colors.accent, fontWeight: '700', marginTop: 2 },
+  infoRowValue: { fontSize: Typography.sm, color: Colors.textPrimary, fontWeight: '500', marginTop: 2 },
 
   // Owner notice bar: yellow tint, rounded-xl, envelope icon + centered text
   noticeBar: {
@@ -719,8 +901,62 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.base,           // py-4
     ...Shadow.sm,
   },
+  waiterRowMine: {
+    borderColor: Colors.accent,
+    borderWidth: 1.5,
+    backgroundColor: 'rgba(216, 164, 74, 0.08)',
+    ...Shadow.md,
+  },
   waiterSummary: { flexDirection: 'row', alignItems: 'center' },
   waiterName: { fontSize: Typography.base, fontWeight: '600', color: Colors.textPrimary, flexWrap: 'wrap' },
+  waiterNameMine: { color: Colors.accentDark, fontWeight: '700' },
+  youBadge: {
+    backgroundColor: Colors.accent,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: Radius.full,
+    marginStart: Spacing.sm,
+  },
+  youBadgeText: { color: Colors.accentContrast, fontSize: Typography.xs, fontWeight: '700' },
+  myRowActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.surfaceBorder,
+  },
+  swapActionBtn: {
+    flex: 1,
+    minWidth: 160,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.accent,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: Radius.md,
+  },
+  swapActionIcon: { fontSize: 16, color: Colors.accentDark, fontWeight: '700' },
+  swapActionText: { fontSize: Typography.xs, color: Colors.accentDark, fontWeight: '700' },
+  leaveActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: Radius.md,
+  },
+  leaveActionIcon: { fontSize: 12, color: Colors.danger, fontWeight: '700' },
+  leaveActionText: { fontSize: Typography.xs, color: Colors.danger, fontWeight: '600' },
   waiterMetaRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
 
   // .status-chip — rounded-full px-3 py-1 text-xs font-semibold

@@ -54,8 +54,12 @@ export default function JoinScreen({ navigation, route }: Props) {
   const validate = () => {
     const e: Record<string, string> = {};
     if (!name.trim())  e.name  = t('validation.nameRequired',  'Name is required');
-    if (!/^\d{10}$/.test(phone)) e.phone = t('validation.phoneTenDigits', 'Phone must be 10 digits');
-    if (!/\S+@\S+\.\S+/.test(email)) e.email = t('validation.invalidEmail', 'Invalid email address');
+    if (!/^(059|056)\d{7}$/.test(phone.trim())) {
+      e.phone = t('validation.palestinianPhone', 'Phone must be 10 digits starting with 059 or 056');
+    }
+    if (email.trim() && !/\S+@\S+\.\S+/.test(email.trim())) {
+      e.email = t('validation.invalidEmail', 'Invalid email address');
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -68,7 +72,7 @@ export default function JoinScreen({ navigation, route }: Props) {
     }
     setSubmitting(true);
     try {
-      const result = await handleJoin({ QueueId: queueId, Name: name, PhoneNumber: phone, Email: email });
+      const result = await handleJoin({ QueueId: queueId, Name: name.trim(), PhoneNumber: phone.trim(), Email: email.trim() || undefined });
       const customerId = result?.Id ?? result?.id ?? result?.CustomerId ?? result?.customerId;
       if (typeof customerId !== 'number') {
         throw new Error(t('join.submitFailed', 'Could not join the queue. Please try again.'));
@@ -131,7 +135,7 @@ export default function JoinScreen({ navigation, route }: Props) {
           <AppText style={styles.label}>{t('join.phone', 'Phone Number')}</AppText>
           <AppTextInput
             style={[styles.input, { writingDirection: 'ltr', textAlign: 'left' }, errors.phone ? styles.inputError : null]}
-            placeholder="0500000000"
+            placeholder="059xxxxxxx / 056xxxxxxx"
             placeholderTextColor={Colors.textMuted}
             value={phone}
             onChangeText={setPhone}
@@ -143,7 +147,7 @@ export default function JoinScreen({ navigation, route }: Props) {
 
         {/* Email */}
         <View style={styles.fieldWrap}>
-          <AppText style={styles.label}>{t('join.email', 'Email Address')}</AppText>
+          <AppText style={styles.label}>{t('join.email', 'Email Address')} ({t('common.optional', 'Optional')})</AppText>
           <AppTextInput
             style={[styles.input, { writingDirection: 'ltr', textAlign: 'left' }, errors.email ? styles.inputError : null]}
             placeholder="you@example.com"

@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Colors, Spacing, Radius, Typography, Shadow } from '../constants/theme';
 import { handleCreate } from '../features/queue/handlers';
+import FirstTimeGuide from '../components/FirstTimeGuide';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CreateQueue'>;
 
@@ -32,7 +33,12 @@ export default function CreateQueueScreen({ navigation }: Props) {
     if (!name.trim())           e.name     = t('validation.nameRequired', 'Name is required');
     if (!/^\d{4,6}$/.test(password)) e.password = t('validation.pinFormat', 'PIN must contain 4–6 digits');
     if (password !== confirm)   e.confirm   = t('validation.passwordMismatch', 'Passwords do not match');
-    if (!/^\S+@\S+\.\S+$/.test(email.trim())) e.email = t('validation.invalidEmail', 'Enter a valid email address');
+    if (email.trim() && !/^\S+@\S+\.\S+$/.test(email.trim())) {
+      e.email = t('validation.invalidEmail', 'Enter a valid email address');
+    }
+    if (barberPhone.trim() && !/^(059|056)\d{7}$/.test(barberPhone.trim())) {
+      e.barberPhone = t('validation.palestinianPhone', 'Phone must be 10 digits starting with 059 or 056');
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -41,7 +47,14 @@ export default function CreateQueueScreen({ navigation }: Props) {
     if (!validate() || submitting) return;
     setSubmitting(true);
     try {
-      const result = await handleCreate({ name: name.trim(), password, email: email.trim(), barberPhoneNumber: barberPhone.trim() || null, location: location.trim() || null, metadata: metadata.trim() || null });
+      const result = await handleCreate({
+        name: name.trim(),
+        password,
+        email: email.trim() || undefined,
+        barberPhoneNumber: barberPhone.trim() || null,
+        location: location.trim() || null,
+        metadata: metadata.trim() || null
+      });
       Alert.alert(
         t('create.success', 'Queue Created!'),
         `${t('create.yourId', 'Your Queue ID:')} ${result?.QueueId ?? result?.id ?? ''}`,
@@ -71,9 +84,6 @@ export default function CreateQueueScreen({ navigation }: Props) {
             { label: t('popupForm.create.label1', 'Queue Name'), value: name,     set: setName,     key: 'name',     placeholder: t('popupForm.create.placeholder1', 'Enter queue name'), secure: false },
             { label: t('popupForm.create.label2',  'Owner PIN'),   value: password, set: setPassword, key: 'password', placeholder: t('popupForm.create.placeholder2', '4–6 digits'), secure: true },
             { label: t('popupForm.create.confirmLabel', 'Confirm PIN'), value: confirm, set: setConfirm, key: 'confirm', placeholder: t('popupForm.create.confirmPlaceholder', 'Enter PIN again'), secure: true },
-            { label: t('popupForm.create.label3',  'Owner Barber Phone'), value: barberPhone, set: setBarberPhone, key: 'barberPhone', placeholder: t('popupForm.create.placeholder3', 'e.g. +1 555 123 4567'), secure: false },
-            { label: t('popupForm.create.label4',  'Location'), value: location, set: setLocation, key: 'location', placeholder: t('popupForm.create.placeholder4', 'Street address, city, country'), secure: false },
-            { label: t('popupForm.create.label5',  'Queue Metadata'), value: metadata, set: setMetadata, key: 'metadata', placeholder: t('popupForm.create.placeholder5', 'e.g. VIP, Married, 2–3 seats'), secure: false },
           ].map(({ label, value, set, key, placeholder, secure }) => (
             <View key={key} style={styles.fieldWrap}>
               <AppText style={styles.label}>{label}</AppText>
@@ -94,7 +104,7 @@ export default function CreateQueueScreen({ navigation }: Props) {
           ))}
 
           <View style={styles.fieldWrap}>
-            <AppText style={styles.label}>{t('popupForm.create.labelEmail', 'Owner email')}</AppText>
+            <AppText style={styles.label}>{t('popupForm.create.labelEmail', 'Owner email')} ({t('common.optional', 'Optional')})</AppText>
             <AppTextInput
               style={[styles.input, { writingDirection: 'ltr', textAlign: 'left' }, errors.email ? styles.inputError : null]}
               value={email}
@@ -110,14 +120,21 @@ export default function CreateQueueScreen({ navigation }: Props) {
           </View>
 
           <View style={styles.fieldWrap}>
-            <AppText style={styles.label}>{t('popupForm.create.label3', 'Owner Barber Phone')}</AppText>
+            <AppText style={styles.label}>{t('popupForm.create.label3', 'Owner Barber Phone')} ({t('common.optional', 'Optional')})</AppText>
             <AppTextInput
-              style={[styles.input, errors.barberPhone ? styles.inputError : null]}
+              style={[styles.input, { writingDirection: 'ltr', textAlign: 'left' }, errors.barberPhone ? styles.inputError : null]}
               value={barberPhone}
               onChangeText={setBarberPhone}
-              placeholder={t('popupForm.create.placeholder3', 'e.g. +1 555 123 4567')}
+              placeholder="059xxxxxxx / 056xxxxxxx"
+              placeholderTextColor={Colors.textMuted}
               keyboardType="phone-pad"
+              maxLength={10}
               autoCapitalize="none"
+              autoCorrect={false}
+              textContentType="telephoneNumber"
+            />
+            {errors.barberPhone ? <AppText style={styles.errorText}>{errors.barberPhone}</AppText> : null}
+          </View>
               autoCorrect={false}
               textContentType="telephoneNumber"
             />

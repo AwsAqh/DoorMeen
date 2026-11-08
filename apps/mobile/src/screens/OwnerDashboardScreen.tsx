@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import {
   View, StyleSheet, TouchableOpacity, FlatList,
   StatusBar, ActivityIndicator, Alert, RefreshControl,
-  Modal, ScrollView,
+  Modal, ScrollView, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText, AppTextInput } from '../components/AppText';
@@ -24,6 +24,9 @@ import {
   apiUpdateMaxCustomers,
   apiUpdateQueueName,
   apiUpdateClosingTime,
+  apiUpdateBarberPhoneNumber,
+  apiUpdateLocation,
+  apiUpdateMetadata,
   getOwnerToken,
 } from '../features/queue/services/api';
 import { SettingsSchema } from '../features/queue/validations/settings.schema';
@@ -48,29 +51,48 @@ const errorTextStyle = { color: Colors.danger, fontSize: Typography.xs, marginTo
 
 function SettingsModal({
   visible, onClose, queueIdParam, token, currentName, currentMessage,
-  currentAvgTime, currentMaxCust, currentClosingTime
+  currentAvgTime, currentMaxCust, currentClosingTime,
+  currentBarberPhone, currentLocation, currentMetadata,
 }: {
   visible: boolean; onClose: () => void;
   queueIdParam: string; token: string;
   currentName: string; currentMessage: string | null;
   currentAvgTime: number | null; currentMaxCust: number | null; currentClosingTime: string | null;
+  currentBarberPhone: string | null; currentLocation: string | null; currentMetadata: string | null;
 }) {
   const { t } = useTranslation();
   const { showSuccess } = useToast();
-  const [name,    setName]    = useState(currentName);
-  const [message, setMessage] = useState(currentMessage ?? '');
-  const [avgTime, setAvgTime] = useState<string>(currentAvgTime?.toString() ?? '');
-  const [maxCust, setMaxCust] = useState<string>(currentMaxCust?.toString() ?? '');
+  const [name,        setName]        = useState(currentName);
+  const [message,     setMessage]     = useState(currentMessage ?? '');
+  const [avgTime,     setAvgTime]     = useState<string>(currentAvgTime?.toString() ?? '');
+  const [maxCust,     setMaxCust]     = useState<string>(currentMaxCust?.toString() ?? '');
   const [closingTime, setClosingTime] = useState<string>(currentClosingTime ?? '');
-  const [errors,  setErrors]  = useState<Record<string, string>>({});
-  const [saving,  setSaving]  = useState(false);
+  const [barberPhone, setBarberPhone] = useState<string>(currentBarberPhone ?? '');
+  const [location,    setLocation]    = useState<string>(currentLocation ?? '');
+  const [metadata,    setMetadata]    = useState<string>(currentMetadata ?? '');
+  const [errors,      setErrors]      = useState<Record<string, string>>({});
+  const [saving,      setSaving]      = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [savingPassword, setSavingPassword] = useState(false);
 
+  useEffect(() => {
+    setName(currentName);
+    setMessage(currentMessage ?? '');
+    setAvgTime(currentAvgTime?.toString() ?? '');
+    setMaxCust(currentMaxCust?.toString() ?? '');
+    setClosingTime(currentClosingTime ?? '');
+    setBarberPhone(currentBarberPhone ?? '');
+    setLocation(currentLocation ?? '');
+    setMetadata(currentMetadata ?? '');
+  }, [currentName, currentMessage, currentAvgTime, currentMaxCust, currentClosingTime, currentBarberPhone, currentLocation, currentMetadata, visible]);
+
   const validate = (): boolean => {
-    const parsed = SettingsSchema.safeParse({ name, message, avgTime, maxCust, closingTime });
+    const parsed = SettingsSchema.safeParse({
+      name, message, avgTime, maxCust, closingTime,
+      barberPhone, location, metadata,
+    });
     if (!parsed.success) {
       const newErrors: Record<string, string> = {};
       parsed.error.issues.forEach(issue => {
@@ -89,12 +111,16 @@ function SettingsModal({
     try {
       const ops: Promise<void>[] = [];
       const qid: string = queueIdParam;
-      if (name.trim()   && name !== currentName)   ops.push(apiUpdateQueueName({ QueueId: qid, name: name.trim(), token }));
-      if (message !== (currentMessage ?? ''))       ops.push(apiUpdateOwnerMessage({ QueueId: qid, Message: message || null, token }));
+      if (name.trim() && name !== currentName) ops.push(apiUpdateQueueName({ QueueId: qid, name: name.trim(), token }));
+      if (message !== (currentMessage ?? '')) ops.push(apiUpdateOwnerMessage({ QueueId: qid, Message: message || null, token }));
       if (avgTime && parseInt(avgTime, 10) !== currentAvgTime) ops.push(apiUpdateAvgServiceTime({ QueueId: qid, Minutes: parseInt(avgTime, 10), token }));
       const nextMax = maxCust === '' ? null : parseInt(maxCust, 10);
       if (nextMax !== currentMaxCust) ops.push(apiUpdateMaxCustomers({ QueueId: qid, Max: nextMax ?? 0, token }));
       if (closingTime !== (currentClosingTime ?? '')) ops.push(apiUpdateClosingTime({ QueueId: qid, timeString: closingTime, token }));
+      if (barberPhone !== (currentBarberPhone ?? '')) ops.push(apiUpdateBarberPhoneNumber({ QueueId: qid, Phone: barberPhone.trim(), token }));
+      if (location !== (currentLocation ?? '')) ops.push(apiUpdateLocation({ QueueId: qid, Location: location.trim(), token }));
+      if (metadata !== (currentMetadata ?? '')) ops.push(apiUpdateMetadata({ QueueId: qid, Metadata: metadata.trim(), token }));
+
       await Promise.all(ops);
       showSuccess(t('common.success', 'Saved'));
       onClose();
@@ -129,9 +155,12 @@ function SettingsModal({
   };
 
   const fields = [
-    { label: t('owner.queueName', 'Queue Name'),    value: name,    set: setName,    placeholder: currentName, error: errors.name },
-    { label: t('owner.message',   'Public Message'), value: message, set: setMessage, placeholder: t('owner.messagePlaceholder', 'e.g. Welcome!'), error: errors.message },
-    { label: t('owner.avgTime',   'Avg Service Time (min)'), value: avgTime, set: setAvgTime, placeholder: currentAvgTime?.toString() ?? '', keyboardType: 'numeric', error: errors.avgTime },
+    { label: t('owner.queueName', 'Queue Name'), value: name, set: setName, placeholder: currentName, error: errors.name },
+    { label: t('owner.message', 'Public Message'), value: message, set: setMessage, placeholder: t('owner.messagePlaceholder', 'e.g. Welcome!'), error: errors.message },
+    { label: t('owner.barberPhone', 'Barber / Contact Phone'), value: barberPhone, set: setBarberPhone, placeholder: t('owner.barberPhonePlaceholder', '059xxxxxxx / 056xxxxxxx'), keyboardType: 'phone-pad', error: errors.barberPhone },
+    { label: t('owner.location', 'Location'), value: location, set: setLocation, placeholder: t('owner.locationPlaceholder', 'e.g. Main Street, City'), error: errors.location },
+    { label: t('owner.metadataLabel', 'Notice, Services & Prices'), value: metadata, set: setMetadata, placeholder: t('owner.metadataPlaceholder', 'Add services, price list, working hours or notes...'), multiline: true, error: errors.metadata },
+    { label: t('owner.avgTime', 'Avg Service Time (min)'), value: avgTime, set: setAvgTime, placeholder: currentAvgTime?.toString() ?? '', keyboardType: 'numeric', error: errors.avgTime },
     { label: t('owner.maxCustomers', 'Max Customers'), value: maxCust, set: setMaxCust, placeholder: currentMaxCust?.toString() ?? '', keyboardType: 'numeric', error: errors.maxCust },
     { label: t('owner.closingTime', 'Closing Time (HH:MM)'), value: closingTime, set: setClosingTime, placeholder: t('owner.closingTimePlaceholder', 'e.g. 18:00'), error: errors.closingTime },
   ];
@@ -141,18 +170,25 @@ function SettingsModal({
       <SafeAreaView style={modal.safe}>
         <View style={modal.header}>
           <AppText style={modal.title}>{t('owner.settings', 'Queue Settings')}</AppText>
-          <TouchableOpacity onPress={onClose}><AppText style={modal.close}>x</AppText></TouchableOpacity>
+          <TouchableOpacity onPress={onClose}><AppText style={modal.close}>✕</AppText></TouchableOpacity>
         </View>
         <ScrollView contentContainerStyle={modal.scroll} keyboardShouldPersistTaps='handled'>
           {fields.map((f, i) => (
             <View key={i} style={modal.field}>
               <AppText style={modal.label}>{f.label}</AppText>
               <AppTextInput
-                style={[modal.input, (f.keyboardType === 'numeric' || f.keyboardType === 'number-pad' || f.label.toLowerCase().includes('time')) && { writingDirection: 'ltr', textAlign: 'left' }, f.error && { borderColor: Colors.danger }]}
+                style={[
+                  modal.input,
+                  f.multiline && { minHeight: 80, textAlignVertical: 'top' },
+                  (f.keyboardType === 'numeric' || f.keyboardType === 'number-pad' || f.keyboardType === 'phone-pad' || f.label.toLowerCase().includes('time')) && { writingDirection: 'ltr', textAlign: 'left' },
+                  f.error && { borderColor: Colors.danger },
+                ]}
                 value={f.value}
                 onChangeText={f.set}
                 placeholder={f.placeholder}
                 keyboardType={(f.keyboardType || 'default') as any}
+                multiline={f.multiline}
+                numberOfLines={f.multiline ? 3 : 1}
               />
               {f.error && <AppText style={errorTextStyle}>{f.error}</AppText>}
             </View>
@@ -189,15 +225,18 @@ export default function OwnerDashboardScreen({ navigation, route }: Props) {
   const { showSuccess, showUndo } = useToast();
   const { token, isOwner } = useOwnerSession(queueIdStr);
 
-  const [queueName,  setQueueName]  = useState('');
-  const [message,    setMessage]    = useState<string | null>(null);
-  const [avgTime,    setAvgTime]    = useState<number | null>(null);
-  const [maxCust,    setMaxCust]    = useState<number | null>(null);
-  const [createdAt,  setCreatedAt]  = useState<string | null>(null);
-  const [closingTime, setClosingTime] = useState<string | null>(null);
-  const [customers,  setCustomers]  = useState<Customer[]>([]);
-  const [loading,    setLoading]    = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [queueName,    setQueueName]    = useState('');
+  const [message,      setMessage]      = useState<string | null>(null);
+  const [avgTime,      setAvgTime]      = useState<number | null>(null);
+  const [maxCust,      setMaxCust]      = useState<number | null>(null);
+  const [createdAt,    setCreatedAt]    = useState<string | null>(null);
+  const [closingTime,  setClosingTime]  = useState<string | null>(null);
+  const [barberPhone,  setBarberPhone]  = useState<string | null>(null);
+  const [location,     setLocation]     = useState<string | null>(null);
+  const [metadata,     setMetadata]     = useState<string | null>(null);
+  const [customers,    setCustomers]    = useState<Customer[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [refreshing,   setRefreshing]   = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [pendingServeIds, setPendingServeIds] = useState<Set<number>>(() => new Set());
   const serveTimers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
@@ -212,9 +251,6 @@ export default function OwnerDashboardScreen({ navigation, route }: Props) {
   const loadQueue = useCallback(async () => {
     if (!token) return;
     try {
-      // Owner API is PascalCase (PropertyNamingPolicy = null): Name / OwnerMessage /
-      // AvgServiceTime / MaxCustomers / Waiters[].State — camelCase kept as fallback.
-      // (The previous camelCase reads here always yielded an empty dashboard.)
       const data = await apiGetOwnerQueue(queueIdStr, token);
       const name = data.Name ?? data.name;
       setQueueName(typeof name === 'string' && name ? name : queueIdStr);
@@ -226,6 +262,14 @@ export default function OwnerDashboardScreen({ navigation, route }: Props) {
       setMaxCust(typeof max === 'number' ? max : null);
       const created = data.CreatedAt ?? data.createdAt;
       setCreatedAt(typeof created === 'string' ? created : null);
+      
+      const phone = data.BarberPhoneNumber ?? data.barberPhoneNumber ?? data.Phone ?? data.phone;
+      setBarberPhone(typeof phone === 'string' && phone ? phone : null);
+      const loc = data.Location ?? data.location;
+      setLocation(typeof loc === 'string' && loc ? loc : null);
+      const meta = data.Metadata ?? data.metadata;
+      setMetadata(typeof meta === 'string' && meta ? meta : null);
+
       const rawReset = data.DailyResetTime ?? data.dailyResetTime ?? data.ClosingTime ?? data.closingTime;
       if (typeof rawReset === 'string') {
         const parts = rawReset.split(':');
@@ -381,7 +425,7 @@ export default function OwnerDashboardScreen({ navigation, route }: Props) {
           )}
           {closingTime && (
             <AppText style={styles.headerMeta}>
-              {t('queue.closesAt', 'Closes at: {{time}}', { time: closingTime })}
+              {t('queue.closesAt', { time: closingTime })}
             </AppText>
           )}
         </View>
@@ -390,19 +434,47 @@ export default function OwnerDashboardScreen({ navigation, route }: Props) {
         </TouchableOpacity>
       </View>
 
+      {/* Metadata summary card */}
+      {(metadata || barberPhone || location) ? (
+        <View style={styles.ownerMetaCard}>
+          {metadata ? (
+            <View style={styles.ownerMetaRow}>
+              <AppText style={styles.ownerMetaLabel}>{t('queue.metadataLabel', 'Notice & Services')}:</AppText>
+              <AppText style={styles.ownerMetaValue} numberOfLines={2}>{metadata}</AppText>
+            </View>
+          ) : null}
+          {barberPhone ? (
+            <TouchableOpacity
+              style={styles.ownerMetaRow}
+              onPress={() => Linking.openURL(`tel:${barberPhone}`).catch(() => {})}
+              activeOpacity={0.7}
+            >
+              <AppText style={styles.ownerMetaLabel}>{t('queue.phone', 'Phone')}:</AppText>
+              <AppText style={[styles.ownerMetaValue, styles.ownerPhoneLink]} writingDirection="ltr">📞 {barberPhone}</AppText>
+            </TouchableOpacity>
+          ) : null}
+          {location ? (
+            <View style={styles.ownerMetaRow}>
+              <AppText style={styles.ownerMetaLabel}>{t('queue.location', 'Location')}:</AppText>
+              <AppText style={styles.ownerMetaValue}>📍 {location}</AppText>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
       <TouchableOpacity
         style={styles.addCustomerBtn}
         onPress={() => navigation.navigate('Join', { queueId: queueIdStr, ownerReturn: true })}
         activeOpacity={0.85}
       >
-        <AppText style={styles.addCustomerBtnText}>{t('queue.addCustomer', 'Add customer')}</AppText>
+        <AppText style={styles.addCustomerBtnText}>+ {t('queue.addCustomer', 'Add customer')}</AppText>
       </TouchableOpacity>
 
       <View style={styles.statsRow}>
         {[
-          { label: t('queue.status.waiting',    'Waiting'),     value: waiting,                                       color: Colors.statusWaiting },
-          { label: t('queue.status.inProgress', 'In Progress'), value: inProgress,                                    color: Colors.statusProgress },
-          { label: t('queue.status.served',     'Served'),      value: servedCount,                                    color: Colors.success },
+          { label: t('queue.status.waiting',    'Waiting'),     value: waiting,     color: Colors.statusWaiting },
+          { label: t('queue.status.inProgress', 'In Progress'), value: inProgress,  color: Colors.statusProgress },
+          { label: t('queue.status.served',     'Served'),      value: servedCount, color: Colors.success },
         ].map(stat => (
           <View key={stat.label} style={[styles.stat, { borderTopColor: stat.color }]}>
             <AppText style={[styles.statValue, { color: stat.color }]}>{stat.value}</AppText>
@@ -417,7 +489,13 @@ export default function OwnerDashboardScreen({ navigation, route }: Props) {
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />}
         ListEmptyComponent={
-          <View style={styles.empty}><AppText style={styles.emptyIcon}>done</AppText><AppText style={styles.emptyText}>{t('queue.empty', 'No customers')}</AppText></View>
+          <View style={styles.empty}>
+            <View style={styles.emptyIconCircle}>
+              <AppText style={styles.emptyEmoji}>🎉</AppText>
+            </View>
+            <AppText style={styles.emptyTitle}>{t('queue.empty', 'No customers yet')}</AppText>
+            <AppText style={styles.emptyText}>{t('queue.noCustomersOwner', 'Your queue is empty. Add the first customer or share the QR.')}</AppText>
+          </View>
         }
         renderItem={({ item, index }) => {
           const isWaiting = item.Status === 'waiting';
@@ -426,42 +504,84 @@ export default function OwnerDashboardScreen({ navigation, route }: Props) {
             : null;
           return (
             <View style={[styles.card, { borderStartColor: statusColor(item.Status) }]}>
-              <View style={styles.cardLeft}>
-                <AppText style={styles.rank}>#{index + 1}</AppText>
-                <View style={styles.customerInfo}>
-                  <AppText style={styles.customerName}>{item.Name}</AppText>
-                  {item.PhoneNumber && (
-                    <AppText style={styles.phoneNumber} writingDirection="ltr">{item.PhoneNumber}</AppText>
-                  )}
-                  <View style={[styles.badge, { backgroundColor: statusColor(item.Status) + '25' }]}>
+              {/* Top Row: Rank, Customer Name, Status Badge, Wait Time */}
+              <View style={styles.cardHeader}>
+                <View style={styles.rankCircle}>
+                  <AppText style={styles.rankText}>#{index + 1}</AppText>
+                </View>
+                <View style={styles.nameWrap}>
+                  <AppText style={styles.customerName} numberOfLines={2}>{item.Name}</AppText>
+                </View>
+                <View style={styles.badgesWrap}>
+                  <View style={[styles.badge, { backgroundColor: statusColor(item.Status) + '22' }]}>
                     <AppText style={[styles.badgeText, { color: statusColor(item.Status) }]}>
                       {t(getStatusI18nKey(item.Status), item.Status)}
                     </AppText>
                   </View>
-                  {estimatedWait && (
-                    <AppText style={styles.waitTime}>
-                      {t('queue.estimatedWait', '~{{min}} min', { min: estimatedWait })}
-                    </AppText>
+                  {estimatedWait != null && (
+                    <View style={styles.waitBadge}>
+                      <AppText style={styles.waitBadgeText}>
+                        ⏱ {t('queue.estimatedWait', '~{{min}} min', { min: estimatedWait })}
+                      </AppText>
+                    </View>
                   )}
                 </View>
               </View>
-              <View style={styles.actions}>
+
+              {/* Middle Row: Phone number with 1-tap dialer */}
+              {item.PhoneNumber ? (
+                <TouchableOpacity
+                  style={styles.phonePill}
+                  onPress={() => Linking.openURL(`tel:${item.PhoneNumber}`).catch(() => {})}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${t('owner.callCustomer', 'Call customer')}: ${item.PhoneNumber}`}
+                >
+                  <AppText style={styles.phonePillIcon}>📞</AppText>
+                  <AppText style={styles.phoneNumber} writingDirection="ltr">{item.PhoneNumber}</AppText>
+                  <AppText style={styles.callBadge}>{t('owner.callCustomer', 'Call')}</AppText>
+                </TouchableOpacity>
+              ) : null}
+
+              {/* Bottom Row: Clear, spacious action buttons */}
+              <View style={styles.cardActions}>
                 {item.Status === 'waiting' && (
-                  <>
-                    <TouchableOpacity style={styles.actionBtn} onPress={() => setInProgress(item)} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={t('owner.startServing', 'Start serving {{name}}', { name: item.Name })}>
-                    <AppText style={styles.actionText}>{t('owner.startServingShort', 'Start')}</AppText>
-                    </TouchableOpacity>
-                  </>
+                  <TouchableOpacity
+                    style={styles.startBtn}
+                    onPress={() => setInProgress(item)}
+                    activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('owner.startServing', 'Start serving {{name}}', { name: item.Name })}
+                  >
+                    <AppText style={styles.startBtnIcon}>▶</AppText>
+                    <AppText style={styles.startBtnText}>{t('owner.startServingAction', 'Start serving')}</AppText>
+                  </TouchableOpacity>
                 )}
                 {item.Status === 'in_progress' && (
-                  <>
-                    <TouchableOpacity style={[styles.actionBtn, styles.backstepBtn, pendingServeIds.size > 0 && styles.actionDisabled]} onPress={() => setWaiting(item)} disabled={pendingServeIds.size > 0} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={t('owner.moveBack', 'Move {{name}} back to waiting', { name: item.Name })}>
+                  <View style={styles.inProgressActionsRow}>
+                    <TouchableOpacity
+                      style={[styles.backstepBtn, pendingServeIds.size > 0 && styles.actionDisabled]}
+                      onPress={() => setWaiting(item)}
+                      disabled={pendingServeIds.size > 0}
+                      activeOpacity={0.8}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('owner.moveBack', 'Move {{name}} back to waiting', { name: item.Name })}
+                    >
                       <AppText style={styles.backstepText} numberOfLines={1}>↶ {t('owner.backToWaiting', 'Back to waiting')}</AppText>
                     </TouchableOpacity>
-                    <TouchableOpacity style={[styles.actionBtn, styles.serveBtn, pendingServeIds.size > 0 && styles.actionDisabled]} onPress={() => serve(item)} disabled={pendingServeIds.size > 0} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={t('owner.markServed', 'Mark {{name}} as served', { name: item.Name })}>
-                      <AppText style={styles.actionText}>{pendingServeIds.has(item.Id) ? t('owner.servingPending', 'Serving…') : t('owner.markServedShort', 'Served')}</AppText>
+                    <TouchableOpacity
+                      style={[styles.serveBtn, pendingServeIds.size > 0 && styles.actionDisabled]}
+                      onPress={() => serve(item)}
+                      disabled={pendingServeIds.size > 0}
+                      activeOpacity={0.8}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('owner.markServed', 'Mark {{name}} as served', { name: item.Name })}
+                    >
+                      <AppText style={styles.serveBtnText}>
+                        {pendingServeIds.has(item.Id) ? t('owner.servingPending', 'Serving…') : `✓ ${t('owner.markServedAction', 'Mark served')}`}
+                      </AppText>
                     </TouchableOpacity>
-                  </>
+                  </View>
                 )}
               </View>
             </View>
@@ -479,6 +599,9 @@ export default function OwnerDashboardScreen({ navigation, route }: Props) {
         currentAvgTime={avgTime}
         currentMaxCust={maxCust}
         currentClosingTime={closingTime}
+        currentBarberPhone={barberPhone}
+        currentLocation={location}
+        currentMetadata={metadata}
       />
     </SafeAreaView>
   );
@@ -499,25 +622,144 @@ const styles = StyleSheet.create({
   statValue:   { fontSize: Typography.xl, fontWeight: '700' },
   statLabel:   { fontSize: Typography.xs, color: Colors.textMuted, marginTop: 2, textAlign: 'center', flexShrink: 1 },
   list:        { padding: Spacing.base, paddingBottom: Spacing.xl },
-  card:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: Colors.surface, borderRadius: Radius.md, padding: Spacing.base, marginBottom: Spacing.sm, borderWidth: 1, borderColor: Colors.surfaceBorder, borderStartWidth: 3, ...Shadow.sm },
-  cardLeft:    { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flex: 1, flexShrink: 1, minWidth: 0 },
-  customerInfo:{ flex: 1, flexShrink: 1, minWidth: 0 },
-  rank:        { fontSize: Typography.md, fontWeight: '700', color: Colors.textMuted, width: 28 },
-  customerName:{ fontSize: Typography.base, fontWeight: '600', color: Colors.textPrimary, marginBottom: 4 },
-  badge:       { paddingHorizontal: Spacing.sm, paddingVertical: 4, borderRadius: Radius.full, alignSelf: 'flex-start' },
-  badgeText:   { fontSize: Typography.xs, fontWeight: '600', flexShrink: 0, includeFontPadding: false, lineHeight: Typography.md },
-  phoneNumber: { fontSize: Typography.xs, color: Colors.textSecondary, marginTop: 2, fontFamily: 'monospace' },
-  waitTime:    { fontSize: Typography.xs, color: Colors.accent, marginTop: 2, fontWeight: '500' },
-  actions:     { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
-  actionBtn:   { flex: 1, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm, borderRadius: Radius.md, backgroundColor: Colors.surfaceStrong, alignItems: 'center', justifyContent: 'center', minWidth: 72, minHeight: 40 },
-  serveBtn:    { backgroundColor: Colors.success },
-  backstepBtn:{ backgroundColor: Colors.surfaceHover, borderWidth: 1, borderColor: Colors.accent },
-  backstepText:{ color: Colors.accentDark, fontSize: Typography.xs, fontWeight: '700' },
-  actionDisabled: { opacity: 0.6 },
-  actionText:  { fontSize: Typography.xs, fontWeight: '600', color: Colors.textPrimary },
-  empty:       { alignItems: 'center', paddingTop: Spacing.xxxl },
-  emptyIcon:   { fontSize: 48, marginBottom: Spacing.base },
-  emptyText:   { color: Colors.textMuted, fontSize: Typography.base },
+
+  // Owner metadata card
+  ownerMetaCard: {
+    marginHorizontal: Spacing.base,
+    marginTop: Spacing.sm,
+    padding: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    borderRadius: Radius.md,
+    gap: 6,
+    ...Shadow.sm,
+  },
+  ownerMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  ownerMetaLabel: { fontSize: Typography.xs, color: Colors.textMuted, fontWeight: '600' },
+  ownerMetaValue: { fontSize: Typography.xs, color: Colors.textPrimary, flexShrink: 1 },
+  ownerPhoneLink: { color: Colors.accent, fontWeight: '700' },
+
+  // Customer Card redesign (vertical card with full breathing room)
+  card: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    padding: Spacing.base,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    borderStartWidth: 4,
+    gap: Spacing.md,
+    ...Shadow.sm,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+  },
+  rankCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: Radius.full,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rankText: { fontSize: Typography.xs, fontWeight: '700', color: Colors.textSecondary },
+  nameWrap: { flex: 1, marginHorizontal: Spacing.xs },
+  customerName: { fontSize: Typography.base, fontWeight: '700', color: Colors.textPrimary },
+  badgesWrap: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  badge: { paddingHorizontal: Spacing.sm, paddingVertical: 4, borderRadius: Radius.full, alignSelf: 'flex-start' },
+  badgeText: { fontSize: Typography.xs, fontWeight: '700', flexShrink: 0, includeFontPadding: false },
+  waitBadge: {
+    backgroundColor: 'rgba(99, 102, 241, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(99, 102, 241, 0.25)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radius.full,
+  },
+  waitBadgeText: { fontSize: Typography.xs, color: Colors.accentDark, fontWeight: '600' },
+
+  // Phone row
+  phonePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(0, 0, 0, 0.03)',
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 5,
+    borderRadius: Radius.md,
+    gap: 6,
+  },
+  phonePillIcon: { fontSize: 13 },
+  phoneNumber: { fontSize: Typography.xs, color: Colors.textPrimary, fontFamily: 'monospace', fontWeight: '600' },
+  callBadge: { fontSize: 10, color: Colors.accent, fontWeight: '700', textTransform: 'uppercase', marginStart: 4 },
+
+  // Action buttons
+  cardActions: {
+    marginTop: 2,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0, 0, 0, 0.04)',
+    paddingTop: Spacing.sm,
+  },
+  startBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: Colors.accent,
+    paddingVertical: 10,
+    borderRadius: Radius.md,
+  },
+  startBtnIcon: { fontSize: 12, color: Colors.accentContrast },
+  startBtnText: { color: Colors.accentContrast, fontSize: Typography.sm, fontWeight: '700' },
+
+  inProgressActionsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  backstepBtn: {
+    flex: 1,
+    backgroundColor: Colors.surfaceHover,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backstepText: { color: Colors.textSecondary, fontSize: Typography.xs, fontWeight: '700' },
+  serveBtn: {
+    flex: 1,
+    backgroundColor: Colors.success,
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  serveBtnText: { color: Colors.white, fontSize: Typography.xs, fontWeight: '800' },
+  actionDisabled: { opacity: 0.5 },
+
+  // Empty state
+  empty: { alignItems: 'center', paddingTop: Spacing.xxl, paddingHorizontal: Spacing.xl, gap: Spacing.sm },
+  emptyIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: Radius.full,
+    backgroundColor: 'rgba(0, 0, 0, 0.03)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.xs,
+  },
+  emptyEmoji: { fontSize: 32 },
+  emptyTitle: { fontSize: Typography.lg, fontWeight: '700', color: Colors.textPrimary, textAlign: 'center' },
+  emptyText: { color: Colors.textMuted, fontSize: Typography.sm, textAlign: 'center', lineHeight: 20 },
 });
 
 const modal = StyleSheet.create({

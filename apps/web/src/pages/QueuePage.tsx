@@ -568,16 +568,13 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
             <QueueNotFound />
           ) : (
             <>
-              {/* Main Content Area: Tall Queue & Customers Column + Metadata Sidebar */}
-              <div className="w-full max-w-6xl flex flex-col lg:flex-row items-start justify-center gap-8">
-                {/* Tall Queue Column (Title, QR, Settings, Customers) */}
-                <div className="w-full flex-1 max-w-2xl flex flex-col items-center">
-                  <motion.div
-                    className="text-center space-y-6 w-full"
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
+              {/* Page Header (Centered across the whole page) */}
+              <motion.div
+                className="text-center space-y-4 w-full max-w-3xl mx-auto mb-2"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
                 <div className="flex items-center justify-center gap-4">
                   {mode === "public" && (
                     <h1
@@ -716,18 +713,23 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
 
                 {/* Closing Time Display */}
                 {closingTime && (
-                  <div className="flex items-center justify-center gap-2 mb-4">
-                    <span className="text-sm font-medium" style={{ color: 'var(--dm-text-muted)' }}>
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <span className="text-sm font-medium px-3 py-1 rounded-full" style={{ background: 'var(--dm-surface)', border: '1px solid var(--dm-surface-border)', color: 'var(--dm-text-muted)' }}>
                       {closingTime}
                     </span>
                   </div>
                 )}
+              </motion.div>
 
-                {/* QR Card */}
-                {currentQueueId !== "" && <QueueQrCard queueId={currentQueueId} />}
+              {/* Main Content Area: Tall Queue (QR + Customers) Column & Metadata Sidebar */}
+              <div className="w-full max-w-5xl flex flex-col lg:flex-row items-start justify-center gap-6">
+                {/* Queue Column (QR, Actions, Settings, and Customers in the same column) */}
+                <div className="w-full flex-1 max-w-md flex flex-col items-center space-y-6">
+                  {/* QR Card */}
+                  {currentQueueId !== "" && <QueueQrCard queueId={currentQueueId} />}
 
-                {/* Action Buttons */}
-                <div className="flex flex-wrap items-center justify-center gap-3">
+                  {/* Action Buttons */}
+                  <div className="flex flex-wrap items-center justify-center gap-3 w-full">
                   <motion.button
                     className="btn-primary px-6 py-3 rounded-xl"
                     onClick={() => {
@@ -943,11 +945,10 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
                     </>
                   )}
                 </div>
-              </motion.div>
 
-              {/* Customer List (Queue) */}
-              <div className="w-full mt-6">
-                <main className="space-y-3">
+                {/* Customer List (Queue) */}
+                <div className="w-full">
+                  <main className="space-y-3">
                     <AnimatePresence mode="popLayout">
                       {users?.length === 0 ? (
                         <NoCustomersFound

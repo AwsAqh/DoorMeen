@@ -70,7 +70,10 @@ migration_cmd.log
 # --- Agent / AI tooling ---
 .gemini/
 .agents/
+.claude/
+.expo/
 
 # --- Internal .md files (keep root README.md) ---
 apps/web/**/*.md
 apps/api/Api/**/*.md
+.vercel

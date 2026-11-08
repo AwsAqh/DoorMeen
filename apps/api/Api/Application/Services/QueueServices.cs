@@ -26,7 +26,7 @@ namespace Api.Application.Services
          
 
         public QueueServices(DoorMeenDbContext db) : base(db) { }
-        public async Task<QueueItem> CreateQueue(string queueName,string password,string email) {
+        public async Task<QueueItem> CreateQueue(string queueName, string password, string email, string? barberPhoneNumber = null, string? location = null, string? metadata = null) {
 
           
             if (queueName is null || password is null) throw new ArgumentNullException();
@@ -40,6 +40,9 @@ namespace Api.Application.Services
                 Name = queueName,
                 HashedPassword = Password.HashOrNull(password),
                 OwnerEmail = email,
+                BarberPhoneNumber = barberPhoneNumber,
+                Location = location,
+                Metadata = metadata,
 
 
             };
@@ -54,7 +57,7 @@ namespace Api.Application.Services
             var queue = await _db.Queues.SingleOrDefaultAsync(q => q.Id == queueId);
             if (queue is null) return null;
 
-            var Waiters = await _db.QueueCustomers.AsNoTracking().Where(c => c.QueueId == queueId && c.State !="pending_verification").OrderByDescending(c => c.State=="in_progress").ThenBy(c=>c.CreatedAt).Select(c => new QueueCustomerDTO(c.Id, c.Name, c.CreatedAt, c.State)).ToListAsync();
+            var Waiters = await _db.QueueCustomers.AsNoTracking().Where(c => c.QueueId == queueId && c.State !="pending_verification").OrderByDescending(c => c.State=="in_progress").ThenBy(c=>c.CreatedAt).Select(c => new QueueCustomerDTO(c.Id, c.Name, c.CreatedAt, c.State, c.NotifyWhenRemaining)).ToListAsync();
 
             var res = new QueueDetailsResDTO(
                  Id: queue.Id,
@@ -62,7 +65,11 @@ namespace Api.Application.Services
                  Waiters,
                  CreatedAt: queue.CreatedAt,
                  OwnerMessage: queue.OwnerMessage,
-                 AvgServiceTime: queue.AvgServiceTime
+                 AvgServiceTime: queue.AvgServiceTime,
+                 DailyResetTime: queue.DailyResetTime,
+                 BarberPhoneNumber: queue.BarberPhoneNumber,
+                 Location: queue.Location,
+                 Metadata: queue.Metadata
              );
             return res;
 
@@ -76,11 +83,36 @@ namespace Api.Application.Services
     public class CustomersServices : Services, ICustomersServices
     {
         private readonly IJoinVerification _joinVerification;
+        private readonly QueuePushNotifications? _pushNotifications;
         private readonly Microsoft.AspNetCore.SignalR.IHubContext<Api.Hubs.QueueHub> _hub;
-        public CustomersServices(DoorMeenDbContext db, IJoinVerification joinVerification, Microsoft.AspNetCore.SignalR.IHubContext<Api.Hubs.QueueHub> hub) : base(db) {
+        public CustomersServices(DoorMeenDbContext db, IJoinVerification joinVerification, Microsoft.AspNetCore.SignalR.IHubContext<Api.Hubs.QueueHub> hub, QueuePushNotifications? pushNotifications = null) : base(db) {
             _joinVerification = joinVerification;
             _hub = hub;
+            _pushNotifications = pushNotifications;
          }
+
+        public async Task SetPushNotification(string queueId, int customerId, string cancelToken, string pushToken, int? notifyWhenRemaining)
+        {
+            if (notifyWhenRemaining is < 0 or > 20)
+                throw new ValidationException("Choose a threshold between 0 and 20 customers.");
+            if (notifyWhenRemaining.HasValue && (string.IsNullOrWhiteSpace(pushToken) || pushToken.Length > 256 ||
+                !(pushToken.StartsWith("ExponentPushToken[") || pushToken.StartsWith("ExpoPushToken["))))
+                throw new ValidationException("Invalid push notification token.");
+
+            var customer = await _db.QueueCustomers.SingleOrDefaultAsync(c => c.Id == customerId && c.QueueId == queueId)
+                ?? throw new KeyNotFoundException("Customer not found.");
+            if (string.IsNullOrEmpty(customer.CancelTokenHash) || !CreateHashToken.Verify(cancelToken, customer.CancelTokenHash))
+                throw new UnauthorizedAccessException("Invalid customer token.");
+            if (customer.State != "waiting")
+                throw new ValidationException("Only waiting customers can configure queue notifications.");
+
+            if (!string.IsNullOrWhiteSpace(pushToken)) customer.PushToken = pushToken;
+            customer.NotifyWhenRemaining = notifyWhenRemaining;
+            customer.IsThresholdPushSent = false;
+            await _db.SaveChangesAsync();
+            if (notifyWhenRemaining.HasValue && _pushNotifications is not null)
+                await _pushNotifications.EvaluateAsync(queueId);
+        }
 
         public async Task<JoinQueueResDTO> JoinQueue(string queueId, string name, string phone, string email)
         {
@@ -189,6 +221,7 @@ namespace Api.Application.Services
                         }
                     }
                 }
+                if (_pushNotifications is not null) await _pushNotifications.EvaluateAsync(queueId);
             }
             catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException)
             {
@@ -241,6 +274,7 @@ namespace Api.Application.Services
                         Name = customer.Name,
                         State = customer.State
                     });
+                    if (_pushNotifications is not null) await _pushNotifications.EvaluateAsync(queueId);
                 }
             }
             catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException)

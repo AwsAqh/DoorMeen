@@ -34,6 +34,8 @@ namespace Api.Infrastructuer
                 e.Property(x => x.State).HasMaxLength(20);
                 e.Property(x=>x.Email).HasMaxLength(120);
                 e.Property(x=>x.EmailVerificationTokenHash).HasMaxLength(200);
+                e.Property(x => x.PushToken).HasMaxLength(256);
+                e.Property(x => x.IsThresholdPushSent).HasDefaultValue(false);
                 e.Property(x=>x.EmailVerificationTokenExpiry).HasColumnType("timestamp with time zone");
                 e.Property(x=>x.IsEmailVerified).HasColumnType("boolean");
                 e.Property(x => x.CreatedAt)

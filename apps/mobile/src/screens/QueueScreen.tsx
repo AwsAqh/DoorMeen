@@ -13,12 +13,14 @@
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  View, StyleSheet, TouchableOpacity, ScrollView,
+  View, StyleSheet, TouchableOpacity, ScrollView, Platform,
   StatusBar, ActivityIndicator, Alert, RefreshControl, Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText } from '../components/AppText';
 import * as Clipboard from 'expo-clipboard';
+import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -26,13 +28,24 @@ import { Colors, Spacing, Radius, Typography, Shadow } from '../constants/theme'
 import {
   apiGetQueuePublic, apiCancelRegistration, apiSnoozeRegistration,
   apiUpdateCustomerStatus, apiServeCustomer, apiRevertCustomerToWaiting,
-  getCancelToken, getOwnerToken, saveRecentQueue,
+  apiSetQueuePushNotification, getCancelToken, getOwnerToken, saveRecentQueue,
 } from '../features/queue/services/api';
 import { useQueueSignalR } from '../hooks/useQueueSignalR';
 import { isTokenValid } from '../hooks/useOwnerSession';
 import { Status, RANK, getStatusI18nKey } from '../constants/status';
 import QrCode from '../components/QrCode';
 import { useToast } from '../components/Toast';
+import FirstTimeGuide from '../components/FirstTimeGuide';
+import AdSpaceBanner from '../components/AdSpaceBanner';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Queue'>;
 
@@ -42,6 +55,7 @@ type Customer = {
   Name: string;
   State: Status;
   CreatedAt?: string;
+  NotifyWhenRemaining?: number | null;
 };
 
 /** Same value the web encodes: window.location.origin + /queue/{id}. */
@@ -55,11 +69,13 @@ const normalizeCustomer = (raw: unknown): Customer | null => {
   const state = r.State ?? r.state ?? r.Status ?? r.status;
   const name = r.Name ?? r.name;
   const createdAt = r.CreatedAt ?? r.createdAt;
+  const notifyWhenRemaining = r.NotifyWhenRemaining ?? r.notifyWhenRemaining;
   return {
     Id: id,
     Name: typeof name === 'string' ? name : '',
     State: typeof state === 'string' ? (state as Status) : 'waiting',
     CreatedAt: typeof createdAt === 'string' ? createdAt : undefined,
+    NotifyWhenRemaining: typeof notifyWhenRemaining === 'number' ? notifyWhenRemaining : null,
   };
 };
 
@@ -78,17 +94,59 @@ export default function QueueScreen({ navigation, route }: Props) {
   const [queueName,  setQueueName]  = useState(queueId);
   const [message,    setMessage]    = useState<string | null>(null);
   const [avgTime,    setAvgTime]    = useState<number>(15);
+  const [closingTime, setClosingTime] = useState<string>('');
   const [customers,  setCustomers]  = useState<Customer[]>([]);
   const [ownerToken, setOwnerToken] = useState<string | null>(null);
   const [notFound,   setNotFound]   = useState(false);
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [copied,     setCopied]     = useState(false);
+  const [notifyThreshold, setNotifyThreshold] = useState(1);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [savingPush, setSavingPush] = useState(false);
   const [updatingCustomerId, setUpdatingCustomerId] = useState<number | null>(null);
   const [pendingServeIds, setPendingServeIds] = useState<Set<number>>(() => new Set());
   const serveTimers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
 
   const queueUrl = `${WEB_ORIGIN}/queue/${queueId}`;
+  const myCustomer = customers.find(c => !!getCancelToken(c.Id) && c.State === 'waiting');
+
+  const savePushSetting = async (threshold: number | null) => {
+    if (!myCustomer) return;
+    setSavingPush(true);
+    try {
+      if (threshold === null) {
+        const token = getCancelToken(myCustomer.Id);
+        if (!token) throw new Error(t('queue.notifyUnavailable', 'Your queue spot could not be found.'));
+        await apiSetQueuePushNotification({ queueId, customerId: myCustomer.Id, cancelToken: token, pushToken: '', notifyWhenRemaining: null });
+        setPushEnabled(false);
+        return;
+      }
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('queue-updates', {
+          name: 'Queue updates', importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250], lightColor: '#D8A44A',
+        });
+      }
+      let permission = await Notifications.getPermissionsAsync();
+      if (!permission.granted) permission = await Notifications.requestPermissionsAsync();
+      if (!permission.granted) throw new Error(t('queue.notifyPermission', 'Allow notifications in your device settings to turn on queue alerts.'));
+
+      const projectId = Constants.easConfig?.projectId ?? Constants.expoConfig?.extra?.eas?.projectId;
+      const pushOptions = projectId && projectId !== 'YOUR_EAS_PROJECT_ID' ? { projectId } : {};
+      const pushToken = (await Notifications.getExpoPushTokenAsync(pushOptions)).data;
+      const cancelToken = getCancelToken(myCustomer.Id);
+      if (!cancelToken) throw new Error(t('queue.notifyUnavailable', 'Your queue spot could not be found.'));
+      await apiSetQueuePushNotification({ queueId, customerId: myCustomer.Id, cancelToken, pushToken, notifyWhenRemaining: threshold });
+      setNotifyThreshold(threshold);
+      setPushEnabled(true);
+      showSuccess(t('queue.notifySaved', 'Queue alert enabled'));
+    } catch (error) {
+      showError((error as Error).message || t('common.error'));
+    } finally {
+      setSavingPush(false);
+    }
+  };
 
   const loadQueue = useCallback(async () => {
     try {
@@ -108,9 +166,35 @@ export default function QueueScreen({ navigation, route }: Props) {
         ? (rawWaiters.map(normalizeCustomer).filter(Boolean) as Customer[])
         : [];
       setCustomers(sortUsers(list));
+      const mySpot = list.find(c => !!getCancelToken(c.Id) && c.State === 'waiting');
+      if (mySpot?.NotifyWhenRemaining != null) {
+        setNotifyThreshold(mySpot.NotifyWhenRemaining);
+        setPushEnabled(true);
+      } else {
+        setPushEnabled(false);
+      }
       const storedOwnerToken = getOwnerToken(queueId);
       setOwnerToken(storedOwnerToken && isTokenValid(storedOwnerToken) ? storedOwnerToken : null);
       setNotFound(false);
+      
+      // Extract closing time (DailyResetTime) from queue data
+      const dailyReset = data.DailyResetTime ?? data.dailyResetTime;
+      if (dailyReset != null && typeof dailyReset === 'object' && 'hours' in dailyReset) {
+        // TimeSpan format from .NET
+        const hours = dailyReset.hours || 0;
+        const minutes = dailyReset.minutes || 0;
+        const date = new Date();
+        date.setHours(hours, minutes, 0, 0);
+        setClosingTime(date.toLocaleTimeString());
+      } else if (typeof dailyReset === 'string') {
+        // Try to parse HH:mm or HH:mm:ss format
+        const parts = dailyReset.split(':');
+        if (parts.length >= 2) {
+          const date = new Date();
+          date.setHours(parseInt(parts[0], 10), parseInt(parts[1], 10), 0, 0);
+          setClosingTime(date.toLocaleTimeString());
+        }
+      }
     } catch {
       setNotFound(true);
     } finally {
@@ -312,6 +396,11 @@ export default function QueueScreen({ navigation, route }: Props) {
         <View style={styles.topBlock}>
           {/* Queue title: h1 text-3xl font-bold accent, centered */}
           <AppText style={styles.title}>{queueName}</AppText>
+          {closingTime != '' && (
+            <AppText style={{ color: Colors.textMuted }}>
+              {t('queue.closesAt', 'Closes at')}{' '}{closingTime}
+            </AppText>
+          )}
 
           {/* Owner notice bar (web Owner Message Bar) */}
           {message != null && (
@@ -347,7 +436,29 @@ export default function QueueScreen({ navigation, route }: Props) {
               {ownerToken ? t('queue.manageQueue', 'Manage queue') : t('queue.actions.manage')}
             </AppText>
           </TouchableOpacity>
+          {myCustomer && !ownerToken && (
+            <View style={styles.notifyCard}>
+              <AppText style={styles.notifyTitle}>{t('queue.notifyMeWhen', 'Notify me when…')}</AppText>
+              <AppText style={styles.notifyDescription}>{t('queue.notifyDescription', 'Choose how many customers can be ahead of you, including anyone currently being served.')}</AppText>
+              <View style={styles.notifyChoices}>
+                {[0, 1, 2, 3, 5].map(value => (
+                  <TouchableOpacity key={value} style={[styles.notifyChoice, notifyThreshold === value && styles.notifyChoiceSelected]} onPress={() => setNotifyThreshold(value)} activeOpacity={0.8} accessibilityRole="button" accessibilityState={{ selected: notifyThreshold === value }}>
+                    <AppText style={[styles.notifyChoiceText, notifyThreshold === value && styles.notifyChoiceSelectedText]}>{value === 0 ? t('queue.notifyNext', 'Next') : `${value}`}</AppText>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <View style={styles.notifyActions}>
+                <TouchableOpacity disabled={savingPush} style={styles.notifyEnable} onPress={() => savePushSetting(notifyThreshold)} activeOpacity={0.8}>
+                  <AppText style={styles.notifyEnableText}>{savingPush ? t('common.loading') : pushEnabled ? t('queue.updateAlert', 'Update alert') : t('queue.enableAlert', 'Enable push alert')}</AppText>
+                </TouchableOpacity>
+                {pushEnabled && <TouchableOpacity disabled={savingPush} onPress={() => savePushSetting(null)}><AppText style={styles.notifyDisable}>{t('queue.turnOffAlert', 'Turn off')}</AppText></TouchableOpacity>}
+              </View>
+            </View>
+          )}
         </View>
+        {/* Ad space banner */}
+        <AdSpaceBanner variant="queue" />
+
         {/* Customer list (web: max-w-3xl block, rows gap 12) */}
         <View style={styles.listBlock}>
           {customers.length === 0 ? (
@@ -485,6 +596,7 @@ export default function QueueScreen({ navigation, route }: Props) {
         </View>
 
       </ScrollView>
+      <FirstTimeGuide guideId="queue_view_ads" delay={1000} />
     </SafeAreaView>
   );
 }
@@ -581,6 +693,18 @@ const styles = StyleSheet.create({
   manageBtnText: { color: Colors.accentContrast, fontSize: Typography.base, fontWeight: '700' },
   // Customer list block: rows gap 12 (web space-y-3), width 768 max on web
   listBlock: { width: '100%', gap: Spacing.md },
+  notifyCard: { width: '100%', backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.surfaceBorder, borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.sm, ...Shadow.sm },
+  notifyTitle: { fontSize: Typography.md, fontWeight: '700', color: Colors.textPrimary },
+  notifyDescription: { fontSize: Typography.sm, color: Colors.textMuted, lineHeight: 20 },
+  notifyChoices: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.xs },
+  notifyChoice: { minWidth: 44, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, alignItems: 'center', borderRadius: Radius.full, borderWidth: 1, borderColor: Colors.surfaceBorder },
+  notifyChoiceSelected: { backgroundColor: Colors.accent, borderColor: Colors.accent },
+  notifyChoiceText: { color: Colors.textSecondary, fontSize: Typography.sm, fontWeight: '600' },
+  notifyChoiceSelectedText: { color: Colors.accentContrast },
+  notifyActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.lg, marginTop: Spacing.xs },
+  notifyEnable: { backgroundColor: Colors.accent, borderRadius: Radius.md, paddingHorizontal: Spacing.base, paddingVertical: Spacing.sm },
+  notifyEnableText: { color: Colors.accentContrast, fontSize: Typography.sm, fontWeight: '700' },
+  notifyDisable: { color: Colors.danger, fontSize: Typography.sm, fontWeight: '600' },
 
   // .waiter-row — rounded-2xl px-5 py-4 row space-between gap-4, glass surface
   waiterRow: {

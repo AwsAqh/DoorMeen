@@ -20,6 +20,10 @@ export default function CreateQueueScreen({ navigation }: Props) {
   const [password, setPassword] = useState('');
   const [confirm,  setConfirm]  = useState('');
   const [email, setEmail] = useState('');
+
+  const [barberPhone, setBarberPhone] = useState('');
+  const [location, setLocation] = useState('');
+  const [metadata, setMetadata] = useState('');
   const [errors,   setErrors]   = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -37,7 +41,7 @@ export default function CreateQueueScreen({ navigation }: Props) {
     if (!validate() || submitting) return;
     setSubmitting(true);
     try {
-      const result = await handleCreate({ name: name.trim(), password, email: email.trim() });
+      const result = await handleCreate({ name: name.trim(), password, email: email.trim(), barberPhoneNumber: barberPhone.trim() || null, location: location.trim() || null, metadata: metadata.trim() || null });
       Alert.alert(
         t('create.success', 'Queue Created!'),
         `${t('create.yourId', 'Your Queue ID:')} ${result?.QueueId ?? result?.id ?? ''}`,
@@ -52,6 +56,7 @@ export default function CreateQueueScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <FirstTimeGuide guideId="create_queue_pin" delay={500} />
       <StatusBar barStyle="dark-content" backgroundColor={Colors.bgPrimary} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
@@ -66,6 +71,9 @@ export default function CreateQueueScreen({ navigation }: Props) {
             { label: t('popupForm.create.label1', 'Queue Name'), value: name,     set: setName,     key: 'name',     placeholder: t('popupForm.create.placeholder1', 'Enter queue name'), secure: false },
             { label: t('popupForm.create.label2',  'Owner PIN'),   value: password, set: setPassword, key: 'password', placeholder: t('popupForm.create.placeholder2', '4–6 digits'), secure: true },
             { label: t('popupForm.create.confirmLabel', 'Confirm PIN'), value: confirm, set: setConfirm, key: 'confirm', placeholder: t('popupForm.create.confirmPlaceholder', 'Enter PIN again'), secure: true },
+            { label: t('popupForm.create.label3',  'Owner Barber Phone'), value: barberPhone, set: setBarberPhone, key: 'barberPhone', placeholder: t('popupForm.create.placeholder3', 'e.g. +1 555 123 4567'), secure: false },
+            { label: t('popupForm.create.label4',  'Location'), value: location, set: setLocation, key: 'location', placeholder: t('popupForm.create.placeholder4', 'Street address, city, country'), secure: false },
+            { label: t('popupForm.create.label5',  'Queue Metadata'), value: metadata, set: setMetadata, key: 'metadata', placeholder: t('popupForm.create.placeholder5', 'e.g. VIP, Married, 2–3 seats'), secure: false },
           ].map(({ label, value, set, key, placeholder, secure }) => (
             <View key={key} style={styles.fieldWrap}>
               <AppText style={styles.label}>{label}</AppText>
@@ -101,6 +109,48 @@ export default function CreateQueueScreen({ navigation }: Props) {
             {errors.email ? <AppText style={styles.errorText}>{errors.email}</AppText> : null}
           </View>
 
+          <View style={styles.fieldWrap}>
+            <AppText style={styles.label}>{t('popupForm.create.label3', 'Owner Barber Phone')}</AppText>
+            <AppTextInput
+              style={[styles.input, errors.barberPhone ? styles.inputError : null]}
+              value={barberPhone}
+              onChangeText={setBarberPhone}
+              placeholder={t('popupForm.create.placeholder3', 'e.g. +1 555 123 4567')}
+              keyboardType="phone-pad"
+              autoCapitalize="none"
+              autoCorrect={false}
+              textContentType="telephoneNumber"
+            />
+            {errors.barberPhone ? <AppText style={styles.errorText}>{errors.barberPhone}</AppText> : null}
+          </View>
+
+          <View style={styles.fieldWrap}>
+            <AppText style={styles.label}>{t('popupForm.create.label4', 'Location')}</AppText>
+            <AppTextInput
+              style={[styles.input, errors.location ? styles.inputError : null]}
+              value={location}
+              onChangeText={setLocation}
+              placeholder={t('popupForm.create.placeholder4', 'Street address, city, country')}
+              autoCapitalize="sentences"
+              autoCorrect={false}
+            />
+            {errors.location ? <AppText style={styles.errorText}>{errors.location}</AppText> : null}
+          </View>
+
+          <View style={styles.fieldWrap}>
+            <AppText style={styles.label}>{t('popupForm.create.label5', 'Queue Metadata')}</AppText>
+            <AppTextInput
+              style={[styles.input, errors.metadata ? styles.inputError : null]}
+              value={metadata}
+              onChangeText={setMetadata}
+              placeholder={t('popupForm.create.placeholder5', 'e.g. VIP, Married, 2–3 seats')}
+              multiline
+              textAlignVertical="top"
+              maxLength={200}
+            />
+            {errors.metadata ? <AppText style={styles.errorText}>{errors.metadata}</AppText> : null}
+          </View>
+
           <TouchableOpacity style={[styles.btn, submitting && styles.btnDisabled]} onPress={onCreate} disabled={submitting} activeOpacity={0.85}>
             {submitting
               ? <ActivityIndicator size="small" color={Colors.accentContrast} />
@@ -130,4 +180,5 @@ const styles = StyleSheet.create({
   btnDisabled: { opacity: 0.6 },
   btnText:     { color: Colors.accentContrast, fontWeight: '800', fontSize: Typography.base },
 });
+
 

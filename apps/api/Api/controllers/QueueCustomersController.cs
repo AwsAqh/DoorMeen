@@ -69,6 +69,15 @@ namespace Api.Controllers
             }
         }
 
+        [HttpPut("push-notification/{queueId}/{customerId:int}")]
+        public async Task<ActionResult> SetPushNotification(string queueId, int customerId, [FromHeader(Name = "X-Cancel-Token")] string token, [FromBody] PushNotificationRequest request)
+        {
+            await _service.SetPushNotification(queueId, customerId, token, request.PushToken, request.NotifyWhenRemaining);
+            return NoContent();
+        }
+
+        public sealed record PushNotificationRequest(string PushToken, int? NotifyWhenRemaining);
+
 
     }
 }

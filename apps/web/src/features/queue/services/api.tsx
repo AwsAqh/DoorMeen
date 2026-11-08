@@ -289,7 +289,7 @@ export async function apiUpdateClosingTime(input: { QueueId: string, timeString:
   const res = await fetch(`${API}/api/owners/update-closing-time/${input.QueueId}`, {
     method: "PUT",
     headers: { "Content-type": "application/json", "Authorization": `Bearer ${input.token}` },
-    body: JSON.stringify(input.timeString)
+    body: JSON.stringify({ closingTime: input.timeString, timeString: input.timeString })
   });
 
   const body = await readBody(res);

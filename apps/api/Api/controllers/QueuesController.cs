@@ -31,7 +31,7 @@ namespace Api.Controllers
         [HttpPost]
         public async Task<IActionResult> AddQueueItem([FromBody] AddQueueDTO req )
         {
-            var res = await _services.CreateQueue(req.Name, req.Password, req.Email);
+            var res = await _services.CreateQueue(req.Name, req.Password, req.Email, req.BarberPhoneNumber, req.Location, req.Metadata);
             if(res is null) return BadRequest();
             return Created("",new {id=res.Id});
 

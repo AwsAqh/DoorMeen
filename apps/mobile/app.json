@@ -35,6 +35,7 @@
           "cameraPermission": "DoorMeen uses the camera to scan queue QR codes."
         }
       ],
+      "expo-notifications",
       [
         "expo-font",
         {

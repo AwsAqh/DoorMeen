@@ -226,7 +226,17 @@ export default function OwnerDashboardScreen({ navigation, route }: Props) {
       setMaxCust(typeof max === 'number' ? max : null);
       const created = data.CreatedAt ?? data.createdAt;
       setCreatedAt(typeof created === 'string' ? created : null);
-      setClosingTime(data.ClosingTime ?? data.closingTime ?? null);
+      const rawReset = data.DailyResetTime ?? data.dailyResetTime ?? data.ClosingTime ?? data.closingTime;
+      if (typeof rawReset === 'string') {
+        const parts = rawReset.split(':');
+        setClosingTime(parts.length >= 2 ? `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}` : rawReset);
+      } else if (rawReset && typeof rawReset === 'object' && 'hours' in rawReset) {
+        const h = String((rawReset as any).hours ?? 0).padStart(2, '0');
+        const m = String((rawReset as any).minutes ?? 0).padStart(2, '0');
+        setClosingTime(`${h}:${m}`);
+      } else {
+        setClosingTime(null);
+      }
       const raw = data.Waiters ?? data.waiters ?? data.customers ?? [];
       const list: Customer[] = [];
       if (Array.isArray(raw)) {

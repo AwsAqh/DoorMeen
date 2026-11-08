@@ -13,6 +13,7 @@ import { handleJoin } from '../features/queue/handlers';
 import { apiGetQueuePublic } from '../features/queue/services/api';
 import { ApiError } from '../features/queue/services/api';
 import { useToast } from '../components/Toast';
+import FirstTimeGuide from '../components/FirstTimeGuide';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Join'>;
 
@@ -163,7 +164,16 @@ export default function JoinScreen({ navigation, route }: Props) {
           }
         </TouchableOpacity>
 
+        {/* SMS verification coming soon info */}
+        <View style={styles.verifyInfoBanner}>
+          <AppText style={styles.verifyInfoIcon}>📲</AppText>
+          <AppText style={styles.verifyInfoText}>
+            {t('guide.join.step2Body', 'In the official release, you will receive a PIN via SMS to verify your spot. This guarantees nobody else can join using your number and keeps the queue fair for everyone.')}
+          </AppText>
+        </View>
+
       </ScrollView>
+      <FirstTimeGuide guideId="join_queue_info" delay={400} />
     </SafeAreaView>
   );
 }
@@ -189,5 +199,23 @@ const styles = StyleSheet.create({
   btn:         { backgroundColor: Colors.accent, borderRadius: Radius.full, paddingVertical: Spacing.md, alignItems: 'center', marginTop: Spacing.lg, ...Shadow.glow },
   btnDisabled: { opacity: 0.6 },
   btnText:     { color: Colors.accentContrast, fontWeight: '800', fontSize: Typography.base },
+  verifyInfoBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    marginTop: Spacing.xl,
+    padding: Spacing.base,
+    backgroundColor: 'rgba(245,154,23,0.08)',
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(245,154,23,0.2)',
+  },
+  verifyInfoIcon: { fontSize: 20, marginTop: 1 },
+  verifyInfoText: {
+    flex: 1,
+    fontSize: Typography.xs,
+    color: Colors.textSecondary,
+    lineHeight: 19,
+  },
 });
 

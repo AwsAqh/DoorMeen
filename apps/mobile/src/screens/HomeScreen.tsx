@@ -13,6 +13,8 @@ import { Colors, Spacing, Radius, Typography, Shadow } from '../constants/theme'
 import { useOwnerQueues } from '../hooks/useOwnerSession';
 import { useRecentQueues } from '../hooks/useRecentQueues';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import FirstTimeGuide from '../components/FirstTimeGuide';
+import AdSpaceBanner from '../components/AdSpaceBanner';
 const DoorMeenLogo = require('../../assets/doormeen-logo.png');
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
@@ -187,8 +189,19 @@ export default function HomeScreen({ navigation }: Props) {
           </View>
         )}
 
+        {/* ── Ad Space & Draw Promotion ─────────────────────────────────── */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <AppText style={styles.sectionTitle}>{t('adSpace.drawBadge', 'FREE ADS DRAW')}</AppText>
+          </View>
+          <AdSpaceBanner variant="home" />
+        </View>
+
         {/* ── Footer ───────────────────────────────────────────────────── */}
         <AppText style={styles.footer}>DoorMeen © 2025</AppText>
+
+        {/* First-time user guide */}
+        <FirstTimeGuide guideId="home_welcome" delay={800} />
       </ScrollView>
     </SafeAreaView>
   );

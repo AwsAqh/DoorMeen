@@ -1,6 +1,7 @@
 
 
 using Api.models;
+using System.Text.Json.Serialization;
 using System.Collections.ObjectModel;
 
 public class QueueItem() {
@@ -17,6 +18,9 @@ public class QueueItem() {
     public string? OwnerMessage { get; set; }
     public int? AvgServiceTime { get; set; }
     public TimeSpan? DailyResetTime { get; set; }
+    public string? BarberPhoneNumber { get; set; }
+    public string? Location { get; set; }
+    public string? Metadata { get; set; }
     public ICollection<QueueCustomer> Customers { get; set; } = new List<QueueCustomer>();
 
     

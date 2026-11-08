@@ -18,6 +18,11 @@ import NoCustomersFound from "@/components/NoCustomersFound";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveRedEyeIcon from '@mui/icons-material/RemoveRedEye';
 import ModeEditIcon from '@mui/icons-material/ModeEdit';
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import PhoneIcon from "@mui/icons-material/Phone";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import SpeedIcon from "@mui/icons-material/Speed";
 import Stack from "@mui/material/Stack";
 
 import { Mode } from "../components/Helpers/popupFormTypes";
@@ -36,6 +41,37 @@ import { useOwnerGuard } from "@/hooks/useOwnerGuard";
 import { useOwnerSession } from "@/hooks/useOwnerSession";
 import { useQueueSignalR } from "@/hooks/useQueueSignalR";
 import { saveRecentQueue } from "@/features/queue/services/recentQueues";
+
+function parseClosingTime(resetTime: unknown, closesAtPrefix: string): { display: string; raw: string } {
+  if (!resetTime) return { display: "", raw: "" };
+
+  let hours: number | null = null;
+  let minutes: number | null = null;
+
+  if (typeof resetTime === "string") {
+    const match = resetTime.match(/^(\d{1,2}):(\d{2})/);
+    if (match) {
+      hours = parseInt(match[1], 10);
+      minutes = parseInt(match[2], 10);
+    }
+  } else if (typeof resetTime === "object" && resetTime !== null) {
+    const obj = resetTime as { hours?: number; Hours?: number; minutes?: number; Minutes?: number };
+    hours = obj.hours ?? obj.Hours ?? 0;
+    minutes = obj.minutes ?? obj.Minutes ?? 0;
+  }
+
+  if (hours === null || minutes === null || isNaN(hours) || isNaN(minutes)) {
+    return { display: "", raw: "" };
+  }
+
+  const raw = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+  const d = new Date(0, 0, 0, hours, minutes);
+  const formattedTime = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const display = `${closesAtPrefix} ${formattedTime}`.trim();
+
+  return { display, raw };
+}
+
 
 type User = {
   Id: number;
@@ -219,18 +255,13 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
         setOwnerMessage(data.OwnerMessage || null);
         setAvgServiceTime(data.AvgServiceTime ?? 15);
         // Set closing time if available
-        const resetTime = data.DailyResetTime;
-        setClosingTime(resetTime !== undefined
-          ? typeof resetTime === 'object' && resetTime !== null
-            ? t('queue.closesAt', 'Closes at') + ' ' + new Date(0, 0, 0, resetTime.hours ?? 0, resetTime.minutes ?? 0).toLocaleTimeString()
-            : t('queue.closesAt', 'Closes at')
-          : "");
-        setRawClosingTime(resetTime !== undefined
-          ? typeof resetTime === 'object' && resetTime !== null
-            ? String(resetTime.hours ?? 0).padStart(2, '0') + ':' + String(resetTime.minutes ?? 0).padStart(2, '0')
-            : ""
-          : "");
+        const { display: parsedDisplay, raw: parsedRaw } = parseClosingTime(data.DailyResetTime, t('queue.closesAt', 'Closes at'));
+        setClosingTime(parsedDisplay);
+        setRawClosingTime(parsedRaw);
         setUsers(data.Waiters);
+        setBarberPhoneNumber(data.BarberPhoneNumber || "");
+        setLocation(data.Location || "");
+        setMetadata(data.Metadata || "");
         toast.dismiss(LOADING_ID);
       } catch (err) {
         setNotFound(true);
@@ -268,17 +299,9 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
         setOwnerMessage(data.OwnerMessage || null);
         setAvgServiceTime(data.AvgServiceTime ?? 15);
         // Set closing time if available
-        const resetTime = data.DailyResetTime;
-        setClosingTime(resetTime !== undefined
-          ? typeof resetTime === 'object' && resetTime !== null
-            ? t('queue.closesAt', 'Closes at') + ' ' + new Date(0, 0, 0, resetTime.hours ?? 0, resetTime.minutes ?? 0).toLocaleTimeString()
-            : t('queue.closesAt', 'Closes at')
-          : "");
-        setRawClosingTime(resetTime !== undefined
-          ? typeof resetTime === 'object' && resetTime !== null
-            ? String(resetTime.hours ?? 0).padStart(2, '0') + ':' + String(resetTime.minutes ?? 0).padStart(2, '0')
-            : ""
-          : "");
+        const { display: parsedDisplay, raw: parsedRaw } = parseClosingTime(data.DailyResetTime, t('queue.closesAt', 'Closes at'));
+        setClosingTime(parsedDisplay);
+        setRawClosingTime(parsedRaw);
         setUsers(data.Waiters);
         setCurrentMaxCustomers(data.MaxCustomers ?? null);
         setBarberPhoneNumber(data.BarberPhoneNumber || "");
@@ -739,14 +762,24 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
                         <RemoveRedEyeIcon fontSize="small" />
                       </motion.button>
 
-                      <div className="flex items-center gap-3">
-                        <div className="relative">
+                      <div
+                        className="w-full rounded-2xl p-4 flex flex-wrap gap-4 items-end justify-center transition-all"
+                        style={{
+                          background: 'var(--dm-surface)',
+                          border: '1px solid var(--dm-surface-border)',
+                          boxShadow: 'var(--dm-shadow-sm)',
+                        }}
+                      >
+                        <div className="relative min-w-[140px]">
+                          <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--dm-text-muted)' }}>
+                            {t('queue.maxCustomers')}
+                          </label>
                           <select
                             value={String(draftMax)}
                             onChange={onMaxChange}
-                            className="appearance-none rounded-lg px-3 pr-10 py-2 text-sm transition-colors cursor-pointer"
+                            className="w-full appearance-none rounded-xl px-3 pr-10 py-2.5 text-sm transition-colors cursor-pointer outline-none"
                             style={{
-                              background: 'var(--dm-surface)',
+                              background: 'var(--dm-bg-primary)',
                               color: 'var(--dm-text-primary)',
                               border: '1px solid var(--dm-surface-border)',
                             }}
@@ -761,7 +794,7 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
                             <option value="20">20 {t('queue.customers')}</option>
                           </select>
                           <svg
-                            className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4"
+                            className="pointer-events-none absolute right-3 top-[34px] h-4 w-4"
                             style={{ color: 'var(--dm-text-muted)' }}
                             viewBox="0 0 20 20"
                             fill="currentColor"
@@ -776,16 +809,19 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
                         </div>
 
                         {/* Avg Service Time config */}
-                        <div className="relative">
+                        <div className="relative min-w-[150px]">
+                          <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--dm-text-muted)' }}>
+                            {t('queue.avgTime', 'Avg. Time')}
+                          </label>
                           <select
                             value={String(avgServiceTime)}
                             onChange={(e) => {
                               setAvgServiceTime(Number(e.target.value));
                               setAnyChange(true);
                             }}
-                            className="appearance-none rounded-lg px-3 pr-10 py-2 text-sm transition-colors cursor-pointer"
+                            className="w-full appearance-none rounded-xl px-3 pr-10 py-2.5 text-sm transition-colors cursor-pointer outline-none"
                             style={{
-                              background: 'var(--dm-surface)',
+                              background: 'var(--dm-bg-primary)',
                               color: 'var(--dm-text-primary)',
                               border: '1px solid var(--dm-surface-border)',
                             }}
@@ -798,7 +834,7 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
                             <option value="30">⏱ 30 min/person</option>
                           </select>
                           <svg
-                            className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4"
+                            className="pointer-events-none absolute right-3 top-[34px] h-4 w-4"
                             style={{ color: 'var(--dm-text-muted)' }}
                             viewBox="0 0 20 20"
                             fill="currentColor"
@@ -812,73 +848,93 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
                           </svg>
                         </div>
 
-                        <div className="flex-1 relative">
+                        <div className="relative min-w-[130px]">
                           <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--dm-text-muted)' }}>
-                            Closing / Reset Time
+                            {t('queue.closingTime', 'Closing Time')}
                           </label>
                           <input
                             type="time"
                             value={rawClosingTime}
                             onChange={(e) => {
                               setRawClosingTime(e.target.value);
-                              setClosingTime(e.target.value ? t('queue.closesAt', 'Closes at') + ' ' + e.target.value : "");
+                              const parsed = parseClosingTime(e.target.value, t('queue.closesAt', 'Closes at'));
+                              setClosingTime(e.target.value ? parsed.display : "");
                               setAnyChange(true);
                             }}
-                            className="w-[125px] bg-transparent text-sm font-medium border border-white/10 rounded-lg px-3 py-2 outline-none appearance-none"
+                            className="w-full rounded-xl px-3 py-2 text-sm font-medium outline-none transition-all"
                             style={{ 
-                              color: 'var(--dm-text-primary)'
+                              background: 'var(--dm-bg-primary)',
+                              color: 'var(--dm-text-primary)',
+                              border: '1px solid var(--dm-surface-border)'
                             }}
                           />
                         </div>
 
-                        <div className="relative w-[200px]">
+                        <div className="relative min-w-[160px] flex-1">
                           <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--dm-text-muted)' }}>
-                            Barber Phone
+                            {t('queue.barberPhone', 'Phone')}
                           </label>
                           <input
                             type="text"
+                            placeholder="e.g. +123456789"
                             value={barberPhoneNumber}
                             onChange={(e) => { setBarberPhoneNumber(e.target.value); setAnyChange(true); }}
-                            className="w-full bg-transparent text-sm font-medium border border-white/10 rounded-lg px-3 py-2 outline-none appearance-none"
-                            style={{ color: 'var(--dm-text-primary)' }}
+                            className="w-full rounded-xl px-3 py-2 text-sm font-medium outline-none transition-all"
+                            style={{ 
+                              background: 'var(--dm-bg-primary)',
+                              color: 'var(--dm-text-primary)',
+                              border: '1px solid var(--dm-surface-border)'
+                            }}
                           />
                         </div>
 
-                        <div className="relative w-[200px]">
+                        <div className="relative min-w-[160px] flex-1">
                           <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--dm-text-muted)' }}>
-                            Location
+                            {t('queue.location', 'Location')}
                           </label>
                           <input
                             type="text"
+                            placeholder="e.g. 123 Main St"
                             value={location}
                             onChange={(e) => { setLocation(e.target.value); setAnyChange(true); }}
-                            className="w-full bg-transparent text-sm font-medium border border-white/10 rounded-lg px-3 py-2 outline-none appearance-none"
-                            style={{ color: 'var(--dm-text-primary)' }}
+                            className="w-full rounded-xl px-3 py-2 text-sm font-medium outline-none transition-all"
+                            style={{ 
+                              background: 'var(--dm-bg-primary)',
+                              color: 'var(--dm-text-primary)',
+                              border: '1px solid var(--dm-surface-border)'
+                            }}
                           />
                         </div>
 
-                        <div className="relative flex-1">
+                        <div className="relative w-full">
                           <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--dm-text-muted)' }}>
-                            Metadata
+                            {t('queue.metadataLabel', 'Metadata / Description')}
                           </label>
                           <textarea
                             value={metadata}
+                            placeholder="Add services, business hours, prices, or special notes for your customers..."
                             onChange={(e) => { setMetadata(e.target.value); setAnyChange(true); }}
-                            className="w-full bg-transparent text-sm font-medium border border-white/10 rounded-lg px-3 py-2 outline-none appearance-none resize-none"
-                            style={{ color: 'var(--dm-text-primary)' }}
+                            className="w-full rounded-xl px-3 py-2 text-sm font-normal outline-none transition-all resize-y min-h-[64px]"
+                            style={{ 
+                              background: 'var(--dm-bg-primary)',
+                              color: 'var(--dm-text-primary)',
+                              border: '1px solid var(--dm-surface-border)'
+                            }}
                             rows={2}
                           />
                         </div>
 
                         {anyChange && (
-                          <motion.button
-                            onClick={updateDashboardSettings}
-                            className="btn-primary px-4 py-2 text-sm rounded-lg"
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                          >
-                            {saveLoading ? t('queue.saving') : t('common.save')}
-                          </motion.button>
+                          <div className="w-full flex justify-end pt-1">
+                            <motion.button
+                              onClick={updateDashboardSettings}
+                              className="btn-primary px-5 py-2.5 text-sm rounded-xl font-semibold shadow-md"
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                            >
+                              {saveLoading ? t('queue.saving') : t('common.save')}
+                            </motion.button>
+                          </div>
                         )}
                       </div>
                     </>
@@ -886,87 +942,244 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
                 </div>
               </motion.div>
 
-              {/* Customer List */}
-              <div className="w-full max-w-3xl">
-                <main className="space-y-3">
-                  <AnimatePresence mode="popLayout">
-                    {users?.length === 0 ? (
-                      <NoCustomersFound
-                        owner={owner}
-                        onAction={() => {
-                          setPopupMode("join");
-                          setOpen(true);
-                        }}
-                      />
-                    ) : owner ? (
-                      users?.map((u, idx) => (
-                        <motion.div
-                          key={u.Id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.2, delay: idx * 0.05 }}
-                        >
-                          <UserRow
-                            user={u}
-                            onChange={(nextStatus: string) => updateStatus(nextStatus, u.Id)}
-                          />
-                        </motion.div>
-                      ))
-                    ) : (
-                      users?.map((u, idx) => (
-                        <motion.div
-                          key={u.Id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.2, delay: idx * 0.05 }}
-                        >
-                          <Waiter
-                            id={u.Id}
-                            name={u.Name}
-                            phone={owner ? u.PhoneNumber : ""}
-                            status={u.State}
-                            estimatedWait={
-                              u.State === "waiting"
-                                ? (() => {
-                                    const waitingOnly = users.filter(x => x.State === "waiting");
-                                    const pos = waitingOnly.findIndex(x => x.Id === u.Id);
-                                    return pos >= 0 ? (pos + 1) * avgServiceTime : null;
-                                  })()
-                                : null
-                            }
-                            onCancel={(id) => cancelRegister(id)}
-                            onSnooze={(id) => snoozeRegister(id)}
-                          />
-                        </motion.div>
-                      ))
-                    )}
-                  </AnimatePresence>
-                </main>
+              {/* Main Content Area: Queue + Metadata Vertical Box */}
+              <div className="w-full max-w-5xl flex flex-col lg:flex-row items-start justify-center gap-6">
+                {/* Customer List (Queue) */}
+                <div className="w-full flex-1 max-w-3xl">
+                  <main className="space-y-3">
+                    <AnimatePresence mode="popLayout">
+                      {users?.length === 0 ? (
+                        <NoCustomersFound
+                          owner={owner}
+                          onAction={() => {
+                            setPopupMode("join");
+                            setOpen(true);
+                          }}
+                        />
+                      ) : owner ? (
+                        users?.map((u, idx) => (
+                          <motion.div
+                            key={u.Id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2, delay: idx * 0.05 }}
+                          >
+                            <UserRow
+                              user={u}
+                              onChange={(nextStatus: string) => updateStatus(nextStatus, u.Id)}
+                            />
+                          </motion.div>
+                        ))
+                      ) : (
+                        users?.map((u, idx) => (
+                          <motion.div
+                            key={u.Id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2, delay: idx * 0.05 }}
+                          >
+                            <Waiter
+                              id={u.Id}
+                              name={u.Name}
+                              phone={owner ? u.PhoneNumber : ""}
+                              status={u.State}
+                              estimatedWait={
+                                u.State === "waiting"
+                                  ? (() => {
+                                      const waitingOnly = users.filter(x => x.State === "waiting");
+                                      const pos = waitingOnly.findIndex(x => x.Id === u.Id);
+                                      return pos >= 0 ? (pos + 1) * avgServiceTime : null;
+                                    })()
+                                  : null
+                              }
+                              onCancel={(id) => cancelRegister(id)}
+                              onSnooze={(id) => snoozeRegister(id)}
+                            />
+                          </motion.div>
+                        ))
+                      )}
+                    </AnimatePresence>
+                  </main>
 
-                {/* Add to Queue Button */}
-                {users?.length !== 0 && (
-                  <motion.div
-                    className="mt-6 flex justify-center"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                  >
-                    <motion.button
-                      onClick={() => { setPopupMode("join"); setOpen(true); }}
-                      aria-label={owner ? t('queue.addToQueue') : t('queue.joinQueue')}
-                      className="flex items-center gap-2 px-6 py-3 rounded-xl"
-                      style={{
-                        background: 'var(--dm-surface)',
-                        color: 'var(--dm-text-primary)',
-                        border: '1px solid var(--dm-surface-border)',
-                      }}
-                      whileHover={{ scale: 1.02, borderColor: 'var(--dm-accent)' }}
-                      whileTap={{ scale: 0.98 }}
+                  {/* Add to Queue Button */}
+                  {users?.length !== 0 && (
+                    <motion.div
+                      className="mt-6 flex justify-center"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.3 }}
                     >
-                      <AddIcon fontSize="small" />
-                      <span>{owner ? t('queue.addToQueue') : t('queue.joinQueue')}</span>
-                    </motion.button>
-                  </motion.div>
+                      <motion.button
+                        onClick={() => { setPopupMode("join"); setOpen(true); }}
+                        aria-label={owner ? t('queue.addToQueue') : t('queue.joinQueue')}
+                        className="flex items-center gap-2 px-6 py-3 rounded-xl"
+                        style={{
+                          background: 'var(--dm-surface)',
+                          color: 'var(--dm-text-primary)',
+                          border: '1px solid var(--dm-surface-border)',
+                        }}
+                        whileHover={{ scale: 1.02, borderColor: 'var(--dm-accent)' }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <AddIcon fontSize="small" />
+                        <span>{owner ? t('queue.addToQueue') : t('queue.joinQueue')}</span>
+                      </motion.button>
+                    </motion.div>
+                  )}
+                </div>
+
+                {/* Metadata Vertical Box Alongside Queue */}
+                {(metadata || barberPhoneNumber || location || closingTime || mode === "owner") && (
+                  <aside
+                    className="w-full lg:w-80 flex-shrink-0 rounded-2xl p-5 transition-all"
+                    style={{
+                      background: 'var(--dm-surface)',
+                      border: '1px solid var(--dm-surface-border)',
+                      boxShadow: 'var(--dm-shadow-md)',
+                    }}
+                  >
+                    <div className="flex items-center gap-3 pb-3 mb-4" style={{ borderBottom: '1px solid var(--dm-surface-border)' }}>
+                      <div
+                        className="p-2 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{
+                          background: 'var(--dm-accent-glow)',
+                          color: 'var(--dm-accent)',
+                          border: '1px solid var(--dm-accent)',
+                        }}
+                      >
+                        <InfoOutlinedIcon fontSize="small" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-sm font-bold truncate" style={{ color: 'var(--dm-text-primary)' }}>
+                          {t('queue.infoTitle', 'Queue Information')}
+                        </h3>
+                        <p className="text-xs truncate" style={{ color: 'var(--dm-text-muted)' }}>
+                          {queueName || t('queue.infoSubtitle', 'Details & contact info')}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {/* Description / Metadata text */}
+                      {metadata ? (
+                        <div className="space-y-1.5">
+                          <span className="text-[11px] font-semibold uppercase tracking-wider block" style={{ color: 'var(--dm-text-muted)' }}>
+                            {t('queue.metadataLabel', 'Notice & Services')}
+                          </span>
+                          <div
+                            className="text-sm font-normal leading-relaxed whitespace-pre-wrap break-words rounded-xl p-3"
+                            style={{
+                              color: 'var(--dm-text-primary)',
+                              background: 'rgba(0, 0, 0, 0.03)',
+                              border: '1px solid var(--dm-surface-border)',
+                            }}
+                          >
+                            {metadata}
+                          </div>
+                        </div>
+                      ) : mode === "owner" ? (
+                        <p className="text-xs italic p-3 rounded-xl text-center" style={{ color: 'var(--dm-text-muted)', border: '1px dashed var(--dm-surface-border)' }}>
+                          {t('queue.noMetadata', 'No metadata added yet. Use the settings panel above to add details, location, and contact info.')}
+                        </p>
+                      ) : null}
+
+                      {/* Barber / Contact Phone */}
+                      {barberPhoneNumber && (
+                        <div
+                          className="flex items-start gap-3 p-3 rounded-xl transition-colors"
+                          style={{
+                            background: 'rgba(0, 0, 0, 0.02)',
+                            border: '1px solid var(--dm-surface-border)',
+                          }}
+                        >
+                          <div className="mt-0.5 flex-shrink-0" style={{ color: 'var(--dm-accent)' }}>
+                            <PhoneIcon fontSize="small" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[11px] font-semibold uppercase tracking-wider block mb-0.5" style={{ color: 'var(--dm-text-muted)' }}>
+                              {t('queue.barberPhone', 'Phone')}
+                            </span>
+                            <a
+                              href={`tel:${barberPhoneNumber}`}
+                              className="text-sm font-semibold hover:underline block truncate"
+                              style={{ color: 'var(--dm-text-primary)' }}
+                            >
+                              {barberPhoneNumber}
+                            </a>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Location */}
+                      {location && (
+                        <div
+                          className="flex items-start gap-3 p-3 rounded-xl transition-colors"
+                          style={{
+                            background: 'rgba(0, 0, 0, 0.02)',
+                            border: '1px solid var(--dm-surface-border)',
+                          }}
+                        >
+                          <div className="mt-0.5 flex-shrink-0" style={{ color: 'var(--dm-accent)' }}>
+                            <LocationOnIcon fontSize="small" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[11px] font-semibold uppercase tracking-wider block mb-0.5" style={{ color: 'var(--dm-text-muted)' }}>
+                              {t('queue.location', 'Location')}
+                            </span>
+                            <span className="text-sm font-medium block break-words" style={{ color: 'var(--dm-text-primary)' }}>
+                              {location}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Closing Time */}
+                      {closingTime && (
+                        <div
+                          className="flex items-start gap-3 p-3 rounded-xl transition-colors"
+                          style={{
+                            background: 'rgba(0, 0, 0, 0.02)',
+                            border: '1px solid var(--dm-surface-border)',
+                          }}
+                        >
+                          <div className="mt-0.5 flex-shrink-0" style={{ color: 'var(--dm-accent)' }}>
+                            <AccessTimeIcon fontSize="small" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[11px] font-semibold uppercase tracking-wider block mb-0.5" style={{ color: 'var(--dm-text-muted)' }}>
+                              {t('queue.closingTime', 'Closing Time')}
+                            </span>
+                            <span className="text-sm font-medium block truncate" style={{ color: 'var(--dm-text-primary)' }}>
+                              {closingTime}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Avg Service Time */}
+                      {avgServiceTime > 0 && (
+                        <div
+                          className="flex items-start gap-3 p-3 rounded-xl transition-colors"
+                          style={{
+                            background: 'rgba(0, 0, 0, 0.02)',
+                            border: '1px solid var(--dm-surface-border)',
+                          }}
+                        >
+                          <div className="mt-0.5 flex-shrink-0" style={{ color: 'var(--dm-accent)' }}>
+                            <SpeedIcon fontSize="small" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[11px] font-semibold uppercase tracking-wider block mb-0.5" style={{ color: 'var(--dm-text-muted)' }}>
+                              {t('queue.avgTime', 'Avg. Service Time')}
+                            </span>
+                            <span className="text-sm font-medium block truncate" style={{ color: 'var(--dm-text-primary)' }}>
+                              ~{avgServiceTime} {t('queue.minPerPerson', 'min / person')}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </aside>
                 )}
               </div>
 

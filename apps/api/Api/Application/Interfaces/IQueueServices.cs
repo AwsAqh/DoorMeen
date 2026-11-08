@@ -6,7 +6,7 @@ namespace Api.Application.Interfaces
 {
     public interface IQueueServices
     {
-        Task<QueueItem> CreateQueue(string queueName , string password, string email);
+        Task<QueueItem> CreateQueue(string queueName, string password, string email, string? barberPhoneNumber = null, string? location = null, string? metadata = null);
         Task <QueueDetailsResDTO > GetQueueById(string id);
     }
 
@@ -15,6 +15,7 @@ namespace Api.Application.Interfaces
        public Task <JoinQueueResDTO> JoinQueue(string queueId,string name, string phoneNumber, string email);
        public Task CancelRegistration(string queueId, int customerId, string cancelToken);
        public Task SnoozeRegistration(string queueId, int customerId, string cancelToken);
+       public Task SetPushNotification(string queueId, int customerId, string cancelToken, string pushToken, int? notifyWhenRemaining);
     }
 
 

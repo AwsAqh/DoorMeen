@@ -135,11 +135,67 @@ namespace Api.Controllers
             return NoContent();
         }
 
+        private static string? ExtractStringOrProperty(System.Text.Json.JsonElement? element, params string[] propertyNames)
+        {
+            if (!element.HasValue) return null;
+            var el = element.Value;
+            if (el.ValueKind == System.Text.Json.JsonValueKind.String)
+            {
+                return el.GetString();
+            }
+            if (el.ValueKind == System.Text.Json.JsonValueKind.Object)
+            {
+                foreach (var prop in propertyNames)
+                {
+                    if (el.TryGetProperty(prop, out var val) && val.ValueKind == System.Text.Json.JsonValueKind.String)
+                    {
+                        return val.GetString();
+                    }
+                }
+                foreach (var prop in el.EnumerateObject())
+                {
+                    if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.String)
+                    {
+                        return prop.Value.GetString();
+                    }
+                }
+            }
+            return null;
+        }
+
         [Authorize(Policy = "OwnerOfQueue")]
         [HttpPut("update-closing-time/{queueId}")]
-        public async Task<ActionResult> UpdateClosingTime(string queueId, [FromBody] string? timeString)
+        public async Task<ActionResult> UpdateClosingTime(string queueId, [FromBody] System.Text.Json.JsonElement? req)
         {
+            var timeString = ExtractStringOrProperty(req, "closingTime", "timeString", "ClosingTime", "TimeString");
             await _service.UpdateClosingTime(queueId, timeString);
+            return NoContent();
+        }
+
+        [Authorize(Policy = "OwnerOfQueue")]
+        [HttpPut("update-barber-phone/{queueId}")]
+        public async Task<ActionResult> UpdateBarberPhoneNumber(string queueId, [FromBody] System.Text.Json.JsonElement? req)
+        {
+            var phone = ExtractStringOrProperty(req, "phone", "Phone");
+            await _service.UpdateBarberPhoneNumber(queueId, phone);
+            return NoContent();
+        }
+
+        [Authorize(Policy = "OwnerOfQueue")]
+        [HttpPut("update-location/{queueId}")]
+        public async Task<ActionResult> UpdateLocation(string queueId, [FromBody] System.Text.Json.JsonElement? req)
+        {
+            var location = ExtractStringOrProperty(req, "location", "Location");
+            await _service.UpdateLocation(queueId, location);
+            return NoContent();
+        }
+
+        [Authorize(Policy = "OwnerOfQueue")]
+        [HttpPut("update-metadata/{queueId}")]
+        public async Task<ActionResult> UpdateMetadata(string queueId, [FromBody] System.Text.Json.JsonElement? req)
+        {
+            var metadata = ExtractStringOrProperty(req, "metadata", "Metadata");
+            await _service.UpdateMetadata(queueId, metadata);
             return NoContent();
         }
     }

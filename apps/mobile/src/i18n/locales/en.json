@@ -30,8 +30,8 @@
     "passwordReset": "Password reset will be available when the full account features launch.",
     "sms": "We plan to verify customers by SMS when phone verification launches.",
     "earlyAccess": "Early businesses may be entered into a draw to win one month of free ad space; it is not guaranteed.",
-    "ownerEmail": "Add an email when creating a queue. We’ll use it for future verification and queue management when the live service launches.",
-    "continue": "Got it, let’s try it"
+    "ownerEmail": "Add an email when creating a queue. We'll use it for future verification and queue management when the live service launches.",
+    "continue": "Got it, let's try it"
   },
   "nav": { "home": "Home", "scan": "Scan QR Code", "join": "Join Queue", "queue": "Queue", "create": "Create Queue", "manage": "Owner Login", "dashboard": "Dashboard" },
   "toast": { "heading": { "success": "Done", "error": "Something went wrong", "info": "Notice", "warning": "Heads up" } },
@@ -105,6 +105,16 @@
     }
   },
   "queue": {
+    "notifyMeWhen": "Notify me when…",
+    "notifyDescription": "Choose how many customers can be ahead of you, including anyone currently being served.",
+    "notifyNext": "Next",
+    "enableAlert": "Enable push alert",
+    "updateAlert": "Update alert",
+    "turnOffAlert": "Turn off",
+    "notifySaved": "Queue alert enabled",
+    "notifyPermission": "Allow notifications in your device settings to turn on queue alerts.",
+    "notifySetup": "Push notifications are not configured for this app yet.",
+    "notifyUnavailable": "Your queue spot could not be found.",
     "notFound": "No queue found!",
     "noCustomers": "No customers yet",
     "noCustomersOwner": "Your queue is empty. Add the first customer or share the QR.",
@@ -238,5 +248,64 @@
     "switch": "Switch Language",
     "english": "English",
     "arabic": "العربية"
+  },
+  "guide": {
+    "skip": "Skip",
+    "next": "Next →",
+    "gotIt": "Got it!",
+    "home": {
+      "step1Title": "Welcome to DoorMeen!",
+      "step1Body": "DoorMeen helps businesses manage queues and helps customers save time. Let us show you around!",
+      "step2Title": "Two ways to get started",
+      "step2Body": "Scan a QR code to join an existing queue as a customer, or create your own queue if you run a business.",
+      "step3Title": "PIN Verification is coming!",
+      "step3Body": "In the official release, customers joining a queue will verify their identity with a PIN sent via SMS. This prevents fake entries and keeps your queue fair and secure."
+    },
+    "create": {
+      "step1Title": "Creating your first queue?",
+      "step1Body": "Set a name people can recognize and choose a secure 4–6 digit PIN. Only you will use this PIN to manage the queue.",
+      "step2Title": "Customer verification is coming",
+      "step2Body": "In the official release, every customer who joins your queue will receive a verification PIN via SMS. This ensures real people are in line — no ghost entries, no line-cutting.",
+      "step3Title": "Why we ask for your email",
+      "step3Body": "Your email lets us send you queue reports and helps verify you as the owner when full account management launches."
+    },
+    "join": {
+      "step1Title": "Joining a queue",
+      "step1Body": "Enter your name, phone, and email to take your place in line. You can watch your position update in real time!",
+      "step2Title": "SMS verification coming soon",
+      "step2Body": "In the official release, you will receive a PIN via SMS to verify your spot. This guarantees nobody else can join using your number and keeps the queue fair for everyone."
+    },
+    "queue": {
+      "step1Title": "Ad spaces are here!",
+      "step1Body": "Notice the ad banner on this page? Business owners can showcase their promotions right where customers are waiting. Prime visibility, real audience!",
+      "step2Title": "Win a FREE month of ads!",
+      "step2Body": "Create a queue and use it for a full day — your name and email will be entered into a draw to win one month of FREE ad space on DoorMeen!",
+      "step3Title": "Draw conditions",
+      "step3Body": "① Create a queue with a valid email\n② Use the queue for one complete business day (serve at least one customer)\n③ Your name and email automatically enter the draw\n\nWinners are announced at the end of every month!"
+    }
+  },
+  "adSpace": {
+    "slotLabel": "YOUR AD HERE",
+    "slotSub": "Premium ad space — seen by every customer",
+    "drawBadge": "FREE ADS DRAW",
+    "drawTitle": "Win a FREE month of ad space!",
+    "drawDesc": "Create a queue, use it for one full day, and your name enters the draw automatically.",
+    "viewConditions": "View draw conditions →",
+    "queueAdLabel": "Ad space",
+    "queueAdSub": "Your business could be here",
+    "winFree": "Win free ads!",
+    "modalTitle": "Free Ad Space Draw",
+    "modalSubtitle": "Here's how you can win a full month of free advertising on DoorMeen",
+    "conditionsTitle": "How to enter the draw",
+    "cond1Title": "Create a queue",
+    "cond1Desc": "Sign up and create a queue with a valid email address.",
+    "cond2Title": "Use it for one full day",
+    "cond2Desc": "Serve at least one customer through your queue in a single business day.",
+    "cond3Title": "Automatic entry",
+    "cond3Desc": "Your name and email are automatically entered into the monthly draw. No extra steps needed!",
+    "prizeTitle": "What you win",
+    "prizeDesc": "🎯 One full month of ad space on DoorMeen queue pages and home screen — seen by every customer who waits in any queue.",
+    "finePrint": "Winners are announced at the end of each month. One entry per queue per day. DoorMeen reserves the right to modify draw terms.",
+    "modalClose": "Got it!"
   }
 }

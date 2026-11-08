@@ -16,6 +16,9 @@
         public DateTime? EmailVerificationTokenExpiry { get; set; }
         public string? Email { get; set; }
         public bool IsNextNotificationSent { get; set; } = false;
+        public string? PushToken { get; set; }
+        public int? NotifyWhenRemaining { get; set; }
+        public bool IsThresholdPushSent { get; set; } = false;
 
     }
 }

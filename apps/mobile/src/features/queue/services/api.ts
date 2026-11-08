@@ -238,6 +238,33 @@ export async function apiRevertCustomerToWaiting(input: { QueueId: string; Custo
   if (!res.ok) throw new ApiError(res.status, errorMessage(await readBody(res), 'Failed to move customer back to waiting'));
 }
 
+export async function apiUpdateBarberPhoneNumber(input: { QueueId: string; Phone: string; token: string }) {
+  const res = await fetch(`${API}/api/owners/update-barber-phone/${input.QueueId}`, {
+    method: 'PUT',
+    headers: { 'Content-type': 'application/json', Authorization: `Bearer ${input.token}` },
+    body: JSON.stringify({ Phone: input.Phone }),
+  });
+  if (!res.ok) throw new ApiError(res.status, errorMessage(await readBody(res), 'Failed to update barber phone'));
+}
+
+export async function apiUpdateLocation(input: { QueueId: string; Location: string; token: string }) {
+  const res = await fetch(`${API}/api/owners/update-location/${input.QueueId}`, {
+    method: 'PUT',
+    headers: { 'Content-type': 'application/json', Authorization: `Bearer ${input.token}` },
+    body: JSON.stringify({ Location: input.Location }),
+  });
+  if (!res.ok) throw new ApiError(res.status, errorMessage(await readBody(res), 'Failed to update location'));
+}
+
+export async function apiUpdateMetadata(input: { QueueId: string; Metadata: string; token: string }) {
+  const res = await fetch(`${API}/api/owners/update-metadata/${input.QueueId}`, {
+    method: 'PUT',
+    headers: { 'Content-type': 'application/json', Authorization: `Bearer ${input.token}` },
+    body: JSON.stringify({ Metadata: input.Metadata }),
+  });
+  if (!res.ok) throw new ApiError(res.status, errorMessage(await readBody(res), 'Failed to update metadata'));
+}
+
 // ─── Customer APIs ────────────────────────────────────────────────────────────
 
 export async function apiJoinQueue(input: { QueueId: string; Name: string; PhoneNumber: string; Email: string }) {
@@ -269,4 +296,13 @@ export async function apiSnoozeRegistration(input: { queueId: string; customerId
   });
   if (!res.ok) throw new ApiError(res.status, 'Failed to snooze registration');
   return true;
+}
+
+export async function apiSetQueuePushNotification(input: { queueId: string; customerId: number; cancelToken: string; pushToken: string; notifyWhenRemaining: number | null }) {
+  const res = await fetch(`${API}/api/queueCustomers/push-notification/${input.queueId}/${input.customerId}`, {
+    method: 'PUT',
+    headers: { 'Content-type': 'application/json', 'X-Cancel-Token': input.cancelToken },
+    body: JSON.stringify({ PushToken: input.pushToken, NotifyWhenRemaining: input.notifyWhenRemaining }),
+  });
+  if (!res.ok) throw new ApiError(res.status, errorMessage(await readBody(res), 'Failed to update notification settings'));
 }

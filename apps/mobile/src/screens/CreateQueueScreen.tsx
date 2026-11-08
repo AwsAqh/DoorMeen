@@ -135,11 +135,6 @@ export default function CreateQueueScreen({ navigation }: Props) {
             />
             {errors.barberPhone ? <AppText style={styles.errorText}>{errors.barberPhone}</AppText> : null}
           </View>
-              autoCorrect={false}
-              textContentType="telephoneNumber"
-            />
-            {errors.barberPhone ? <AppText style={styles.errorText}>{errors.barberPhone}</AppText> : null}
-          </View>
 
           <View style={styles.fieldWrap}>
             <AppText style={styles.label}>{t('popupForm.create.label4', 'Location')}</AppText>

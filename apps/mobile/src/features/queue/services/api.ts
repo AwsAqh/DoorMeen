@@ -55,6 +55,9 @@ export function getOwnerToken(queueId: string): string | null {
 export function setOwnerToken(queueId: string, token: string) {
   storage.set(storage_keys.ownerToken(queueId), token);
 }
+export function clearOwnerToken(queueId: string) {
+  storage.remove(storage_keys.ownerToken(queueId));
+}
 export function getCancelToken(customerId: number): string | null {
   return storage.getString(storage_keys.cancelToken(customerId)) ?? null;
 }
@@ -112,7 +115,14 @@ export function removeRecentQueue(id: string) {
 
 // ─── Queue APIs ───────────────────────────────────────────────────────────────
 
-export async function apiCreateQueue(input: { name: string; password: string; email: string }) {
+export async function apiCreateQueue(input: {
+  name: string;
+  password: string;
+  email?: string | null;
+  barberPhoneNumber?: string | null;
+  location?: string | null;
+  metadata?: string | null;
+}) {
   const res = await fetch(`${API}/api/queues`, {
     method: 'POST',
     headers: { 'Content-type': 'application/json' },
@@ -267,11 +277,16 @@ export async function apiUpdateMetadata(input: { QueueId: string; Metadata: stri
 
 // ─── Customer APIs ────────────────────────────────────────────────────────────
 
-export async function apiJoinQueue(input: { QueueId: string; Name: string; PhoneNumber: string; Email: string }) {
+export async function apiJoinQueue(input: { QueueId: string; Name: string; PhoneNumber: string; Email?: string }) {
   const res = await fetch(`${API}/api/queuecustomers/joinQueue`, {
     method: 'POST',
     headers: { 'Content-type': 'application/json' },
-    body: JSON.stringify(input),
+    body: JSON.stringify({
+      QueueId: input.QueueId,
+      Name: input.Name,
+      PhoneNumber: input.PhoneNumber,
+      Email: input.Email && input.Email.trim() ? input.Email.trim() : null,
+    }),
   });
   const body = await readBody(res);
   if (!res.ok) {

@@ -170,7 +170,9 @@
     "share": "Share",
     "addToQueue": "Add to Queue",
     "you": "You",
-    "yourSpot": "Your spot in line",
+    "yourSpot": "Your spot",
+    "yourTurnNow": "It's your turn now!",
+    "signedInAsOwner": "Managing Queue",
     "swapSpot": "Delay spot (swap with next)",
     "swapConfirmTitle": "Swap spot with next person?",
     "swapConfirmMessage": "Running late? You will switch places with the customer directly behind you.",
@@ -245,7 +247,12 @@
     "serveUndone": "Serving cancelled. {{name}} is still in progress.",
     "moveBack": "Move {{name}} back to waiting",
     "backToWaiting": "Back to waiting",
-    "servingPending": "Serving…"
+    "servingPending": "Serving…",
+    "signOut": "Sign out",
+    "signOutTitle": "Sign out as owner?",
+    "signOutMsg": "You will switch to customer view and can sign back in with your PIN anytime.",
+    "signedOut": "Signed out from owner mode",
+    "customersList": "Customers in Queue"
   },
   "scan": {
     "title": "Point the camera at a QR code.",

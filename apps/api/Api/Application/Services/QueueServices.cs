@@ -30,8 +30,8 @@ namespace Api.Application.Services
 
           
             if (queueName is null || password is null) throw new ArgumentNullException();
-            email = email?.Trim() ?? "";
-            if (!new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(email) || email.Length > 120)
+            email = string.IsNullOrWhiteSpace(email) ? null : email.Trim();
+            if (!string.IsNullOrEmpty(email) && (!new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(email) || email.Length > 120))
                 throw new ValidationException("Enter a valid owner email address");
           
             var queue = new QueueItem
@@ -118,13 +118,13 @@ namespace Api.Application.Services
         {
             name = name?.Trim() ?? "";
             phone = phone?.Trim() ?? "";
-            email = email?.Trim() ?? "";
+            email = string.IsNullOrWhiteSpace(email) ? null : email.Trim();
 
             if (string.IsNullOrWhiteSpace(queueId) || string.IsNullOrWhiteSpace(name) || name.Length > 60)
                 throw new ValidationException("Enter a queue and a name up to 60 characters");
             if (!System.Text.RegularExpressions.Regex.IsMatch(phone, @"^\d{10}$"))
                 throw new ValidationException("Phone must be 10 digits");
-            if (!new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(email))
+            if (!string.IsNullOrEmpty(email) && (!new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(email) || email.Length > 120))
                 throw new ValidationException("Enter a valid email address");
 
             var queue = await _db.Queues.SingleOrDefaultAsync(q => q.Id == queueId)
@@ -139,10 +139,10 @@ namespace Api.Application.Services
             if (queue.MaxCustomers.HasValue && waitingCount >= queue.MaxCustomers.Value)
                 throw new InvalidOperationException("Queue is full");
 
-            var normalizedEmail = email.ToLowerInvariant();
+            var normalizedEmail = string.IsNullOrEmpty(email) ? null : email.ToLowerInvariant();
             var existing = await _db.QueueCustomers.FirstOrDefaultAsync(c =>
                 c.QueueId == queueId && c.State != "served" &&
-                (c.Phone == phone || (c.Email != null && c.Email.ToLower() == normalizedEmail)));
+                (c.Phone == phone || (normalizedEmail != null && c.Email != null && c.Email.ToLower() == normalizedEmail)));
             if (existing != null)
                 throw new ValidationException("This phone number or email is already in the queue");
 

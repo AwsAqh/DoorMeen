@@ -11,7 +11,7 @@ import {
 
 // ─── Join ────────────────────────────────────────────────────────────────────
 
-export type JoinData = { QueueId: string; Name: string; PhoneNumber: string; Email: string };
+export type JoinData = { QueueId: string; Name: string; PhoneNumber: string; Email?: string };
 
 export async function handleJoin(input: JoinData) {
   const parsed = JoinSchema.safeParse(input);
@@ -28,7 +28,14 @@ export async function handleJoin(input: JoinData) {
 
 // ─── Create ───────────────────────────────────────────────────────────────────
 
-export type CreateData = { name: string; password: string; email: string };
+export type CreateData = {
+  name: string;
+  password: string;
+  email?: string;
+  barberPhoneNumber?: string | null;
+  location?: string | null;
+  metadata?: string | null;
+};
 
 export async function handleCreate(input: CreateData) {
   const parsed = CreateSchema.safeParse(input);

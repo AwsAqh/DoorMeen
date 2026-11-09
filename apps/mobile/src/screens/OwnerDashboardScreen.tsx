@@ -28,6 +28,7 @@ import {
   apiUpdateLocation,
   apiUpdateMetadata,
   getOwnerToken,
+  clearOwnerToken,
 } from '../features/queue/services/api';
 import { SettingsSchema } from '../features/queue/validations/settings.schema';
 import { useToast } from '../components/Toast';
@@ -392,6 +393,25 @@ export default function OwnerDashboardScreen({ navigation, route }: Props) {
   const inProgress = customers.filter(c => c.Status === 'in_progress').length;
   const servedCount = customers.filter(c => c.Status === 'served').length;
 
+  const handleSignOutOwner = () => {
+    Alert.alert(
+      t('owner.signOutTitle', 'Sign out as owner?'),
+      t('owner.signOutMsg', 'You will switch back to customer view. You can sign in again with the queue password.'),
+      [
+        { text: t('common.cancel', 'Cancel'), style: 'cancel' },
+        {
+          text: t('owner.signOut', 'Sign out'),
+          style: 'destructive',
+          onPress: async () => {
+            await clearOwnerToken(queueIdStr);
+            showSuccess(t('owner.signedOut', 'Signed out as owner'));
+            navigation.navigate('Queue', { queueId: queueIdStr });
+          },
+        },
+      ]
+    );
+  };
+
   if (loading) return (
     <SafeAreaView style={styles.center}>
       <ActivityIndicator size='large' color={Colors.accent} />
@@ -402,92 +422,141 @@ export default function OwnerDashboardScreen({ navigation, route }: Props) {
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle='dark-content' backgroundColor={Colors.bgPrimary} />
 
-      <View style={styles.header}>
-        <View style={{ flex: 1 }}>
-          <AppText style={styles.headerName}>{queueName}</AppText>
-          <AppText style={styles.headerMeta}>
-            {waiting} {t('queue.waiting', 'waiting')} · {inProgress} {t('queue.inProgress', 'in progress')}
-          </AppText>
-          {createdAt && (
-            <AppText style={styles.headerMeta}>
-              {t('queue.created', 'Created: {{date}}', { date: new Date(createdAt).toLocaleDateString() })}
-            </AppText>
-          )}
-          {avgTime && (
-            <AppText style={styles.headerMeta}>
-              {t('queue.avgTime', 'Avg service: {{min}} min', { min: avgTime })}
-            </AppText>
-          )}
-          {maxCust && (
-            <AppText style={styles.headerMeta}>
-              {t('queue.maxCustomers', 'Max: {{max}}', { max: maxCust })}
-            </AppText>
-          )}
-          {closingTime && (
-            <AppText style={styles.headerMeta}>
-              {t('queue.closesAt', { time: closingTime })}
-            </AppText>
-          )}
-        </View>
-        <TouchableOpacity onPress={() => setShowSettings(true)} style={styles.settingsBtn} activeOpacity={0.7}>
-          <AppText style={styles.settingsIcon}>{'\u2699'}</AppText>
+      {/* Top compact navigation bar */}
+      <View style={styles.topNav}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Queue', { queueId: queueIdStr })}
+          style={styles.navBackBtn}
+          activeOpacity={0.7}
+        >
+          <AppText style={styles.navBackBtnText}>‹ {t('common.back', 'Back')}</AppText>
         </TouchableOpacity>
-      </View>
-
-      {/* Metadata summary card */}
-      {(metadata || barberPhone || location) ? (
-        <View style={styles.ownerMetaCard}>
-          {metadata ? (
-            <View style={styles.ownerMetaRow}>
-              <AppText style={styles.ownerMetaLabel}>{t('queue.metadataLabel', 'Notice & Services')}:</AppText>
-              <AppText style={styles.ownerMetaValue} numberOfLines={2}>{metadata}</AppText>
-            </View>
-          ) : null}
-          {barberPhone ? (
-            <TouchableOpacity
-              style={styles.ownerMetaRow}
-              onPress={() => Linking.openURL(`tel:${barberPhone}`).catch(() => {})}
-              activeOpacity={0.7}
-            >
-              <AppText style={styles.ownerMetaLabel}>{t('queue.phone', 'Phone')}:</AppText>
-              <AppText style={[styles.ownerMetaValue, styles.ownerPhoneLink]} writingDirection="ltr">📞 {barberPhone}</AppText>
-            </TouchableOpacity>
-          ) : null}
-          {location ? (
-            <View style={styles.ownerMetaRow}>
-              <AppText style={styles.ownerMetaLabel}>{t('queue.location', 'Location')}:</AppText>
-              <AppText style={styles.ownerMetaValue}>📍 {location}</AppText>
-            </View>
-          ) : null}
+        <AppText style={styles.topNavTitle} numberOfLines={1}>{queueName}</AppText>
+        <View style={styles.topNavActions}>
+          <TouchableOpacity
+            onPress={() => setShowSettings(true)}
+            style={styles.iconBtn}
+            activeOpacity={0.7}
+            accessibilityLabel={t('owner.settings', 'Settings')}
+          >
+            <AppText style={styles.iconBtnText}>⚙️</AppText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleSignOutOwner}
+            style={styles.signOutPill}
+            activeOpacity={0.7}
+            accessibilityLabel={t('owner.signOut', 'Sign out')}
+          >
+            <AppText style={styles.signOutPillText}>🚪 {t('owner.signOut', 'Sign out')}</AppText>
+          </TouchableOpacity>
         </View>
-      ) : null}
-
-      <TouchableOpacity
-        style={styles.addCustomerBtn}
-        onPress={() => navigation.navigate('Join', { queueId: queueIdStr, ownerReturn: true })}
-        activeOpacity={0.85}
-      >
-        <AppText style={styles.addCustomerBtnText}>+ {t('queue.addCustomer', 'Add customer')}</AppText>
-      </TouchableOpacity>
-
-      <View style={styles.statsRow}>
-        {[
-          { label: t('queue.status.waiting',    'Waiting'),     value: waiting,     color: Colors.statusWaiting },
-          { label: t('queue.status.inProgress', 'In Progress'), value: inProgress,  color: Colors.statusProgress },
-          { label: t('queue.status.served',     'Served'),      value: servedCount, color: Colors.success },
-        ].map(stat => (
-          <View key={stat.label} style={[styles.stat, { borderTopColor: stat.color }]}>
-            <AppText style={[styles.statValue, { color: stat.color }]}>{stat.value}</AppText>
-            <AppText style={styles.statLabel}>{stat.label}</AppText>
-          </View>
-        ))}
       </View>
 
       <FlatList
+        style={styles.mainList}
         data={customers.filter(c => c.Status !== 'served')}
         keyExtractor={item => String(item.Id)}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={styles.listContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />}
+        ListHeaderComponent={
+          <View style={styles.listHeaderWrap}>
+            {/* Header info block */}
+            <View style={styles.headerInfoBlock}>
+              <View style={styles.headerMetaRow}>
+                <AppText style={styles.headerMetaHighlight}>
+                  {waiting} {t('queue.waiting', 'waiting')} · {inProgress} {t('queue.inProgress', 'in progress')}
+                </AppText>
+                {closingTime && (
+                  <View style={styles.closingBadge}>
+                    <AppText style={styles.closingBadgeText}>
+                      🕒 {t('queue.closesAt', { time: closingTime })}
+                    </AppText>
+                  </View>
+                )}
+              </View>
+              <View style={styles.headerDetailsWrap}>
+                {avgTime && (
+                  <AppText style={styles.headerDetailItem}>
+                    ⏱ {t('queue.avgTime', 'Avg service: {{min}} min', { min: avgTime })}
+                  </AppText>
+                )}
+                {maxCust && (
+                  <AppText style={styles.headerDetailItem}>
+                    👥 {t('queue.maxCustomers', 'Max: {{max}}', { max: maxCust })}
+                  </AppText>
+                )}
+                {createdAt && (
+                  <AppText style={styles.headerDetailItem}>
+                    📅 {t('queue.created', 'Created: {{date}}', { date: new Date(createdAt).toLocaleDateString() })}
+                  </AppText>
+                )}
+              </View>
+            </View>
+
+            {/* Metadata summary card */}
+            {(metadata || barberPhone || location) ? (
+              <View style={styles.ownerMetaCard}>
+                {metadata ? (
+                  <View style={styles.ownerMetaRow}>
+                    <AppText style={styles.ownerMetaLabel}>{t('queue.metadataLabel', 'Notice & Services')}:</AppText>
+                    <AppText style={styles.ownerMetaValue} numberOfLines={3}>{metadata}</AppText>
+                  </View>
+                ) : null}
+                {barberPhone ? (
+                  <TouchableOpacity
+                    style={styles.ownerMetaRow}
+                    onPress={() => Linking.openURL(`tel:${barberPhone}`).catch(() => {})}
+                    activeOpacity={0.7}
+                  >
+                    <AppText style={styles.ownerMetaLabel}>{t('queue.phone', 'Phone')}:</AppText>
+                    <AppText style={[styles.ownerMetaValue, styles.ownerPhoneLink]} writingDirection="ltr">📞 {barberPhone}</AppText>
+                  </TouchableOpacity>
+                ) : null}
+                {location ? (
+                  <View style={styles.ownerMetaRow}>
+                    <AppText style={styles.ownerMetaLabel}>{t('queue.location', 'Location')}:</AppText>
+                    <AppText style={styles.ownerMetaValue}>📍 {location}</AppText>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
+
+            {/* Add customer button & Quick Stats */}
+            <View style={styles.actionStatsHeader}>
+              <TouchableOpacity
+                style={styles.addCustomerBtn}
+                onPress={() => navigation.navigate('Join', { queueId: queueIdStr, ownerReturn: true })}
+                activeOpacity={0.85}
+              >
+                <AppText style={styles.addCustomerBtnText}>+ {t('queue.addCustomer', 'Add customer')}</AppText>
+              </TouchableOpacity>
+
+              <View style={styles.statsRow}>
+                {[
+                  { label: t('queue.status.waiting',    'Waiting'),     value: waiting,     color: Colors.statusWaiting },
+                  { label: t('queue.status.inProgress', 'In Progress'), value: inProgress,  color: Colors.statusProgress },
+                  { label: t('queue.status.served',     'Served'),      value: servedCount, color: Colors.success },
+                ].map(stat => (
+                  <View key={stat.label} style={[styles.stat, { borderTopColor: stat.color }]}>
+                    <AppText style={[styles.statValue, { color: stat.color }]}>{stat.value}</AppText>
+                    <AppText style={styles.statLabel}>{stat.label}</AppText>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.customersSectionTitleRow}>
+              <AppText style={styles.customersSectionTitle}>
+                {t('owner.customersList', 'Customers in Queue')}
+              </AppText>
+              <View style={styles.customersCountBadge}>
+                <AppText style={styles.customersCountBadgeText}>
+                  {waiting + inProgress}
+                </AppText>
+              </View>
+            </View>
+          </View>
+        }
         ListEmptyComponent={
           <View style={styles.empty}>
             <View style={styles.emptyIconCircle}>
@@ -610,28 +679,138 @@ export default function OwnerDashboardScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   safe:        { flex: 1, backgroundColor: Colors.bgPrimary },
   center:      { flex: 1, backgroundColor: Colors.bgPrimary, alignItems: 'center', justifyContent: 'center' },
-  header:      { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.bgSecondary, padding: Spacing.lg, borderBottomWidth: 1, borderBottomColor: Colors.surfaceBorder },
-  headerName:  { fontSize: Typography.lg, fontWeight: '700', color: Colors.accent, flexShrink: 1, flexWrap: 'wrap' },
-  headerMeta:  { fontSize: Typography.sm, color: Colors.textSecondary, marginTop: 2 },
-  addCustomerBtn: { alignSelf: 'flex-end', marginHorizontal: Spacing.base, marginTop: Spacing.sm, paddingHorizontal: Spacing.base, paddingVertical: Spacing.sm, borderRadius: Radius.md, backgroundColor: Colors.accent },
-  addCustomerBtnText: { color: Colors.accentContrast, fontWeight: '700', fontSize: Typography.sm },
-  settingsBtn: { padding: Spacing.sm },
-  settingsIcon:{ fontSize: 22 },
-  statsRow:    { flexDirection: 'row', padding: Spacing.base, gap: Spacing.sm },
-  stat:        { flex: 1, backgroundColor: Colors.surface, borderRadius: Radius.md, padding: Spacing.md, alignItems: 'center', borderTopWidth: 3, ...Shadow.sm },
-  statValue:   { fontSize: Typography.xl, fontWeight: '700' },
-  statLabel:   { fontSize: Typography.xs, color: Colors.textMuted, marginTop: 2, textAlign: 'center', flexShrink: 1 },
-  list:        { padding: Spacing.base, paddingBottom: Spacing.xl },
 
-  // Owner metadata card
+  // Top Nav Bar
+  topNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.bgSecondary,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.surfaceBorder,
+    gap: Spacing.sm,
+  },
+  navBackBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: Radius.sm,
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+  },
+  navBackBtnText: {
+    fontSize: Typography.sm,
+    fontWeight: '700',
+    color: Colors.accent,
+  },
+  topNavTitle: {
+    flex: 1,
+    fontSize: Typography.base,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    textAlign: 'center',
+  },
+  topNavActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  iconBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+  },
+  iconBtnText: {
+    fontSize: 15,
+  },
+  signOutPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.25)',
+  },
+  signOutPillText: {
+    fontSize: Typography.xs,
+    fontWeight: '700',
+    color: Colors.danger,
+  },
+
+  // Scrollable container (occupies full height)
+  mainList: {
+    flex: 1,
+  },
+  listContent: {
+    paddingHorizontal: Spacing.base,
+    paddingBottom: Spacing.xxl,
+  },
+  listHeaderWrap: {
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
+    gap: Spacing.md,
+  },
+
+  // Info header block inside list header
+  headerInfoBlock: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    padding: Spacing.base,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    gap: 8,
+    ...Shadow.sm,
+  },
+  headerMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  headerMetaHighlight: {
+    fontSize: Typography.base,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  closingBadge: {
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.25)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radius.full,
+  },
+  closingBadgeText: {
+    fontSize: Typography.xs,
+    color: '#D97706',
+    fontWeight: '700',
+  },
+  headerDetailsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: Colors.surfaceBorder,
+    paddingTop: 8,
+  },
+  headerDetailItem: {
+    fontSize: Typography.xs,
+    color: Colors.textSecondary,
+  },
+
+  // Metadata summary card
   ownerMetaCard: {
-    marginHorizontal: Spacing.base,
-    marginTop: Spacing.sm,
     padding: Spacing.md,
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.surfaceBorder,
-    borderRadius: Radius.md,
+    borderRadius: Radius.lg,
     gap: 6,
     ...Shadow.sm,
   },
@@ -639,6 +818,65 @@ const styles = StyleSheet.create({
   ownerMetaLabel: { fontSize: Typography.xs, color: Colors.textMuted, fontWeight: '600' },
   ownerMetaValue: { fontSize: Typography.xs, color: Colors.textPrimary, flexShrink: 1 },
   ownerPhoneLink: { color: Colors.accent, fontWeight: '700' },
+
+  // Add customer + Stats row
+  actionStatsHeader: {
+    gap: Spacing.sm,
+  },
+  addCustomerBtn: {
+    alignSelf: 'stretch',
+    paddingVertical: 12,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadow.sm,
+  },
+  addCustomerBtnText: {
+    color: Colors.accentContrast,
+    fontWeight: '800',
+    fontSize: Typography.sm,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  stat: {
+    flex: 1,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    alignItems: 'center',
+    borderTopWidth: 3,
+    ...Shadow.sm,
+  },
+  statValue: { fontSize: Typography.xl, fontWeight: '700' },
+  statLabel: { fontSize: Typography.xs, color: Colors.textMuted, marginTop: 2, textAlign: 'center', flexShrink: 1 },
+
+  // Customers Section Header
+  customersSectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 2,
+    marginTop: 4,
+  },
+  customersSectionTitle: {
+    fontSize: Typography.base,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+  },
+  customersCountBadge: {
+    backgroundColor: Colors.accent,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: Radius.full,
+  },
+  customersCountBadgeText: {
+    color: Colors.accentContrast,
+    fontSize: Typography.xs,
+    fontWeight: '800',
+  },
 
   // Customer Card redesign (vertical card with full breathing room)
   card: {

@@ -28,7 +28,7 @@ import { Colors, Spacing, Radius, Typography, Shadow } from '../constants/theme'
 import {
   apiGetQueuePublic, apiCancelRegistration, apiSnoozeRegistration,
   apiUpdateCustomerStatus, apiServeCustomer, apiRevertCustomerToWaiting,
-  apiSetQueuePushNotification, getCancelToken, getOwnerToken, saveRecentQueue,
+  apiSetQueuePushNotification, getCancelToken, getOwnerToken, clearOwnerToken, saveRecentQueue,
 } from '../features/queue/services/api';
 import { useQueueSignalR } from '../hooks/useQueueSignalR';
 import { isTokenValid } from '../hooks/useOwnerSession';
@@ -381,6 +381,25 @@ export default function QueueScreen({ navigation, route }: Props) {
     if (ownerToken) navigation.navigate('OwnerDashboard', { queueId });
     else navigation.navigate('ManageLogin', { queueId });
   };
+
+  const handleSignOutOwner = () => {
+    Alert.alert(
+      t('owner.signOutTitle', 'Sign out as owner?'),
+      t('owner.signOutMsg', 'You will switch to customer view and can sign back in with your PIN anytime.'),
+      [
+        { text: t('common.cancel', 'Cancel'), style: 'cancel' },
+        {
+          text: t('owner.signOut', 'Sign out'),
+          style: 'destructive',
+          onPress: () => {
+            clearOwnerToken(queueId);
+            setOwnerToken(null);
+            showSuccess(t('owner.signedOut', 'Signed out from owner mode'));
+          },
+        },
+      ],
+    );
+  };
   if (loading) {
     return (
       <SafeAreaView style={styles.center}>
@@ -462,12 +481,28 @@ export default function QueueScreen({ navigation, route }: Props) {
             </View>
           </View>
 
-          {/* Manage / Dashboard (web Action Buttons row) */}
-          <TouchableOpacity style={styles.manageBtn} onPress={openDashboard} activeOpacity={0.85}>
-            <AppText style={styles.manageBtnText}>
-              {ownerToken ? t('queue.manageQueue', 'Manage queue') : t('queue.actions.manage')}
-            </AppText>
-          </TouchableOpacity>
+          {/* Manage / Dashboard or Owner Control Bar */}
+          {ownerToken ? (
+            <View style={styles.ownerBar}>
+              <View style={styles.ownerBarBadge}>
+                <AppText style={styles.ownerBarBadgeText}>👑 {t('queue.signedInAsOwner', 'Managing Queue')}</AppText>
+              </View>
+              <View style={styles.ownerBarButtons}>
+                <TouchableOpacity style={styles.ownerDashboardBtn} onPress={openDashboard} activeOpacity={0.85}>
+                  <AppText style={styles.ownerDashboardBtnText}>{t('queue.dashboard', 'Dashboard')}</AppText>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.ownerSignOutBtn} onPress={handleSignOutOwner} activeOpacity={0.85}>
+                  <AppText style={styles.ownerSignOutBtnText}>{t('owner.signOut', 'Sign out')}</AppText>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.manageBtn} onPress={openDashboard} activeOpacity={0.85}>
+              <AppText style={styles.manageBtnText}>
+                {t('queue.actions.manage', 'Manage')}
+              </AppText>
+            </TouchableOpacity>
+          )}
 
           {/* Metadata Card: notice, services, contact phone, location, closing time, avg time */}
           {(metadata !== '' || barberPhone !== '' || location !== '' || closingTime !== '' || avgTime > 0) && (
@@ -539,7 +574,7 @@ export default function QueueScreen({ navigation, route }: Props) {
             </View>
           )}
 
-          {myCustomer && !ownerToken && (
+          {myCustomer && (
             <View style={styles.notifyCard}>
               <AppText style={styles.notifyTitle}>{t('queue.notifyMeWhen', 'Notify me when…')}</AppText>
               <AppText style={styles.notifyDescription}>{t('queue.notifyDescription', 'Choose how many customers can be ahead of you, including anyone currently being served.')}</AppText>
@@ -578,7 +613,7 @@ export default function QueueScreen({ navigation, route }: Props) {
                 activeOpacity={0.85}
               >
                 <AppText style={styles.manageBtnText}>
-                  {ownerToken ? t('queue.addToQueue', 'Add to Queue') : t('queue.joinQueue')}
+                  {t('queue.joinQueue')}
                 </AppText>
               </TouchableOpacity>
             </View>
@@ -589,74 +624,58 @@ export default function QueueScreen({ navigation, route }: Props) {
                 const isMine = hasCancelToken;
                 const waitingOnly = customers.filter(x => x.State === 'waiting');
                 const pos = waitingOnly.findIndex(x => x.Id === u.Id);
+                const mySpotNumber = pos >= 0 ? pos + 1 : null;
                 const estimatedWait =
                   u.State === 'waiting' && pos >= 0 ? (pos + 1) * avgTime : null;
                 const isServing = u.State === 'in_progress';
                 const isDone = u.State === 'served';
                 return (
                   <View key={u.Id} style={[styles.waiterRow, isMine && styles.waiterRowMine]}>
+                    {isMine && (
+                      <View style={styles.mySpotHeader}>
+                        <View style={styles.mySpotPill}>
+                          <AppText style={styles.mySpotPillText}>
+                            ✨ {mySpotNumber ? `${t('queue.yourSpot', 'Your spot')}: #${mySpotNumber}` : t('queue.you', 'You')}
+                          </AppText>
+                        </View>
+                        {isServing && (
+                          <View style={styles.myTurnNowPill}>
+                            <AppText style={styles.myTurnNowText}>⚡ {t('queue.yourTurnNow', "It's your turn now!")}</AppText>
+                          </View>
+                        )}
+                      </View>
+                    )}
+
                     <View style={styles.waiterSummary}>
                       <AppText style={[styles.waiterName, isMine && styles.waiterNameMine]}>{u.Name}</AppText>
-                      {isMine && (
-                        <View style={styles.youBadge}>
-                          <AppText style={styles.youBadgeText}>{t('queue.you', 'You')}</AppText>
+                      {mySpotNumber && !isMine && (
+                        <View style={styles.spotNumberPill}>
+                          <AppText style={styles.spotNumberPillText}>#{pos + 1}</AppText>
                         </View>
                       )}
                     </View>
                     <View style={styles.waiterMetaRow}>
                       <View style={[
                         styles.statusChip,
-                        isServing ? styles.statusServing : isDone ? styles.statusDone : styles.statusWaiting,
+                        isServing ? styles.statusServing : isDone ? styles.statusDone : isMine ? styles.statusWaitingMine : styles.statusWaiting,
                       ]}>
                         <AppText style={[
                           styles.statusChipText,
-                          isServing ? styles.statusServingText : isDone ? styles.statusDoneText : styles.statusWaitingText,
+                          isServing ? styles.statusServingText : isDone ? styles.statusDoneText : isMine ? styles.statusWaitingMineText : styles.statusWaitingText,
                         ]}>
                           {t(getStatusI18nKey(u.State), u.State)}
                         </AppText>
                       </View>
                       {estimatedWait != null && estimatedWait > 0 && (
-                        <View style={styles.waitChip}>
-                          <AppText style={styles.waitChipText}>
-                            {'\u23F1 ~'}{estimatedWait} min
+                        <View style={[styles.waitChip, isMine && styles.waitChipMine]}>
+                          <AppText style={[styles.waitChipText, isMine && styles.waitChipMineText]}>
+                            ⏱ ~{estimatedWait} min
                           </AppText>
                         </View>
                       )}
                     </View>
-                    {ownerToken && u.State !== 'served' ? (
-                      <View style={styles.ownerActions}>
-                        {u.State === 'in_progress' && (
-                          <TouchableOpacity
-                            style={[styles.ownerActionBtn, styles.ownerBackstepBtn, (updatingCustomerId !== null || pendingServeIds.size > 0) && styles.ownerActionDisabled]}
-                            onPress={() => handleOwnerBackstep(u)}
-                            disabled={updatingCustomerId !== null || pendingServeIds.size > 0}
-                            activeOpacity={0.8}
-                            accessibilityRole="button"
-                            accessibilityLabel={t('owner.moveBack', 'Move {{name}} back to waiting', { name: u.Name })}
-                          >
-                            <AppText style={styles.ownerBackstepText}>↶ {t('owner.backToWaiting', 'Back to waiting')}</AppText>
-                          </TouchableOpacity>
-                        )}
-                        <TouchableOpacity
-                          style={[styles.ownerActionBtn, u.State === 'in_progress' && styles.ownerServeBtn, (updatingCustomerId !== null || pendingServeIds.size > 0) && styles.ownerActionDisabled]}
-                          onPress={() => handleOwnerStatusChange(u)}
-                          disabled={updatingCustomerId !== null || pendingServeIds.size > 0}
-                          activeOpacity={0.8}
-                          accessibilityRole="button"
-                          accessibilityLabel={u.State === 'waiting'
-                            ? t('owner.startServing', 'Start serving {{name}}', { name: u.Name })
-                            : t('owner.markServed', 'Mark {{name}} as served', { name: u.Name })}
-                        >
-                          <AppText style={styles.ownerActionText}>
-                            {pendingServeIds.has(u.Id) ? t('owner.servingPending', 'Serving…') : updatingCustomerId === u.Id
-                              ? t('queue.updating', 'Updating…')
-                              : u.State === 'waiting'
-                                ? t('owner.startServingAction', 'Start serving')
-                                : t('owner.markServedAction', 'Mark served')}
-                          </AppText>
-                        </TouchableOpacity>
-                      </View>
-                    ) : hasCancelToken && u.State === 'waiting' ? (
+
+                    {isMine && u.State === 'waiting' && (
                       <View style={styles.myRowActions}>
                         <TouchableOpacity
                           style={styles.swapActionBtn}
@@ -683,7 +702,7 @@ export default function QueueScreen({ navigation, route }: Props) {
                           </AppText>
                         </TouchableOpacity>
                       </View>
-                    ) : null}
+                    )}
                   </View>
                 );
               })}
@@ -888,6 +907,40 @@ const styles = StyleSheet.create({
   notifyEnableText: { color: Colors.accentContrast, fontSize: Typography.sm, fontWeight: '700' },
   notifyDisable: { color: Colors.danger, fontSize: Typography.sm, fontWeight: '600' },
 
+  // Owner status bar when signed in
+  ownerBar: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1.5,
+    borderColor: Colors.accent,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    gap: Spacing.sm,
+    ...Shadow.sm,
+  },
+  ownerBarBadge: { alignSelf: 'flex-start' },
+  ownerBarBadgeText: { fontSize: Typography.xs, color: Colors.accentDark, fontWeight: '700' },
+  ownerBarButtons: { flexDirection: 'row', gap: Spacing.sm },
+  ownerDashboardBtn: {
+    flex: 2,
+    backgroundColor: Colors.accent,
+    paddingVertical: 10,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ownerDashboardBtnText: { color: Colors.accentContrast, fontSize: Typography.sm, fontWeight: '700' },
+  ownerSignOutBtn: {
+    flex: 1,
+    backgroundColor: Colors.surfaceHover,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    paddingVertical: 10,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ownerSignOutBtnText: { color: Colors.danger, fontSize: Typography.sm, fontWeight: '600' },
+
   // .waiter-row — rounded-2xl px-5 py-4 row space-between gap-4, glass surface
   waiterRow: {
     flexDirection: 'column',
@@ -902,22 +955,72 @@ const styles = StyleSheet.create({
     ...Shadow.sm,
   },
   waiterRowMine: {
-    borderColor: Colors.accent,
-    borderWidth: 1.5,
-    backgroundColor: 'rgba(216, 164, 74, 0.08)',
+    borderColor: '#10B981',
+    borderWidth: 2,
+    backgroundColor: 'rgba(16, 185, 129, 0.08)',
     ...Shadow.md,
   },
-  waiterSummary: { flexDirection: 'row', alignItems: 'center' },
-  waiterName: { fontSize: Typography.base, fontWeight: '600', color: Colors.textPrimary, flexWrap: 'wrap' },
-  waiterNameMine: { color: Colors.accentDark, fontWeight: '700' },
-  youBadge: {
-    backgroundColor: Colors.accent,
+  mySpotHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: Spacing.xs,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(16, 185, 129, 0.2)',
+    marginBottom: 2,
+  },
+  mySpotPill: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 4,
+    borderRadius: Radius.full,
+  },
+  mySpotPillText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: Typography.xs,
+    letterSpacing: 0.3,
+  },
+  myTurnNowPill: {
+    backgroundColor: '#059669',
     paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: Radius.full,
+  },
+  myTurnNowText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: Typography.xs,
+  },
+  waiterSummary: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  waiterName: { fontSize: Typography.base, fontWeight: '600', color: Colors.textPrimary, flexWrap: 'wrap' },
+  waiterNameMine: { color: '#065F46', fontWeight: '800', fontSize: Typography.lg },
+  spotNumberPill: {
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: Radius.full,
-    marginStart: Spacing.sm,
   },
-  youBadgeText: { color: Colors.accentContrast, fontSize: Typography.xs, fontWeight: '700' },
+  spotNumberPillText: { fontSize: Typography.xs, fontWeight: '700', color: Colors.textSecondary },
+  otherSpotNumber: { fontSize: Typography.xs, fontWeight: '700', color: Colors.textMuted },
+  statusWaitingMine: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.35)',
+  },
+  statusWaitingMineText: {
+    color: '#047857',
+    fontWeight: '700',
+  },
+  waitChipMine: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.35)',
+  },
+  waitChipMineText: {
+    color: '#047857',
+    fontWeight: '700',
+  },
   myRowActions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -925,7 +1028,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: Colors.surfaceBorder,
+    borderTopColor: 'rgba(16, 185, 129, 0.2)',
   },
   swapActionBtn: {
     flex: 1,
@@ -934,15 +1037,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.accent,
-    paddingVertical: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#10B981',
+    paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: Radius.md,
   },
-  swapActionIcon: { fontSize: 16, color: Colors.accentDark, fontWeight: '700' },
-  swapActionText: { fontSize: Typography.xs, color: Colors.accentDark, fontWeight: '700' },
+  swapActionIcon: { fontSize: 16, color: '#047857', fontWeight: '800' },
+  swapActionText: { fontSize: Typography.xs, color: '#047857', fontWeight: '800' },
   leaveActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -951,12 +1054,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
     borderWidth: 1,
     borderColor: 'rgba(239, 68, 68, 0.3)',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     borderRadius: Radius.md,
   },
-  leaveActionIcon: { fontSize: 12, color: Colors.danger, fontWeight: '700' },
-  leaveActionText: { fontSize: Typography.xs, color: Colors.danger, fontWeight: '600' },
+  leaveActionIcon: { fontSize: 13, color: Colors.danger, fontWeight: '700' },
+  leaveActionText: { fontSize: Typography.xs, color: Colors.danger, fontWeight: '700' },
   waiterMetaRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
 
   // .status-chip — rounded-full px-3 py-1 text-xs font-semibold

@@ -29,6 +29,7 @@ import {
   apiUpdateMetadata,
   getOwnerToken,
   clearOwnerToken,
+  apiAddWalkInCustomer,
 } from '../features/queue/services/api';
 import { SettingsSchema } from '../features/queue/validations/settings.schema';
 import { useToast } from '../components/Toast';
@@ -241,6 +242,9 @@ export default function OwnerDashboardScreen({ navigation, route }: Props) {
   const [showSettings, setShowSettings] = useState(false);
   const [pendingServeIds, setPendingServeIds] = useState<Set<number>>(() => new Set());
   const serveTimers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
+  const [walkInModalVisible, setWalkInModalVisible] = useState(false);
+  const [walkInPosition, setWalkInPosition] = useState<number | null>(null);
+  const [walkInLoading, setWalkInLoading] = useState(false);
 
   useEffect(() => {
     const stored = getOwnerToken(queueIdStr);
@@ -412,6 +416,32 @@ export default function OwnerDashboardScreen({ navigation, route }: Props) {
     );
   };
 
+  const addWalkInCustomer = async () => {
+    if (!token) return;
+    setWalkInLoading(true);
+    try {
+      const result = await apiAddWalkInCustomer({ QueueId: queueIdStr, Position: walkInPosition, token });
+      const cId = result?.Id ?? result?.id;
+      const cName = result?.Name ?? result?.name;
+      const cState = (result?.State ?? result?.state ?? 'waiting') as Status;
+      const cCreatedAt = result?.CreatedAt ?? result?.createdAt ?? new Date().toISOString();
+      showSuccess(t('queue.walkInAdded', 'Walk-in customer added'));
+      if (cId) {
+        setCustomers(prev => {
+          if (prev.find(x => x.Id === cId)) return prev;
+          return [...prev, { Id: cId, Name: cName, Status: cState, CreatedAt: cCreatedAt, PhoneNumber: '0000000000' }]
+            .sort((a, b) => RANK[a.Status] - RANK[b.Status] || new Date(a.CreatedAt).getTime() - new Date(b.CreatedAt).getTime());
+        });
+      }
+      setWalkInModalVisible(false);
+      setWalkInPosition(null);
+    } catch (e) {
+      Alert.alert(t('common.error'), (e as Error).message);
+    } finally {
+      setWalkInLoading(false);
+    }
+  };
+
   if (loading) return (
     <SafeAreaView style={styles.center}>
       <ActivityIndicator size='large' color={Colors.accent} />
@@ -529,6 +559,14 @@ export default function OwnerDashboardScreen({ navigation, route }: Props) {
                 activeOpacity={0.85}
               >
                 <AppText style={styles.addCustomerBtnText}>+ {t('queue.addCustomer', 'Add customer')}</AppText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.addWalkInBtn}
+                onPress={() => { setWalkInPosition(null); setWalkInModalVisible(true); }}
+                activeOpacity={0.85}
+              >
+                <AppText style={styles.addWalkInBtnText}>+ {t('queue.addWalkIn', 'Add walk-in customer')}</AppText>
+                <AppText style={styles.addWalkInSubtitle}>{t('queue.walkInGuestLabel', 'Guest - Added by owner')}</AppText>
               </TouchableOpacity>
 
               <View style={styles.statsRow}>
@@ -657,6 +695,59 @@ export default function OwnerDashboardScreen({ navigation, route }: Props) {
           );
         }}
       />
+
+      <Modal
+        visible={walkInModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => !walkInLoading && setWalkInModalVisible(false)}
+      >
+        <View style={styles.walkInBackdrop}>
+          <View style={styles.walkInModal}>
+            <View style={styles.walkInModalHeader}>
+              <View>
+                <AppText style={styles.walkInModalTitle}>{t('queue.addWalkIn', 'Add walk-in customer')}</AppText>
+                <AppText style={styles.walkInSubtitle}>{t('queue.walkInGuestLabel', 'Guest - Added by owner')} · {t('queue.walkInGuestArabic', 'زبون في المحل')}</AppText>
+              </View>
+              <TouchableOpacity onPress={() => setWalkInModalVisible(false)} disabled={walkInLoading} accessibilityRole="button" accessibilityLabel={t('common.cancel', 'Cancel')}>
+                <AppText style={styles.walkInClose}>✕</AppText>
+              </TouchableOpacity>
+            </View>
+            <AppText style={styles.walkInPositionLabel}>{t('queue.walkInPosition', 'Position in queue')}</AppText>
+            <ScrollView style={styles.walkInOptions}>
+              {Array.from({ length: waiting + 1 }, (_, position) => (
+                <TouchableOpacity
+                  key={position}
+                  style={[styles.walkInOption, walkInPosition === position && styles.walkInOptionSelected]}
+                  onPress={() => setWalkInPosition(position)}
+                  activeOpacity={0.8}
+                >
+                  <AppText style={[styles.walkInOptionText, walkInPosition === position && styles.walkInOptionTextSelected]}>
+                    {position === 0 ? `🥇 ${t('queue.walkInPositionFront', 'Front of queue')} (#1)` : `#${position + 1}`}
+                  </AppText>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                style={[styles.walkInOption, walkInPosition === null && styles.walkInOptionSelected]}
+                onPress={() => setWalkInPosition(null)}
+                activeOpacity={0.8}
+              >
+                <AppText style={[styles.walkInOptionText, walkInPosition === null && styles.walkInOptionTextSelected]}>
+                  📋 {t('queue.walkInPositionEnd', 'End of queue')}
+                </AppText>
+              </TouchableOpacity>
+            </ScrollView>
+            <View style={styles.walkInModalActions}>
+              <TouchableOpacity style={styles.walkInCancelBtn} onPress={() => setWalkInModalVisible(false)} disabled={walkInLoading} activeOpacity={0.8}>
+                <AppText style={styles.walkInCancelText}>{t('common.cancel', 'Cancel')}</AppText>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.walkInConfirmBtn, walkInLoading && styles.actionDisabled]} onPress={addWalkInCustomer} disabled={walkInLoading} activeOpacity={0.85}>
+                {walkInLoading ? <ActivityIndicator size="small" color={Colors.accentContrast} /> : <AppText style={styles.walkInConfirmText}>{t('queue.addWalkIn', 'Add walk-in customer')}</AppText>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <SettingsModal
         visible={showSettings}
@@ -837,6 +928,19 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: Typography.sm,
   },
+  addWalkInBtn: {
+    alignSelf: 'stretch',
+    paddingVertical: 10,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadow.sm,
+  },
+  addWalkInBtnText: { color: Colors.accent, fontWeight: '800', fontSize: Typography.sm },
+  addWalkInSubtitle: { color: Colors.textMuted, fontSize: Typography.xs, marginTop: 2 },
   statsRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -998,6 +1102,23 @@ const styles = StyleSheet.create({
   emptyEmoji: { fontSize: 32 },
   emptyTitle: { fontSize: Typography.lg, fontWeight: '700', color: Colors.textPrimary, textAlign: 'center' },
   emptyText: { color: Colors.textMuted, fontSize: Typography.sm, textAlign: 'center', lineHeight: 20 },
+  walkInBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.48)', justifyContent: 'center', padding: Spacing.base },
+  walkInModal: { backgroundColor: Colors.bgPrimary, borderRadius: Radius.lg, padding: Spacing.base, maxHeight: '80%', ...Shadow.glow },
+  walkInModalHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: Spacing.sm, marginBottom: Spacing.base },
+  walkInModalTitle: { color: Colors.textPrimary, fontSize: Typography.lg, fontWeight: '800' },
+  walkInSubtitle: { color: Colors.textMuted, fontSize: Typography.xs, marginTop: 3 },
+  walkInClose: { color: Colors.textMuted, fontSize: Typography.lg, paddingHorizontal: Spacing.xs },
+  walkInPositionLabel: { color: Colors.textSecondary, fontSize: Typography.sm, fontWeight: '700', marginBottom: Spacing.xs },
+  walkInOptions: { maxHeight: 280 },
+  walkInOption: { padding: Spacing.md, borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.surfaceBorder, backgroundColor: Colors.surface, marginVertical: 3 },
+  walkInOptionSelected: { borderColor: Colors.accent, backgroundColor: Colors.surfaceHover },
+  walkInOptionText: { color: Colors.textPrimary, fontSize: Typography.sm, fontWeight: '600' },
+  walkInOptionTextSelected: { color: Colors.accent, fontWeight: '800' },
+  walkInModalActions: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.md },
+  walkInCancelBtn: { paddingHorizontal: Spacing.md, paddingVertical: 12, borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.surfaceBorder, justifyContent: 'center' },
+  walkInCancelText: { color: Colors.textSecondary, fontWeight: '700' },
+  walkInConfirmBtn: { flex: 1, paddingHorizontal: Spacing.md, paddingVertical: 12, borderRadius: Radius.md, backgroundColor: Colors.accent, alignItems: 'center', justifyContent: 'center' },
+  walkInConfirmText: { color: Colors.accentContrast, fontWeight: '800', textAlign: 'center' },
 });
 
 const modal = StyleSheet.create({

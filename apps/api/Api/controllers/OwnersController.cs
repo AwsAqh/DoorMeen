@@ -91,6 +91,16 @@ namespace Api.Controllers
         }
 
 
+        public sealed record AddWalkInDTO(int? Position);
+
+        [Authorize(Policy = "OwnerOfQueue")]
+        [HttpPost("add-walkin/{queueId}")]
+        public async Task<ActionResult> AddWalkInCustomer(string queueId, [FromBody] AddWalkInDTO? req)
+        {
+            var customer = await _service.AddWalkInCustomer(queueId, req?.Position);
+            return Created("", new { Id = customer.Id, Name = customer.Name, State = customer.State, CreatedAt = customer.CreatedAt });
+        }
+
         [Authorize(Policy = "OwnerOfQueue")]
         [HttpPut("change-password/{queueId}")]
         public async Task<ActionResult> ChangeQueuePassword(string queueId, [FromBody] ChangePasswordDTO req)

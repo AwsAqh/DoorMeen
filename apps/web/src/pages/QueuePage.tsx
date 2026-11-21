@@ -16,6 +16,7 @@ import QueueNotFound from "@/components/QueueNotFound";
 import NoCustomersFound from "@/components/NoCustomersFound";
 
 import AddIcon from "@mui/icons-material/Add";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import RemoveRedEyeIcon from '@mui/icons-material/RemoveRedEye';
 import ModeEditIcon from '@mui/icons-material/ModeEdit';
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -33,7 +34,7 @@ import { CancelData, handleCancel } from "@/features/queue/handlers/cancel";
 import { GetData, handleGetCustomers } from "@/features/queue/handlers/getCustomers";
 import { UpdateData, handleupdateStatus } from "@/features/queue/handlers/update";
 import { GetOwnerCustomersData, handleGetOwnerCustomers } from "@/features/queue/handlers/getOwnerCustomers";
-import { apiUpdateOwnerMessage, apiUpdateAvgServiceTime, apiUpdateBarberPhoneNumber, apiUpdateLocation, apiUpdateMetadata, apiSnoozeRegistration, apiUpdateClosingTime } from "@/features/queue/services/api";
+import { apiUpdateOwnerMessage, apiUpdateAvgServiceTime, apiUpdateBarberPhoneNumber, apiUpdateLocation, apiUpdateMetadata, apiSnoozeRegistration, apiUpdateClosingTime, apiAddWalkInCustomer } from "@/features/queue/services/api";
 import { handleServeCustomer } from "@/features/queue/handlers/serveCustomer";
 import { handleUpdateMaxCustomers } from "@/features/queue/handlers/updateMaxCustomers";
 import { handleUpdateQueueName, UpdateQueueNameData } from "@/features/queue/handlers/updateQueueName";
@@ -353,6 +354,38 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
       toast.success(t('common.success'), { className: CLASS });
     } catch (err) {
       toast.error(getErrorMessage(err), { className: CLASS });
+    }
+  };
+
+  const [walkInOpen, setWalkInOpen] = useState(false);
+  const [walkInPosition, setWalkInPosition] = useState<number | null>(null);
+  const [walkInLoading, setWalkInLoading] = useState(false);
+
+  const addWalkInCustomer = async () => {
+    const token = localStorage.getItem(`queue${currentQueueId} token`);
+    if (!token) return;
+
+    const id = toast.loading(t('queue.addingWalkIn', 'Adding customer...'), { className: CLASS, duration: Infinity });
+    setWalkInLoading(true);
+    try {
+      const result = await apiAddWalkInCustomer({ QueueId: currentQueueId, Position: walkInPosition, token });
+      const cId = result?.Id ?? result?.id;
+      const cName = result?.Name ?? result?.name;
+      const cState = result?.State ?? result?.state ?? "waiting";
+      const cCreatedAt = result?.CreatedAt ?? result?.createdAt;
+      toast.success(t('queue.walkInAdded', 'Walk-in customer added'), { id, className: CLASS, duration: 2500 });
+      if (cId) {
+        setUsers(prev => {
+          if (prev.some(u => u.Id === cId)) return prev;
+          return sortUsers([...prev, { Id: cId, QueueId: currentQueueId, Name: cName, PhoneNumber: "", State: cState, CreatedAt: cCreatedAt ? new Date(cCreatedAt) : new Date() }]);
+        });
+      }
+      setWalkInOpen(false);
+      setWalkInPosition(null);
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err), { className: CLASS, duration: 5000, id });
+    } finally {
+      setWalkInLoading(false);
     }
   };
 
@@ -886,6 +919,17 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
 
                   {/* Action Buttons */}
                   <div className="flex flex-wrap items-center justify-center gap-3 w-full">
+                  {mode === "owner" && (
+                    <motion.button
+                      className="btn-primary px-5 py-3 rounded-xl flex items-center gap-2"
+                      onClick={() => setWalkInOpen(true)}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <PersonAddIcon fontSize="small" />
+                      <span>{t('queue.addWalkIn', 'Add walk-in customer')}</span>
+                    </motion.button>
+                  )}
                   <motion.button
                     className="btn-primary px-6 py-3 rounded-xl"
                     onClick={() => {
@@ -1203,6 +1247,95 @@ export default function QueuePage({ mode }: { mode: PageMode }) {
                 thirdInputRef={thirdInputRef}
                 type={popupMode}
               />
+
+              {/* Walk-in Customer Modal */}
+              <AnimatePresence>
+                {walkInOpen && (
+                  <motion.div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <div
+                      className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                      onClick={() => { setWalkInOpen(false); setWalkInPosition(null); }}
+                    />
+                    <motion.div
+                      className="relative w-full max-w-sm rounded-2xl p-6 space-y-5"
+                      style={{
+                        background: 'var(--dm-bg-primary)',
+                        border: '1px solid var(--dm-surface-border)',
+                        boxShadow: 'var(--dm-shadow-xl)',
+                      }}
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.9, opacity: 0 }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-xl" style={{ background: 'var(--dm-accent-glow)', color: 'var(--dm-accent)' }}>
+                          <PersonAddIcon />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold" style={{ color: 'var(--dm-text-primary)' }}>
+                            {t('queue.addWalkIn', 'Add walk-in customer')}
+                          </h3>
+                          <p className="text-xs" style={{ color: 'var(--dm-text-muted)' }}>
+                            زبون في المحل
+                          </p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--dm-text-secondary)' }}>
+                          {t('queue.walkInPosition', 'Position in queue')}
+                        </label>
+                        <select
+                          value={walkInPosition === null ? "end" : String(walkInPosition)}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setWalkInPosition(val === "end" ? null : Number(val));
+                          }}
+                          className="w-full appearance-none rounded-xl px-4 py-3 text-sm font-medium transition-colors cursor-pointer outline-none"
+                          style={{
+                            background: 'var(--dm-surface)',
+                            color: 'var(--dm-text-primary)',
+                            border: '1px solid var(--dm-surface-border)',
+                          }}
+                        >
+                          <option value="0">🥇 {t('queue.walkInPositionFront', 'Front of queue')} (#1)</option>
+                          {users.filter(u => u.State === "waiting").map((_u, idx) => (
+                            <option key={idx + 1} value={idx + 1}>
+                              #{idx + 2}
+                            </option>
+                          ))}
+                          <option value="end">📋 {t('queue.walkInPositionEnd', 'End of queue')}</option>
+                        </select>
+                      </div>
+
+                      <div className="flex gap-3 pt-2">
+                        <motion.button
+                          onClick={addWalkInCustomer}
+                          disabled={walkInLoading}
+                          className="flex-1 btn-primary px-4 py-3 rounded-xl font-semibold text-sm disabled:opacity-50"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          {walkInLoading ? t('queue.addingWalkIn', 'Adding...') : t('queue.addWalkIn', 'Add walk-in customer')}
+                        </motion.button>
+                        <motion.button
+                          onClick={() => { setWalkInOpen(false); setWalkInPosition(null); }}
+                          className="btn-outline px-4 py-3 rounded-xl font-semibold text-sm"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          {t('common.cancel')}
+                        </motion.button>
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </>
           )}
         </div>

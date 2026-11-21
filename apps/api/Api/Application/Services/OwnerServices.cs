@@ -183,6 +183,74 @@ namespace Api.Application.Services
         }
 
        
+        public async Task<Api.models.QueueCustomer> AddWalkInCustomer(string queueId, int? position)
+        {
+            var queue = await _db.Queues.SingleOrDefaultAsync(q => q.Id == queueId)
+                        ?? throw new KeyNotFoundException($"Queue {queueId} not found.");
+
+            // Count existing walk-in guests to auto-number them
+            var existingGuestCount = await _db.QueueCustomers
+                .CountAsync(c => c.QueueId == queueId && c.Name.StartsWith("Guset - Added by owner"));
+
+            var guestNumber = existingGuestCount + 1;
+            var guestName = $"Guset - Added by owner ({guestNumber})";
+
+            // Determine CreatedAt based on desired position
+            DateTime createdAt;
+            if (position.HasValue && position.Value >= 0)
+            {
+                var waitingCustomers = await _db.QueueCustomers
+                    .Where(c => c.QueueId == queueId && c.State == "waiting")
+                    .OrderBy(c => c.CreatedAt)
+                    .ToListAsync();
+
+                if (position.Value == 0 || waitingCustomers.Count == 0)
+                {
+                    var earliest = waitingCustomers.FirstOrDefault();
+                    createdAt = earliest != null ? earliest.CreatedAt.AddMilliseconds(-1) : DateTime.UtcNow;
+                }
+                else if (position.Value >= waitingCustomers.Count)
+                {
+                    createdAt = DateTime.UtcNow;
+                }
+                else
+                {
+                    var before = waitingCustomers[position.Value - 1].CreatedAt;
+                    var after = waitingCustomers[position.Value].CreatedAt;
+                    createdAt = before.AddTicks((after.Ticks - before.Ticks) / 2);
+                }
+            }
+            else
+            {
+                createdAt = DateTime.UtcNow;
+            }
+
+            var customer = new Api.models.QueueCustomer
+            {
+                QueueId = queueId,
+                Name = guestName,
+                Phone = "0000000000",
+                State = "waiting",
+                CreatedAt = createdAt,
+                CancelTokenHash = null,
+                IsEmailVerified = false,
+            };
+
+            _db.QueueCustomers.Add(customer);
+            await _db.SaveChangesAsync();
+
+            await _hub.Clients.Group(queueId).SendAsync("CustomerJoined", new
+            {
+                Id = customer.Id,
+                QueueId = customer.QueueId,
+                Name = customer.Name,
+                State = customer.State,
+                CreatedAt = customer.CreatedAt
+            });
+
+            return customer;
+        }
+
         public async Task ChangeQueuePassword(string queueId, string newPassword)
         {
             var queue = await _db.Queues.FindAsync([queueId]);

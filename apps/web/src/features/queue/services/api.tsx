@@ -34,7 +34,7 @@ export async function apiCreateQueue(input: { name: string; password: string; em
   return body ?? true;
 }
 
-export async function apiJoinQueue(input: { QueueId: string, Name: string; PhoneNumber: string, Email: string }) {
+export async function apiJoinQueue(input: { QueueId: string, Name: string; PhoneNumber: string, Email?: string }) {
 
   const res = await fetch(`${API}/api/queuecustomers/joinQueue`, { method: "POST", headers: { "Content-type": "application/json" }, body: JSON.stringify(input) })
   const body = await readBody(res);
@@ -295,6 +295,26 @@ export async function apiUpdateClosingTime(input: { QueueId: string, timeString:
   const body = await readBody(res);
   if (!res.ok) {
     const msg = typeof body === "string" ? body : body?.message || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+
+  return body ?? true;
+}
+
+
+export async function apiAddWalkInCustomer(input: { QueueId: string, Position?: number | null, token: string }) {
+  const res = await fetch(`${API}/api/owners/add-walkin/${input.QueueId}`, {
+    method: "POST",
+    headers: { "Content-type": "application/json", "Authorization": `Bearer ${input.token}` },
+    body: JSON.stringify({ Position: input.Position ?? null })
+  });
+
+  const body = await readBody(res);
+  if (!res.ok) {
+    const msg =
+      typeof body === "string"
+        ? body
+        : body?.message || body?.detail || body?.title || `HTTP ${res.status}`;
     throw new Error(msg);
   }
 

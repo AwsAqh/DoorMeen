@@ -321,3 +321,15 @@ export async function apiSetQueuePushNotification(input: { queueId: string; cust
   });
   if (!res.ok) throw new ApiError(res.status, errorMessage(await readBody(res), 'Failed to update notification settings'));
 }
+
+
+export async function apiAddWalkInCustomer(input: { QueueId: string; Position?: number | null; token: string }) {
+  const res = await fetch(`${API}/api/owners/add-walkin/${input.QueueId}`, {
+    method: 'POST',
+    headers: { 'Content-type': 'application/json', Authorization: `Bearer ${input.token}` },
+    body: JSON.stringify({ Position: input.Position ?? null }),
+  });
+  const body = await readBody(res);
+  if (!res.ok) throw new ApiError(res.status, errorMessage(body, 'Failed to add walk-in customer'));
+  return body;
+}

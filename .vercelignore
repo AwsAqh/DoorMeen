@@ -1,0 +1,10 @@
+.git
+node_modules
+**/node_modules
+apps/api
+apps/mobile
+screenshots
+obj
+**/obj
+**/bin
+**/dist

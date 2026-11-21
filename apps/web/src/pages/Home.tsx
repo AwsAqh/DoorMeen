@@ -190,6 +190,16 @@ const Home = () => {
               >
                 {t('home.scanQR')}
               </motion.a>
+
+              <motion.a
+                href="https://github.com/AwsAqh/DoorMeen/releases/download/v1.0.0/DoorMeen-1.0.0-release.apk"
+                download="DoorMeen-Android.apk"
+                className="btn-outline text-lg px-8 py-4 rounded-xl font-semibold text-center"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                ↓ {t('home.downloadAndroid')}
+              </motion.a>
             </motion.div>
 
             {/* Features List */}

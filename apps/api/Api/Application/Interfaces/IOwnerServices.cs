@@ -1,4 +1,4 @@
-﻿using Api.Infrastructuer.resDTO;
+using Api.Infrastructuer.resDTO;
 
 namespace Api.Application.Interfaces
 {
@@ -11,6 +11,8 @@ namespace Api.Application.Interfaces
         Task RevertCustomerToWaiting(string queueId, int customerId);
 
         Task ServeCustomer (string queueId,int customerId);
+
+        Task<Api.models.QueueCustomer> AddWalkInCustomer(string queueId, int? position);
 
         Task ChangeQueuePassword (string queueId,string newPassword);
 
